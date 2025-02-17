@@ -106,11 +106,7 @@ namespace topgg {
   public:
     bot() = delete;
 
-    /**
-     * @brief The Discord bot's discriminator.
-     *
-     * @since 2.0.0
-     */
+    [[deprecated("No longer supported by Top.gg API v0. At the moment, this will always be '0'.")]]
     std::string discriminator;
 
     /**
@@ -163,11 +159,7 @@ namespace topgg {
      */
     std::vector<dpp::snowflake> owners;
 
-    /**
-     * @brief A list of IDs of the guilds featured on this Discord bot’s page.
-     *
-     * @since 2.0.0
-     */
+    [[deprecated("No longer supported by Top.gg API v0. At the moment, this will always be an empty vector.")]]
     std::vector<size_t> guilds;
 
     /**
@@ -184,18 +176,10 @@ namespace topgg {
      */
     time_t approved_at;
 
-    /**
-     * @brief Whether this Discord bot is Top.gg certified or not.
-     *
-     * @since 2.0.0
-     */
+    [[deprecated("No longer supported by Top.gg API v0. At the moment, this will always be false.")]]
     bool is_certified;
 
-    /**
-     * @brief A list of this Discord bot’s shards.
-     *
-     * @since 2.0.0
-     */
+    [[deprecated("No longer supported by Top.gg API v0. At the moment, this will always be an empty vector.")]]
     std::vector<size_t> shards;
 
     /**
@@ -219,11 +203,7 @@ namespace topgg {
      */
     std::optional<std::string> support;
 
-    /**
-     * @brief The amount of shards this Discord bot has according to posted stats.
-     *
-     * @since 2.0.0
-     */
+    [[deprecated("No longer supported by Top.gg API v0. At the moment, this will always be 0.")]]
     size_t shard_count;
 
     /**
@@ -243,21 +223,10 @@ namespace topgg {
     friend class client;
   };
 
-  /**
-   * @brief Represents a Discord bot’s statistics.
-   *
-   * @see topgg::voter
-   * @see topgg::client::get_stats
-   * @see topgg::client::post_stats
-   * @see topgg::client::start_autoposter
-   * @since 2.0.0
-   */
-  class TOPGG_EXPORT stats {
+  
+  class TOPGG_EXPORT [[deprecated("No longer has a use by Top.gg API v0. Soon, all you need is just your bot's server count (usize).")]] stats {
     stats(const dpp::json& j);
 
-    std::optional<size_t> m_shard_count;
-    std::optional<std::vector<size_t>> m_shards;
-    std::optional<size_t> m_shard_id;
     std::optional<size_t> m_server_count;
 
     std::string to_json() const;

@@ -89,7 +89,7 @@ account::account(const dpp::json& j) {
 
     avatar = "https://cdn.discordapp.com/avatars/" + std::to_string(id) + "/" + hash + "." + ext + "?size=1024";
   } catch (TOPGG_UNUSED const std::exception&) {
-    avatar = "https://cdn.discordapp.com/embed/avatars/" + std::to_string((id >> 22) % 5) + ".png";
+    avatar = "https://cdn.discordapp.com/embed/avatars/" + std::to_string((id >> 22) % 6) + ".png";
   }
 
   created_at = static_cast<time_t>(((id >> 22) / 1000) + 1420070400);
@@ -97,7 +97,9 @@ account::account(const dpp::json& j) {
 
 bot::bot(const dpp::json& j)
   : account(j), url("https://top.gg/bot/") {
-  DESERIALIZE(j, discriminator, std::string);
+  // TODO: remove this soon
+  m_discriminator = "0";
+  
   DESERIALIZE(j, prefix, std::string);
   DESERIALIZE_ALIAS(j, shortdesc, short_description, std::string);
   DESERIALIZE_OPTIONAL_STRING_ALIAS(j, longdesc, long_description);
@@ -115,7 +117,6 @@ bot::bot(const dpp::json& j)
     }
   });
 
-  DESERIALIZE_VECTOR(j, guilds, size_t);
   DESERIALIZE_OPTIONAL_STRING_ALIAS(j, bannerUrl, banner);
 
   const auto j_approved_at = j["date"].template get<std::string>();
@@ -124,8 +125,9 @@ bot::bot(const dpp::json& j)
   strptime(j_approved_at.data(), "%Y-%m-%dT%H:%M:%S", &approved_at_tm);
   approved_at = mktime(&approved_at_tm);
 
-  DESERIALIZE_ALIAS(j, certifiedBot, is_certified, bool);
-  DESERIALIZE_VECTOR(j, shards, size_t);
+  // TODO: remove this soon
+  m_is_certified = false;
+
   DESERIALIZE_ALIAS(j, points, votes, size_t);
   DESERIALIZE_ALIAS(j, monthlyPoints, monthly_votes, size_t);
 
@@ -143,11 +145,8 @@ bot::bot(const dpp::json& j)
     }
   });
 
-  try {
-    DESERIALIZE(j, shard_count, size_t);
-  } catch (TOPGG_UNUSED const std::exception&) {
-    shard_count = shards.size();
-  }
+  // TODO: remove this soon
+  shard_count = 0;
 
   try {
     url.append(j["vanity"].template get<std::string>());
@@ -157,74 +156,43 @@ bot::bot(const dpp::json& j)
 }
 
 stats::stats(const dpp::json& j) {
-  DESERIALIZE_PRIVATE_OPTIONAL(j, shard_count, size_t);
   DESERIALIZE_PRIVATE_OPTIONAL(j, server_count, size_t);
-  DESERIALIZE_PRIVATE_OPTIONAL(j, shards, std::vector<size_t>);
-  DESERIALIZE_PRIVATE_OPTIONAL(j, shard_id, size_t);
 }
 
 stats::stats(dpp::cluster& bot) {
-  std::vector<size_t> shards_server_count{};
   size_t servers{};
   
-  shards_server_count.reserve(bot.numshards);
-  
   for (auto& s: bot.get_shards()) {
-    const auto server_count = s.second->get_guild_count();
-    
-    servers += server_count;
-    shards_server_count.push_back(server_count);
+    servers += s.second->get_guild_count();
   }
   
   m_server_count = std::optional{servers};
-  m_shards = std::optional{shards_server_count};
-  m_shard_id = std::optional{0};
-  m_shard_count = std::optional{bot.numshards};
 }
 
-stats::stats(const std::vector<size_t>& shards, const size_t shard_index)
-  : m_shards(std::optional{shards}), m_server_count(std::optional{std::reduce(shards.begin(), shards.end())}) {
-  if (shard_index >= shards.size()) {
-    throw std::out_of_range{"Shard index out of bounds from the given shards array."};
-  }
-
-  m_shard_id = std::optional{shard_index};
-  m_shard_count = std::optional{shards.size()};
+// TODO: remove this soon
+stats::stats(const std::vector<size_t>& shards, const TOPGG_UNUSED size_t shard_index)
+  : m_shards(std::nullopt), m_server_count(std::optional{std::reduce(shards.begin(), shards.end())}) {
+  m_shard_id = 0;
 }
 
 std::string stats::to_json() const {
   dpp::json j;
 
-  SERIALIZE_PRIVATE_OPTIONAL(j, shard_count);
   SERIALIZE_PRIVATE_OPTIONAL(j, server_count);
-  SERIALIZE_PRIVATE_OPTIONAL(j, shards);
-  SERIALIZE_PRIVATE_OPTIONAL(j, shard_id);
 
   return j.dump();
 }
 
 std::vector<size_t> stats::shards() const noexcept {
-  return m_shards.value_or(std::vector<size_t>{});
+  return std::vector{};
 }
 
 size_t stats::shard_count() const noexcept {
-  return m_shard_count.value_or(shards().size());
+  return 0;
 }
 
 std::optional<size_t> stats::server_count() const noexcept {
-  if (m_server_count.has_value()) {
-    return m_server_count;
-  } else {
-    IGNORE_EXCEPTION({
-      const auto& shards = m_shards.value();
-
-      if (shards.size() > 0) {
-        return std::optional{std::reduce(shards.begin(), shards.end())};
-      }
-    });
-
-    return std::nullopt;
-  }
+  return m_server_count;
 }
 
 user_socials::user_socials(const dpp::json& j) {
