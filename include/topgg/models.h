@@ -27,6 +27,24 @@
 #undef _XOPEN_SOURCE
 #endif
 
+#define TOPGG_BOT_QUERY_SORT(lib_name, api_name)    \
+  inline bot_query& sort_by_##lib_name() noexcept { \
+    m_sort = #api_name;                             \
+    return *this;                                   \
+  }
+
+#define TOPGG_BOT_QUERY_QUERY(type, name, ...)   \
+  inline bot_query& name(const type name) {      \
+    add_query(#name, name, __VA_ARGS__);         \
+    return *this;                                \
+  }
+
+#define TOPGG_BOT_QUERY_SEARCH(type, name, ...)  \
+  inline bot_query& name(const type name) {      \
+    add_search(#name, name, __VA_ARGS__);        \
+    return *this;                                \
+  }
+
 namespace topgg {
   /**
    * @brief Base class of the account data stored in the Top.gg API.
@@ -73,6 +91,7 @@ namespace topgg {
     time_t created_at;
   };
 
+  class bot_query;
   class client;
 
   /**
@@ -220,10 +239,43 @@ namespace topgg {
      */
     std::string url;
 
+    friend class bot_query;
     friend class client;
   };
 
+  using get_bots_completion_t = std::function<void(const result<std::vector<bot>>&)>;
+
+  class TOPGG_EXPORT bot_query {
+    client* m_client;
+    std::string m_query;
+    std::string m_search;
+    const char* m_sort;
   
+    inline bot_query(client* c): m_client(c), m_query("/bots?"), m_sort(nullptr) {}
+    
+    void add_query(const char* key, const uint16_t value, const uint16_t max);
+    void add_query(const char* key, const char* value);
+    void add_search(const char* key, const std::string& value);
+    void add_search(const char* key, const size_t value);
+
+  public:
+    bot_query() = delete;
+
+    TOPGG_BOT_QUERY_SORT(approval_date, date);
+    TOPGG_BOT_QUERY_SORT(monthly_votes, monthlyPoints);
+    TOPGG_BOT_QUERY_QUERY(uint16_t, limit, 500);
+    TOPGG_BOT_QUERY_QUERY(uint16_t, skip, 499);
+    TOPGG_BOT_QUERY_SEARCH(std::string&, username);
+    TOPGG_BOT_QUERY_SEARCH(std::string&, prefix);
+    TOPGG_BOT_QUERY_SEARCH(size_t, votes);
+    TOPGG_BOT_QUERY_SEARCH(size_t, monthly_votes);
+    TOPGG_BOT_QUERY_SEARCH(std::string&, vanity);
+    
+    void finish(const get_bots_completion_t& callback);
+
+    friend class client;
+  };
+
   class TOPGG_EXPORT [[deprecated("No longer has a use by Top.gg API v0. Soon, all you need is just your bot's server count.")]] stats {
     stats(const dpp::json& j);
 
@@ -250,7 +302,7 @@ namespace topgg {
      * @since 2.0.0
      */
     inline stats(const size_t server_count, const size_t shard_count = 1)
-      : m_shard_count(std::optional{shard_count}), m_server_count(std::optional{server_count}) {}
+      : m_server_count(std::optional{server_count}) {}
 
     /**
      * @brief Creates a stats object based on the bot's shard data.
@@ -391,11 +443,7 @@ namespace topgg {
      */
     bool is_supporter;
 
-    /**
-     * @brief Whether this user is a Top.gg certified developer or not.
-     *
-     * @since 2.0.0
-     */
+    [[deprecated("No longer supported by Top.gg API v0. At the moment, this will always be false.")]]
     bool is_certified_dev;
 
     /**
@@ -422,3 +470,7 @@ namespace topgg {
     friend class client;
   };
 }; // namespace topgg
+
+#undef TOPGG_BOT_QUERY_SEARCH
+#undef TOPGG_BOT_QUERY_QUERY
+#undef TOPGG_BOT_QUERY_SORT

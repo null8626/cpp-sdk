@@ -2,6 +2,7 @@
 
 using topgg::account;
 using topgg::bot;
+using topgg::bot_query;
 using topgg::stats;
 using topgg::user;
 using topgg::user_socials;
@@ -78,6 +79,18 @@ static void strptime(const char* s, const char* f, tm* t) {
     }                                                             \
   })
 
+#define ADD_QUERY(key, value) \
+  m_query.append(key);        \
+  m_query.push_back('=');     \
+  m_query.append(value);      \
+  m_query.push_back('&')
+
+#define ADD_SEARCH(key, value) \
+  m_query.append(key);         \
+  m_query.append("%3A%20");    \
+  m_query.append(value);       \
+  m_query.append("%20")
+
 account::account(const dpp::json& j) {
   id = dpp::snowflake{j["id"].template get<std::string>()};
 
@@ -98,7 +111,7 @@ account::account(const dpp::json& j) {
 bot::bot(const dpp::json& j)
   : account(j), url("https://top.gg/bot/") {
   // TODO: remove this soon
-  m_discriminator = "0";
+  discriminator = "0";
   
   DESERIALIZE(j, prefix, std::string);
   DESERIALIZE_ALIAS(j, shortdesc, short_description, std::string);
@@ -126,7 +139,7 @@ bot::bot(const dpp::json& j)
   approved_at = mktime(&approved_at_tm);
 
   // TODO: remove this soon
-  m_is_certified = false;
+  is_certified = false;
 
   DESERIALIZE_ALIAS(j, points, votes, size_t);
   DESERIALIZE_ALIAS(j, monthlyPoints, monthly_votes, size_t);
@@ -155,6 +168,65 @@ bot::bot(const dpp::json& j)
   }
 }
 
+static std::string querystring(const std::string& value) {
+  static constexpr char hex[] = "0123456789abcdef";
+  std::string output{};
+
+  output.reserve(value.length());
+
+  for (size_t i = 0; i < value.length(); i++) {
+    const auto c = value[i];
+
+    if (('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || ('0' <= c && c <= '9')) {
+      output.push_back(c);
+    } else {
+      output.push_back('%');
+      output.push_back(hex[(c >> 4) & 0x0f]);
+      output.push_back(hex[c & 0x0f]);
+    }
+  }
+
+  return output;
+}
+
+void bot_query::add_query(const char* key, const uint16_t value, const uint16_t max) {
+  ADD_QUERY(key, std::to_string(std::min(value, max)));
+}
+
+void bot_query::add_query(const char* key, const char* value) {
+  ADD_QUERY(key, value); // querystring() not needed here
+}
+
+void bot_query::add_search(const char* key, const std::string& value) {
+  ADD_SEARCH(key, querystring(value));
+}
+
+void bot_query::add_search(const char* key, const size_t value) {
+  ADD_SEARCH(key, std::to_string(value));
+}
+
+void bot_query::finish(const topgg::get_bots_completion_t& callback) {
+  if (m_sort != nullptr) {
+    add_query("sort", m_sort);
+  }
+
+  if (!m_search.empty()) {
+    add_query("search", m_search.c_str());
+  }
+
+  m_query.pop_back();
+
+  m_client->basic_request<std::vector<topgg::bot>>(m_query, callback, [](const auto& j) {
+    std::vector<topgg::bot> bots;
+
+    for (const auto& part: j["results"].template get<std::vector<dpp::json>>()) {
+      bots.push_back(topgg::bot{part});
+    }
+
+    return bots;
+  });
+}
+
 stats::stats(const dpp::json& j) {
   DESERIALIZE_PRIVATE_OPTIONAL(j, server_count, size_t);
 }
@@ -171,9 +243,7 @@ stats::stats(dpp::cluster& bot) {
 
 // TODO: remove this soon
 stats::stats(const std::vector<size_t>& shards, const TOPGG_UNUSED size_t shard_index)
-  : m_shards(std::nullopt), m_server_count(std::optional{std::reduce(shards.begin(), shards.end())}) {
-  m_shard_id = 0;
-}
+  : m_server_count(std::optional{std::reduce(shards.begin(), shards.end())}) {}
 
 std::string stats::to_json() const {
   dpp::json j;
@@ -184,7 +254,7 @@ std::string stats::to_json() const {
 }
 
 std::vector<size_t> stats::shards() const noexcept {
-  return std::vector{};
+  return std::vector<size_t>{};
 }
 
 size_t stats::shard_count() const noexcept {
@@ -212,8 +282,10 @@ user::user(const dpp::json& j)
     socials = std::optional{user_socials{j["socials"].template get<dpp::json>()}};
   }
 
+  // TODO: remove this soon
+  is_certified_dev = false;
+
   DESERIALIZE_ALIAS(j, supporter, is_supporter, bool);
-  DESERIALIZE_ALIAS(j, certifiedDev, is_certified_dev, bool);
   DESERIALIZE_ALIAS(j, mod, is_moderator, bool);
   DESERIALIZE_ALIAS(j, webMod, is_web_moderator, bool);
   DESERIALIZE_ALIAS(j, admin, is_admin, bool);

@@ -209,6 +209,10 @@ namespace topgg {
     topgg::async_result<topgg::bot> co_get_bot(const dpp::snowflake bot_id);
 #endif
 
+    inline bot_query get_bots() noexcept {
+      return bot_query{this};
+    }
+
     /**
      * @brief Fetches a user from a Discord ID.
      *
@@ -721,5 +725,7 @@ namespace topgg {
      * @brief The destructor. Stops the autoposter if it's running.
      */
     ~client();
+
+    friend class bot_query;
   };
 }; // namespace topgg
