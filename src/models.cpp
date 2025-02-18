@@ -86,10 +86,10 @@ static void strptime(const char* s, const char* f, tm* t) {
   m_query.push_back('&')
 
 #define ADD_SEARCH(key, value) \
-  m_query.append(key);         \
-  m_query.append("%3A%20");    \
-  m_query.append(value);       \
-  m_query.append("%20")
+  m_search.append(key);        \
+  m_search.append("%3A%20");   \
+  m_search.append(value);      \
+  m_search.append("%20")
 
 account::account(const dpp::json& j) {
   id = dpp::snowflake{j["id"].template get<std::string>()};
