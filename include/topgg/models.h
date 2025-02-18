@@ -224,7 +224,7 @@ namespace topgg {
   };
 
   
-  class TOPGG_EXPORT [[deprecated("No longer has a use by Top.gg API v0. Soon, all you need is just your bot's server count (usize).")]] stats {
+  class TOPGG_EXPORT [[deprecated("No longer has a use by Top.gg API v0. Soon, all you need is just your bot's server count.")]] stats {
     stats(const dpp::json& j);
 
     std::optional<size_t> m_server_count;
