@@ -4,8 +4,8 @@
  * @brief The official C++ wrapper for the Top.gg API.
  * @authors Top.gg, null8626
  * @copyright Copyright (c) 2024 Top.gg & null8626
- * @date 2024-07-12
- * @version 2.0.0
+ * @date 2025-02-19
+ * @version 3.0.0
  */
 
 #pragma once
@@ -125,9 +125,6 @@ namespace topgg {
   public:
     bot() = delete;
 
-    [[deprecated("No longer supported by Top.gg API v0. At the moment, this will always be '0'.")]]
-    std::string discriminator;
-
     /**
      * @brief The Discord bot's command prefix.
      *
@@ -178,9 +175,6 @@ namespace topgg {
      */
     std::vector<dpp::snowflake> owners;
 
-    [[deprecated("No longer supported by Top.gg API v0. At the moment, this will always be an empty vector.")]]
-    std::vector<size_t> guilds;
-
     /**
      * @brief The Discord bot's page banner URL, if available.
      *
@@ -194,12 +188,6 @@ namespace topgg {
      * @since 2.0.0
      */
     time_t approved_at;
-
-    [[deprecated("No longer supported by Top.gg API v0. At the moment, this will always be false.")]]
-    bool is_certified;
-
-    [[deprecated("No longer supported by Top.gg API v0. At the moment, this will always be an empty vector.")]]
-    std::vector<size_t> shards;
 
     /**
      * @brief The amount of upvotes this Discord bot has.
@@ -222,9 +210,6 @@ namespace topgg {
      */
     std::optional<std::string> support;
 
-    [[deprecated("No longer supported by Top.gg API v0. At the moment, this will always be 0.")]]
-    size_t shard_count;
-
     /**
      * @brief The invite URL of this Discord bot.
      *
@@ -243,6 +228,13 @@ namespace topgg {
     friend class client;
   };
 
+  /**
+   * @brief The callback function to call when get_bots completes.
+   *
+   * @see topgg::client::get_bots
+   * @see topgg::bot_query
+   * @since 3.0.0
+   */
   using get_bots_completion_t = std::function<void(const result<std::vector<bot>>&)>;
 
   class TOPGG_EXPORT bot_query {
@@ -276,76 +268,9 @@ namespace topgg {
     friend class client;
   };
 
-  class TOPGG_EXPORT [[deprecated("No longer has a use by Top.gg API v0. Soon, all you need is just your bot's server count.")]] stats {
-    stats(const dpp::json& j);
-
-    std::optional<size_t> m_server_count;
-
-    std::string to_json() const;
-
+  class autoposter_source {
   public:
-    stats() = delete;
-
-    /**
-     * @brief Creates a stats object based on existing data from your D++ cluster instance.
-     *
-     * @param bot The D++ cluster instance.
-     * @since 2.0.0
-     */
-    stats(dpp::cluster& bot);
-
-    /**
-     * @brief Creates a stats object based on the bot's server and shard count.
-     *
-     * @param server_count The amount of servers this Discord bot has.
-     * @param shard_count The amount of shards this Discord bot has. Defaults to one.
-     * @since 2.0.0
-     */
-    inline stats(const size_t server_count, const size_t shard_count = 1)
-      : m_server_count(std::optional{server_count}) {}
-
-    /**
-     * @brief Creates a stats object based on the bot's shard data.
-     *
-     * @param shards An array of this bot's server count for each shard.
-     * @param shard_index The array index of the shard posting this data, defaults to zero.
-     * @throw std::out_of_range If the shard_index argument is out of bounds from the shards argument.
-     * @since 2.0.0
-     */
-    stats(const std::vector<size_t>& shards, const size_t shard_index = 0);
-
-    /**
-     * @brief Returns this stats object's server count for each shard.
-     * @return std::vector<size_t> This stats object's server count for each shard.
-     * @since 2.0.0
-     */
-    std::vector<size_t> shards() const noexcept;
-
-    /**
-     * @brief Returns this stats object's shard count.
-     * @return size_t This stats object's shard count.
-     * @since 2.0.0
-     */
-    size_t shard_count() const noexcept;
-
-    /**
-     * @brief Returns this stats object's server count, if available.
-     * @return std::optional<size_t> This stats object's server count, if available.
-     * @since 2.0.0
-     */
-    std::optional<size_t> server_count() const noexcept;
-
-    /**
-     * @brief Sets this stats object's server count.
-     *
-     * @param new_server_count The new server count.
-     * @since 2.0.0
-     */
-    inline void set_server_count(const size_t new_server_count) noexcept {
-      m_server_count = std::optional{new_server_count};
-    }
-
-    friend class client;
+    virtual size_t get_server_count(dpp::cluster&) = 0;
   };
 
   class user;
@@ -442,9 +367,6 @@ namespace topgg {
      * @since 2.0.0
      */
     bool is_supporter;
-
-    [[deprecated("No longer supported by Top.gg API v0. At the moment, this will always be false.")]]
-    bool is_certified_dev;
 
     /**
      * @brief Whether this user is a Top.gg moderator or not.

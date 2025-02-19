@@ -33,46 +33,61 @@ topgg::async_result<topgg::user> client::co_get_user(const dpp::snowflake user_i
 }
 #endif
 
-void client::post_stats(const topgg::post_stats_completion_t& callback)  {
-  post_stats(stats{m_cluster}, callback);
+size_t client::get_server_count() {
+  size_t server_count{};
+
+  for (auto& s: m_cluster.get_shards()) {
+    server_count += s.second->get_guild_count();
+  }
+
+  return server_count;
 }
 
-#ifdef DPP_CORO
-dpp::async<bool> client::co_post_stats() {
-  return dpp::async<bool>{ [this] <typename C> (C&& cc) { return post_stats(stats{m_cluster}, std::forward<C>(cc)); }};
-}
-#endif
+void client::post_server_count_inner(const size_t server_count, dpp::http_completion_event callback) {
+  std::multimap<std::string, std::string> headers{m_headers};
+  dpp::json j{};
 
-void client::post_stats(const stats& s, const topgg::post_stats_completion_t& callback)  {
-  auto headers = std::multimap<std::string, std::string>{m_headers};
-  const auto s_json = s.to_json();
+  j["server_count"] = server_count;
 
+  const auto s_json{j.dump()};
   headers.insert(std::pair("Content-Length", std::to_string(s_json.size())));
 
-  m_cluster.request("https://top.gg/api/bots/stats", dpp::m_post, [callback](const auto& response) { callback(response.error == dpp::h_success && response.status < 400); }, s_json, "application/json", headers);
+  m_cluster.request(TOPGG_BASE_URL "/bots/stats", dpp::m_post, callback, s_json, "application/json", headers);
 }
 
-#ifdef DPP_CORO
-dpp::async<bool> client::co_post_stats(const stats& s) {
-  return dpp::async<bool>{ [this, s] <typename C> (C&& cc) { return post_stats(s, std::forward<C>(cc)); }};
-}
-#endif
-
-void client::get_stats(const topgg::get_stats_completion_t& callback) {
-  basic_request<topgg::stats>("/bots/stats", callback, [](const auto& j) {
-    return topgg::stats{j};
+void client::post_server_count(const topgg::post_server_count_completion_t& callback)  {
+  post_server_count_inner([callback](const auto& response) {
+    callback(response.error == dpp::h_success && response.status < 400);
   });
 }
 
 #ifdef DPP_CORO
-topgg::async_result<topgg::stats> client::co_get_stats() {
-  return topgg::async_result<topgg::stats>{ [this] <typename C> (C&& cc) { return get_stats(std::forward<C>(cc)); }};
+dpp::async<bool> client::co_post_server_count() {
+  return dpp::async<bool>{ [this] <typename C> (C&& cc) { return post_server_count(std::forward<C>(cc)); }};
+}
+#endif
+
+void client::get_server_count(const topgg::get_server_count_completion_t& callback) {
+  basic_request<std::optional<size_t>>("/bots/stats", callback, [](const auto& j) {
+    std::optional<size_t> server_count{};
+    
+    try {
+      *server_count = j["server_count"].template get<size_t>();
+    } catch (const std::exception&) {}
+
+    return server_count;
+  });
+}
+
+#ifdef DPP_CORO
+topgg::async_result<std::optional<size_t>> client::co_get_server_count() {
+  return topgg::async_result<std::optional<size_t>>{ [this] <typename C> (C&& cc) { return get_server_count(std::forward<C>(cc)); }};
 }
 #endif
 
 void client::get_voters(const topgg::get_voters_completion_t& callback) {
   basic_request<std::vector<topgg::voter>>("/bots/votes", callback, [](const auto& j) {
-    std::vector<topgg::voter> voters;
+    std::vector<topgg::voter> voters{};
 
     for (const auto& part: j) {
       voters.push_back(topgg::voter{part});
@@ -114,12 +129,6 @@ topgg::async_result<bool> client::co_is_weekend() {
 #endif
 
 void client::start_autoposter(const time_t delay) {
-  start_autoposter([](dpp::cluster& bot) {
-    return stats{bot};
-  }, delay);
-}
-
-void client::start_autoposter(const topgg::custom_autopost_callback_t& callback, const time_t delay) {
   /**
    * Check the timer duration is not less than 15 minutes
    */
@@ -131,15 +140,23 @@ void client::start_autoposter(const topgg::custom_autopost_callback_t& callback,
    * Create a D++ timer, this is managed by the D++ cluster and ticks every n seconds.
    * It can be stopped at any time without blocking, and does not need to create extra threads.
    */
-  if (!m_autoposter_timer) {
-    m_autoposter_timer = m_cluster.start_timer([this, callback](TOPGG_UNUSED dpp::timer) {
-      const auto s = callback(m_cluster);
-      const auto s_json = s.to_json();
-      std::multimap<std::string, std::string> headers{m_headers};
-      headers.insert(std::pair("Content-Length", std::to_string(s_json.length())));
-      
-      m_cluster.request("https://top.gg/api/bots/stats", dpp::m_post, [](TOPGG_UNUSED const auto&) {}, s_json, "application/json", headers);
+  else if (!m_autoposter_timer) {
+    m_autoposter_timer = m_cluster.start_timer([this](TOPGG_UNUSED dpp::timer) {
+      post_server_count_inner([](TOPGG_UNUSED const auto&) {});
     }, delay);
+  }
+}
+
+void client::start_autoposter(topgg::autoposter_source* source, const time_t delay) {
+  if (delay < 15 * 60) {
+    delete source;
+    throw std::invalid_argument{"Delay mustn't be shorter than 15 minutes."};
+  } else if (!m_autoposter_timer) {
+    m_autoposter_timer = m_cluster.start_timer([this, source](TOPGG_UNUSED dpp::timer) {
+      post_server_count_inner(source->get_server_count(m_cluster), [](TOPGG_UNUSED const auto&) {});
+    }, delay, [source](TOPGG_UNUSED dpp::timer) {
+      delete source;
+    });
   }
 }
 

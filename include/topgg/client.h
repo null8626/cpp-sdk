@@ -4,8 +4,8 @@
  * @brief The official C++ wrapper for the Top.gg API.
  * @authors Top.gg, null8626
  * @copyright Copyright (c) 2024 Top.gg & null8626
- * @date 2024-07-12
- * @version 2.0.0
+ * @date 2025-02-19
+ * @version 3.0.0
  */
 
 #pragma once
@@ -35,12 +35,12 @@ namespace topgg {
   using get_user_completion_t = std::function<void(const result<user>&)>;
 
   /**
-   * @brief The callback function to call when get_stats completes.
+   * @brief The callback function to call when get_server_count completes.
    *
-   * @see topgg::client::get_stats
-   * @since 2.0.0
+   * @see topgg::client::get_server_count
+   * @since 3.0.0
    */
-  using get_stats_completion_t = std::function<void(const result<stats>&)>;
+  using get_server_count_completion_t = std::function<void(const result<std::optional<size_t>>&)>;
 
   /**
    * @brief The callback function to call when get_voters completes.
@@ -67,20 +67,12 @@ namespace topgg {
   using is_weekend_completion_t = std::function<void(const result<bool>&)>;
   
   /**
-   * @brief The callback function to call when post_stats completes.
+   * @brief The callback function to call when post_server_count completes.
    *
-   * @see topgg::client::post_stats
-   * @since 2.0.0
+   * @see topgg::client::post_server_count
+   * @since 3.0.0
    */
-  using post_stats_completion_t = std::function<void(const bool)>;
-  
-  /**
-   * @brief The callback function that retrieves the bot's stats.
-   *
-   * @see topgg::client::start_autoposter
-   * @since 2.0.0
-   */
-  using custom_autopost_callback_t = std::function<::topgg::stats(dpp::cluster&)>;
+  using post_server_count_completion_t = std::function<void(const bool)>;
   
   /**
    * @brief Main client class that lets you make HTTP requests with the Top.gg API.
@@ -95,7 +87,14 @@ namespace topgg {
 
     template<typename T>
     void basic_request(const std::string& url, const std::function<void(const result<T>&)>& callback, std::function<T(const dpp::json&)>&& conversion_fn) {
-      m_cluster.request("https://top.gg/api" + url, dpp::m_get, [callback, conversion_fn_in = std::move(conversion_fn)](const auto& response) { callback(result<T>{response, conversion_fn_in}); }, "", "application/json", m_headers);
+      m_cluster.request(TOPGG_BASE_URL + url, dpp::m_get, [callback, conversion_fn_in = std::move(conversion_fn)](const auto& response) { callback(result<T>{response, conversion_fn_in}); }, "", "application/json", m_headers);
+    }
+
+    size_t get_server_count();
+    void post_server_count_inner(const size_t server_count, dpp::http_completion_event callback);
+
+    inline void post_server_count_inner(dpp::http_completion_event callback) {
+      return post_server_count_inner(get_server_count(), callback);
     }
     
   public:
@@ -279,7 +278,7 @@ namespace topgg {
 #endif
 
     /**
-     * @brief Fetches your Discord bot’s statistics.
+     * @brief Fetches your Discord bot’s posted server count.
      *
      * Example:
      *
@@ -287,29 +286,29 @@ namespace topgg {
      * dpp::cluster bot{"your bot token"};
      * topgg::client topgg_client{bot, "your top.gg token"};
      *
-     * topgg_client.get_stats([](const auto& result) {
+     * topgg_client.get_server_count([](const auto& result) {
      *   try {
-     *     auto stats = result.get();
+     *     auto server_count = result.get();
      *
-     *     std::cout << stats.server_count().value_or(0) << std::endl;
+     *     std::cout << server_count.value_or(0) << std::endl;
      *   } catch (const std::exception& exc) {
      *     std::cout << "error: " << exc.what() << std::endl;
      *   }
      * });
      * ```
      *
-     * @param callback The callback function to call when get_stats completes.
-     * @note For its C++20 coroutine counterpart, see co_get_stats.
+     * @param callback The callback function to call when get_server_count completes.
+     * @note For its C++20 coroutine counterpart, see co_get_server_count.
      * @see topgg::result
      * @see topgg::client::start_autoposter
-     * @see topgg::client::co_get_stats
-     * @since 2.0.0
+     * @see topgg::client::co_get_server_count
+     * @since 3.0.0
      */
-    void get_stats(const get_stats_completion_t& callback);
+    void get_server_count(const get_server_count_completion_t& callback);
 
 #ifdef DPP_CORO
     /**
-     * @brief Fetches your Discord bot’s statistics through a C++20 coroutine.
+     * @brief Fetches your Discord bot’s posted server count through a C++20 coroutine.
      *
      * Example:
      *
@@ -318,9 +317,9 @@ namespace topgg {
      * topgg::client topgg_client{bot, "your top.gg token"};
      *
      * try {
-     *   const auto stats = co_await topgg_client.co_get_stats();
+     *   const auto server_count = co_await topgg_client.co_get_server_count();
      *
-     *   std::cout << stats.server_count().value_or(0) << std::endl;
+     *   std::cout << server_count.value_or(0) << std::endl;
      * } catch (const std::exception& exc) {
      *   std::cout << "error: " << exc.what() << std::endl;
      * }
@@ -331,14 +330,14 @@ namespace topgg {
      * @throw topgg::not_found Thrown when such query does not exist.
      * @throw topgg::ratelimited Thrown when the client gets ratelimited from sending more HTTP requests.
      * @throw dpp::http_error Thrown when an unexpected HTTP exception occured.
-     * @return co_await to retrieve a topgg::stats if successful
-     * @note For its C++17 callback-based counterpart, see get_stats.
+     * @return co_await to retrieve an optional size_t if successful
+     * @note For its C++17 callback-based counterpart, see get_server_count.
      * @see topgg::async_result
      * @see topgg::client::start_autoposter
-     * @see topgg::client::get_stats
-     * @since 2.0.0
+     * @see topgg::client::get_server_count
+     * @since 3.0.0
      */
-    topgg::async_result<topgg::stats> co_get_stats();
+    topgg::async_result<std::optional<size_t>> co_get_server_count();
 #endif
 
     /**
@@ -367,7 +366,6 @@ namespace topgg {
      * @note For its C++20 coroutine counterpart, see co_get_voters.
      * @see topgg::result
      * @see topgg::voter
-     * @see topgg::stats
      * @see topgg::client::start_autoposter
      * @see topgg::client::co_get_voters
      * @since 2.0.0
@@ -404,7 +402,6 @@ namespace topgg {
      * @note For its C++17 callback-based counterpart, see get_voters.
      * @see topgg::async_result
      * @see topgg::voter
-     * @see topgg::stats
      * @see topgg::client::start_autoposter
      * @see topgg::client::get_voters
      * @since 2.0.0
@@ -436,7 +433,6 @@ namespace topgg {
      * @param callback The callback function to call when has_voted completes.
      * @note For its C++20 coroutine counterpart, see co_has_voted.
      * @see topgg::result
-     * @see topgg::stats
      * @see topgg::client::start_autoposter
      * @note For its C++20 coroutine counterpart, see co_has_voted.
      * @since 2.0.0
@@ -473,7 +469,6 @@ namespace topgg {
      * @return co_await to retrieve a bool if successful
      * @note For its C++17 callback-based counterpart, see has_voted.
      * @see topgg::async_result
-     * @see topgg::stats
      * @see topgg::client::start_autoposter
      * @see topgg::client::has_voted
      * @since 2.0.0
@@ -545,7 +540,7 @@ namespace topgg {
 #endif
 
     /**
-     * @brief Manually posts your Discord bot's statistics using data directly from your D++ cluster instance.
+     * @brief Manually posts your Discord bot's server count using data directly from your D++ cluster instance.
      *
      * Example:
      *
@@ -553,25 +548,25 @@ namespace topgg {
      * dpp::cluster bot{"your bot token"};
      * topgg::client topgg_client{bot, "your top.gg token"};
      *
-     * topgg_client.post_stats([](const auto success) {
+     * topgg_client.post_server_count([](const auto success) {
      *   if (success) {
      *     std::cout << "stats posted!" << std::endl;
      *   }
      * });
      * ```
      *
-     * @param callback The callback function to call when post_stats completes.
-     * @note For its C++20 coroutine counterpart, see co_post_stats.
+     * @param callback The callback function to call when post_server_count completes.
+     * @note For its C++20 coroutine counterpart, see co_post_server_count.
      * @see topgg::result
      * @see topgg::client::start_autoposter
-     * @see topgg::client::co_post_stats
-     * @since 2.0.0
+     * @see topgg::client::co_post_server_count
+     * @since 3.0.0
      */
-    void post_stats(const post_stats_completion_t& callback);
+    void post_server_count(const post_server_count_completion_t& callback);
 
 #ifdef DPP_CORO
     /**
-     * @brief Manually posts your Discord bot's statistics using data directly from your D++ cluster instance through a C++20 coroutine.
+     * @brief Manually posts your Discord bot's server count using data directly from your D++ cluster instance through a C++20 coroutine.
      *
      * Example:
      *
@@ -579,7 +574,7 @@ namespace topgg {
      * dpp::cluster bot{"your bot token"};
      * topgg::client topgg_client{bot, "your top.gg token"};
      *
-     * const auto success = co_await topgg_client.co_post_stats();
+     * const auto success = co_await topgg_client.co_post_server_count();
      *
      * if (success) {
      *   std::cout << "stats posted!" << std::endl;
@@ -587,74 +582,16 @@ namespace topgg {
      * ```
      *
      * @return co_await to retrieve a bool
-     * @note For its C++17 callback-based counterpart, see post_stats.
+     * @note For its C++17 callback-based counterpart, see post_server_count.
      * @see topgg::client::start_autoposter
-     * @see topgg::client::post_stats
-     * @since 2.0.0
+     * @see topgg::client::post_server_count
+     * @since 3.0.0
      */
-    dpp::async<bool> co_post_stats();
+    dpp::async<bool> co_post_server_count();
 #endif
 
     /**
-     * @brief Manually posts your Discord bot's statistics.
-     *
-     * Example:
-     *
-     * ```cpp
-     * dpp::cluster bot{"your bot token"};
-     * topgg::client topgg_client{bot, "your top.gg token"};
-     *
-     * const size_t server_count = 12345;
-     *
-     * topgg_client.post_stats(topgg::stats{server_count}, [](const auto success) {
-     *   if (success) {
-     *     std::cout << "stats posted!" << std::endl;
-     *   }
-     * });
-     * ```
-     *
-     * @param s Your Discord bot's statistics.
-     * @param callback The callback function to call when post_stats completes.
-     * @note For its C++20 coroutine counterpart, see co_post_stats.
-     * @see topgg::result
-     * @see topgg::stats
-     * @see topgg::client::start_autoposter
-     * @see topgg::client::co_post_stats
-     * @since 2.0.0
-     */
-    void post_stats(const stats& s, const post_stats_completion_t& callback);
-
-#ifdef DPP_CORO
-    /**
-     * @brief Manually posts your Discord bot's statistics through a C++20 coroutine.
-     *
-     * Example:
-     *
-     * ```cpp
-     * dpp::cluster bot{"your bot token"};
-     * topgg::client topgg_client{bot, "your top.gg token"};
-     *
-     * const size_t server_count = 12345;
-     * const auto success = co_await topgg_client.co_post_stats(topgg::stats{server_count});
-     *
-     * if (success) {
-     *   std::cout << "stats posted!" << std::endl;
-     * }
-     * ```
-     *
-     * @param s Your Discord bot's statistics.
-     * @return co_await to retrieve a bool
-     * @note For its C++17 callback-based counterpart, see post_stats.
-     * @see topgg::stats
-     * @see topgg::client::start_autoposter
-     * @see topgg::client::post_stats
-     * @since 2.0.0
-     */
-    dpp::async<bool> co_post_stats(const stats& s);
-#endif
-
-    /**
-     * @brief Starts autoposting statistics using data directly from your D++ cluster instance.
+     * @brief Starts autoposting your bot's server count using data directly from your D++ cluster instance.
      *
      * Example:
      *
@@ -668,36 +605,41 @@ namespace topgg {
      * @param delay The minimum delay between post requests in seconds. Defaults to 30 minutes.
      * @throw std::invalid_argument Throws if the delay argument is shorter than 15 minutes.
      * @note This function has no effect if the autoposter is already running.
-     * @see topgg::client::post_stats
+     * @see topgg::client::post_server_count
      * @see topgg::client::stop_autoposter
      * @since 2.0.0
      */
     void start_autoposter(const time_t delay = 1800);
     
     /**
-     * @brief Starts autoposting statistics.
+     * @brief Starts autoposting your bot's server count using a custom data source.
      *
      * Example:
      *
      * ```cpp
+     * class my_autoposter_source: private topgg::autoposter_source {
+     * public:
+     *   virtual size_t get_server_count(dpp::cluster& bot) {
+     *     return ...;
+     *   }
+     * };
+     * 
      * dpp::cluster bot{"your bot token"};
      * topgg::client topgg_client{bot, "your top.gg token"};
-     *
-     * bot.start_autoposter([](dpp::cluster& bot_inner) {
-     *   return topgg::stats{...};
-     * });
+     * 
+     * topgg_client.start_autoposter(reinterpret_cast<topgg::autoposter_source*>(new my_autoposter_source));
      * ```
      *
-     * @param callback The callback function that returns the current stats.
+     * @param source A pointer to an autoposter source located in the heap memory. This pointer must be allocated with new, and it will be deleted once the autoposter thread gets stopped.
      * @param delay The minimum delay between post requests in seconds. Defaults to 30 minutes.
      * @throw std::invalid_argument Throws if the delay argument is shorter than 15 minutes.
      * @note This function has no effect if the autoposter is already running.
-     * @see topgg::stats
-     * @see topgg::client::post_stats
+     * @see topgg::client::autoposter_source
+     * @see topgg::client::post_server_count
      * @see topgg::client::stop_autoposter
-     * @since 2.0.0
+     * @since 3.0.0
      */
-    void start_autoposter(const custom_autopost_callback_t& callback, const time_t delay = 1800);
+    void start_autoposter(autoposter_source* source, const time_t delay = 1800);
     
     /**
      * @brief Prematurely stops the autoposter. Calling this function is usually unnecessary as this function is called later in the destructor.
@@ -716,7 +658,7 @@ namespace topgg {
      * ```
      *
      * @note This function has no effect if the autoposter is already stopped.
-     * @see topgg::client::post_stats
+     * @see topgg::client::post_server_count
      * @since 2.0.0
      */
     void stop_autoposter() noexcept;

@@ -72,8 +72,8 @@ void internal_result::prepare() const {
       throw not_found{};
 
     case 429: {
-      const auto j = json::parse(m_response.body);
-      const auto retry_after = j["retry_after"].template get<uint16_t>();
+      const auto j{json::parse(m_response.body)};
+      const auto retry_after{j["retry_after"].template get<uint16_t>()};
 
       throw ratelimited{retry_after};
     }

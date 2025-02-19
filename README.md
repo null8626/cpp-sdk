@@ -106,21 +106,21 @@ try {
 }
 ```
 
-### Posting your bot's statistics
+### Posting your bot's server count
 
 ```cpp
 dpp::cluster bot{"your bot token"};
 topgg::client topgg_client{bot, "your top.gg token"};
 
 // using C++17 callbacks
-topgg_client.post_stats([](const auto success) {
+topgg_client.post_server_count([](const auto success) {
   if (success) {
     std::cout << "stats posted!" << std::endl;
   }
 });
 
 // using C++20 coroutines
-const auto success = co_await topgg_client.co_post_stats();
+const auto success = co_await topgg_client.co_post_server_count();
 
 if (success) {
   std::cout << "stats posted!" << std::endl;
@@ -168,10 +168,15 @@ topgg_client.start_autoposter();
 ### Customized autoposting
 
 ```cpp
+class my_autoposter_source: private topgg::autoposter_source {
+public:
+  virtual size_t get_server_count(dpp::cluster& bot) {
+    return ...;
+  }
+};
+
 dpp::cluster bot{"your bot token"};
 topgg::client topgg_client{bot, "your top.gg token"};
 
-topgg_client.start_autoposter([](dpp::cluster& bot_inner) {
-  return topgg::stats{...};
-});
+topgg_client.start_autoposter(reinterpret_cast<topgg::autoposter_source*>(new my_autoposter_source));
 ```

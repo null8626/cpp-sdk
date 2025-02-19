@@ -4,8 +4,8 @@
  * @brief The official C++ wrapper for the Top.gg API.
  * @authors Top.gg, null8626
  * @copyright Copyright (c) 2024 Top.gg & null8626
- * @date 2024-07-12
- * @version 2.0.0
+ * @date 2025-02-19
+ * @version 3.0.0
  */
 
 #pragma once

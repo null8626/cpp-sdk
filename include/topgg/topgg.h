@@ -3,9 +3,9 @@
  * @file topgg.h
  * @brief The official C++ wrapper for the Top.gg API.
  * @authors Top.gg, null8626
- * @copyright Copyright (c) 2024 Top.gg & null8626
- * @date 2024-09-22
- * @version 2.0.0
+ * @copyright Copyright (c) 2024-2025 Top.gg & null8626
+ * @date 2025-02-19
+ * @version 3.0.0
  */
 
 #pragma once
@@ -47,6 +47,8 @@
 #ifdef __clang__
 #pragma clang diagnostic pop
 #endif
+
+#define TOPGG_BASE_URL "https://top.gg/api"
 
 #include <topgg/result.h>
 #include <topgg/models.h>
