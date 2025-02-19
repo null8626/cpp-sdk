@@ -270,7 +270,7 @@ namespace topgg {
 
   class autoposter_source {
   public:
-    virtual size_t get_server_count(dpp::cluster&) = 0;
+    virtual size_t TOPGG_EXPORT get_server_count(dpp::cluster&) = 0;
   };
 
   class user;
