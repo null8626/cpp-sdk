@@ -212,6 +212,12 @@ void bot_query::finish(const topgg::get_bots_completion_t& callback) {
   });
 }
 
+#ifdef DPP_CORO
+dpp::async<std::vector<topgg::bot>> bot_query::co_finish() {
+  return dpp::async<std::vector<topgg::bot>>{ [this] <typename C> (C&& cc) { return finish(std::forward<C>(cc)); }};
+}
+#endif
+
 user_socials::user_socials(const dpp::json& j) {
   DESERIALIZE_OPTIONAL_STRING(j, github);
   DESERIALIZE_OPTIONAL_STRING(j, instagram);
