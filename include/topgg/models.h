@@ -218,7 +218,7 @@ namespace topgg {
     std::string invite;
 
     /**
-     * @brief The URL of this Discord bot’s Top.gg page.
+     * @brief The URL of this Discord bot's Top.gg page.
      *
      * @since 2.0.0
      */
@@ -233,10 +233,16 @@ namespace topgg {
    *
    * @see topgg::client::get_bots
    * @see topgg::bot_query
-   * @since 3.0.0
+   * @since 2.0.1
    */
   using get_bots_completion_t = std::function<void(const result<std::vector<bot>>&)>;
 
+  /**
+   * @brief A class for configuring the query in get_bots before being sent to the Top.gg API.
+   *
+   * @see topgg::client::get_bots
+   * @since 2.0.1
+   */
   class TOPGG_EXPORT bot_query {
     client* m_client;
     std::string m_query;
@@ -253,17 +259,179 @@ namespace topgg {
   public:
     bot_query() = delete;
 
+    /**
+     * @brief Sorts results based on each bot's ID.
+     * 
+     * @return bot_query The current modified object.
+     * @see topgg::client::get_bots
+     * @since 2.0.1
+     */
+    TOPGG_BOT_QUERY_SORT(id, id);
+
+    /**
+     * @brief Sorts results based on each bot's approval date.
+     * 
+     * @return bot_query The current modified object.
+     * @see topgg::client::get_bots
+     * @since 2.0.1
+     */
     TOPGG_BOT_QUERY_SORT(approval_date, date);
+
+    /**
+     * @brief Sorts results based on each bot's monthly vote count.
+     * 
+     * @return bot_query The current modified object.
+     * @see topgg::client::get_bots
+     * @since 2.0.1
+     */
     TOPGG_BOT_QUERY_SORT(monthly_votes, monthlyPoints);
+
+    /**
+     * @brief Sets the maximum amount of bots to be queried.
+     * 
+     * @param limit The maximum amount of bots to be queried. This cannot be more than 500.
+     * @return bot_query The current modified object.
+     * @see topgg::client::get_bots
+     * @since 2.0.1
+     */
     TOPGG_BOT_QUERY_QUERY(uint16_t, limit, 500);
+
+    /**
+     * @brief Sets the amount of bots to be skipped during the query.
+     * 
+     * @param skip The amount of bots to be skipped during the query. This cannot be more than 499.
+     * @return bot_query The current modified object.
+     * @see topgg::client::get_bots
+     * @since 2.0.1
+     */
     TOPGG_BOT_QUERY_QUERY(uint16_t, skip, 499);
+
+    /**
+     * @brief Queries only Discord bots that has this username.
+     * 
+     * @param username The bot's username.
+     * @return bot_query The current modified object.
+     * @see topgg::client::get_bots
+     * @since 2.0.1
+     */
     TOPGG_BOT_QUERY_SEARCH(std::string&, username);
+
+    /**
+     * @brief Queries only Discord bots that has this prefix.
+     * 
+     * @param prefix The bot's prefix.
+     * @return bot_query The current modified object.
+     * @see topgg::client::get_bots
+     * @since 2.0.1
+     */
     TOPGG_BOT_QUERY_SEARCH(std::string&, prefix);
+
+    /**
+     * @brief Queries only Discord bots that has this vote count.
+     * 
+     * @param votes The bot's vote count.
+     * @return bot_query The current modified object.
+     * @see topgg::client::get_bots
+     * @since 2.0.1
+     */
     TOPGG_BOT_QUERY_SEARCH(size_t, votes);
+
+    /**
+     * @brief Queries only Discord bots that has this monthly vote count.
+     * 
+     * @param monthly_votes The bot's monthly vote count.
+     * @return bot_query The current modified object.
+     * @see topgg::client::get_bots
+     * @since 2.0.1
+     */
     TOPGG_BOT_QUERY_SEARCH(size_t, monthly_votes);
+
+    /**
+     * @brief Queries only Discord bots that has this vanity URL.
+     * 
+     * @param vanity The bot's vanity URL.
+     * @return bot_query The current modified object.
+     * @see topgg::client::get_bots
+     * @since 2.0.1
+     */
     TOPGG_BOT_QUERY_SEARCH(std::string&, vanity);
     
+    /**
+     * @brief Sends the query to the Top.gg API.
+     *
+     * Example:
+     *
+     * ```cpp
+     * dpp::cluster bot{"your bot token"};
+     * topgg::client topgg_client{bot, "your top.gg token"};
+     *
+     * topgg_client
+     *   .get_bots()
+     *   .limit(250)
+     *   .skip(50)
+     *   .username("shiro")
+     *   .sort_by_monthly_votes()
+     *   .finish([](const auto& result) {
+     *     try {
+     *       const auto bots = result.get();
+     *   
+     *       for (const auto& bot: bots) {
+     *         std::cout << bot.username << std::endl;
+     *       }
+     *     } catch (const std::exception& exc) {
+     *       std::cerr << "error: " << exc.what() << std::endl;
+     *     }
+     *   });
+     * ```
+     * 
+     * @param callback The callback function to call when finish completes.
+     * @note For its C++20 coroutine counterpart, see co_finish.
+     * @see topgg::client::get_bots
+     * @see topgg::bot_query::co_finish
+     * @since 2.0.1
+     */
     void finish(const get_bots_completion_t& callback);
+
+#ifdef DPP_CORO
+    /**
+     * @brief Sends the query to the Top.gg API through a C++20 coroutine.
+     *
+     * Example:
+     *
+     * ```cpp
+     * dpp::cluster bot{"your bot token"};
+     * topgg::client topgg_client{bot, "your top.gg token"};
+     *
+     * try {
+     *   const auto bots = co_await topgg_client
+     *     .get_bots()
+     *     .limit(250)
+     *     .skip(50)
+     *     .username("shiro")
+     *     .sort_by_monthly_votes()
+     *     .finish();
+     *
+     *   for (const auto& bot: bots) {
+     *     std::cout << topgg_bot.username << std::endl;
+     *   }
+     * } catch (const std::exception& exc) {
+     *   std::cerr << "error: " << exc.what() << std::endl;
+     * }
+     * ```
+     * 
+     * @throw topgg::internal_server_error Thrown when the client receives an unexpected error from Top.gg's end.
+     * @throw topgg::invalid_token Thrown when its known that the client uses an invalid Top.gg API token.
+     * @throw topgg::not_found Thrown when such query does not exist.
+     * @throw topgg::ratelimited Thrown when the client gets ratelimited from sending more HTTP requests.
+     * @throw dpp::http_error Thrown when an unexpected HTTP exception has occured.
+     * @return co_await to retrieve a vector of topgg::bot if successful
+     * @note For its C++17 callback-based counterpart, see get_bot.
+     * @see topgg::client::get_bots
+     * @see topgg::bot_query::co_finish
+     * @since 2.0.1
+     */
+    topgg::async_result<std::vector<topgg::bot>> co_finish();
+#endif
 
     friend class client;
   };
@@ -294,35 +462,35 @@ namespace topgg {
     user_socials() = delete;
 
     /**
-     * @brief A URL of this user’s GitHub account, if available.
+     * @brief A URL of this user's GitHub account, if available.
      *
      * @since 2.0.0
      */
     std::optional<std::string> github;
 
     /**
-     * @brief A URL of this user’s Instagram account, if available.
+     * @brief A URL of this user's Instagram account, if available.
      *
      * @since 2.0.0
      */
     std::optional<std::string> instagram;
 
     /**
-     * @brief A URL of this user’s Reddit account, if available.
+     * @brief A URL of this user's Reddit account, if available.
      *
      * @since 2.0.0
      */
     std::optional<std::string> reddit;
 
     /**
-     * @brief A URL of this user’s Twitter/X account, if available.
+     * @brief A URL of this user's Twitter/X account, if available.
      *
      * @since 2.0.0
      */
     std::optional<std::string> twitter;
 
     /**
-     * @brief A URL of this user’s YouTube channel, if available.
+     * @brief A URL of this user's YouTube channel, if available.
      *
      * @since 2.0.0
      */
@@ -354,7 +522,7 @@ namespace topgg {
     std::optional<std::string> bio;
 
     /**
-     * @brief The URL of this user’s profile banner image, if available.
+     * @brief The URL of this user's profile banner image, if available.
      *
      * @since 2.0.0
      */

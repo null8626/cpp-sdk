@@ -65,7 +65,7 @@ topgg_client.get_bot(264811613708746752, [](const auto& result) {
   
     std::cout << topgg_bot.username << std::endl;
   } catch (const std::exception& exc) {
-    std::cout << "error: " << exc.what() << std::endl;
+    std::cerr << "error: " << exc.what() << std::endl;
   }
 });
 
@@ -75,7 +75,7 @@ try {
   
   std::cout << topgg_bot.username << std::endl;
 } catch (const std::exception& exc) {
-  std::cout << "error: " << exc.what() << std::endl;
+  std::cerr << "error: " << exc.what() << std::endl;
 }
 ```
 
@@ -92,7 +92,7 @@ topgg_client.get_user(264811613708746752, [](const auto& result) {
   
     std::cout << user.username << std::endl;
   } catch (const std::exception& exc) {
-    std::cout << "error: " << exc.what() << std::endl;
+    std::cerr << "error: " << exc.what() << std::endl;
   }
 });
 
@@ -102,7 +102,7 @@ try {
   
   std::cout << user.username << std::endl;
 } catch (const std::exception& exc) {
-  std::cout << "error: " << exc.what() << std::endl;
+  std::cerr << "error: " << exc.what() << std::endl;
 }
 ```
 
@@ -140,7 +140,7 @@ topgg_client.has_voted(661200758510977084, [](const auto& result) {
       std::cout << "checks out" << std::endl;
     }
   } catch (const std::exception& exc) {
-    std::cout << "error: " << exc.what() << std::endl;
+    std::cerr << "error: " << exc.what() << std::endl;
   }
 });
 
@@ -152,7 +152,7 @@ try {
     std::cout << "checks out" << std::endl;
   }
 } catch (const std::exception& exc) {
-  std::cout << "error: " << exc.what() << std::endl;
+  std::cerr << "error: " << exc.what() << std::endl;
 }
 ```
 
