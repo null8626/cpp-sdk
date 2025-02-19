@@ -268,6 +268,12 @@ namespace topgg {
     friend class client;
   };
 
+  /**
+   * @brief An abstract interface for bots that have a custom way of retrieving their server count.
+   *
+   * @see topgg::start_autoposter
+   * @since 3.0.0
+   */
   class autoposter_source {
   public:
     virtual size_t TOPGG_EXPORT get_server_count(dpp::cluster&) = 0;
