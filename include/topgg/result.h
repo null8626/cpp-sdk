@@ -123,7 +123,7 @@ namespace topgg {
      * @throw topgg::invalid_token Thrown when its known that the client uses an invalid Top.gg API token.
      * @throw topgg::not_found Thrown when such query does not exist.
      * @throw topgg::ratelimited Thrown when the client gets ratelimited from sending more HTTP requests.
-     * @throw dpp::http_error Thrown when an unexpected HTTP exception occured.
+     * @throw dpp::http_error Thrown when an unexpected HTTP exception has occured.
      * @return T The desired data, if successful.
      * @since 2.0.0
      */
@@ -195,7 +195,7 @@ namespace topgg {
      * @throw topgg::invalid_token Thrown when its known that the client uses an invalid Top.gg API token.
      * @throw topgg::not_found Thrown when such query does not exist.
      * @throw topgg::ratelimited Thrown when the client gets ratelimited from sending more HTTP requests.
-     * @throw dpp::http_error Thrown when an unexpected HTTP exception occured.
+     * @throw dpp::http_error Thrown when an unexpected HTTP exception has occured.
      * @return T The desired data, if successful.
      * @see topgg::result::get
      * @since 2.0.0
@@ -211,7 +211,7 @@ namespace topgg {
      * @throw topgg::invalid_token Thrown when its known that the client uses an invalid Top.gg API token.
      * @throw topgg::not_found Thrown when such query does not exist.
      * @throw topgg::ratelimited Thrown when the client gets ratelimited from sending more HTTP requests.
-     * @throw dpp::http_error Thrown when an unexpected HTTP exception occured.
+     * @throw dpp::http_error Thrown when an unexpected HTTP exception has occured.
      * @return T The desired data, if successful.
      * @see topgg::result::get
      * @since 2.0.0
@@ -227,7 +227,7 @@ namespace topgg {
      * @throw topgg::invalid_token Thrown when its known that the client uses an invalid Top.gg API token.
      * @throw topgg::not_found Thrown when such query does not exist.
      * @throw topgg::ratelimited Thrown when the client gets ratelimited from sending more HTTP requests.
-     * @throw dpp::http_error Thrown when an unexpected HTTP exception occured.
+     * @throw dpp::http_error Thrown when an unexpected HTTP exception has occured.
      * @return T The desired data, if successful.
      * @see topgg::result::get
      * @since 2.0.0

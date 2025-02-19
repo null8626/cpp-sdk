@@ -233,7 +233,7 @@ namespace topgg {
     std::string invite;
 
     /**
-     * @brief The URL of this Discord bot’s Top.gg page.
+     * @brief The URL of this Discord bot's Top.gg page.
      *
      * @since 2.0.0
      */
@@ -363,35 +363,35 @@ namespace topgg {
     user_socials() = delete;
 
     /**
-     * @brief A URL of this user’s GitHub account, if available.
+     * @brief A URL of this user's GitHub account, if available.
      *
      * @since 2.0.0
      */
     std::optional<std::string> github;
 
     /**
-     * @brief A URL of this user’s Instagram account, if available.
+     * @brief A URL of this user's Instagram account, if available.
      *
      * @since 2.0.0
      */
     std::optional<std::string> instagram;
 
     /**
-     * @brief A URL of this user’s Reddit account, if available.
+     * @brief A URL of this user's Reddit account, if available.
      *
      * @since 2.0.0
      */
     std::optional<std::string> reddit;
 
     /**
-     * @brief A URL of this user’s Twitter/X account, if available.
+     * @brief A URL of this user's Twitter/X account, if available.
      *
      * @since 2.0.0
      */
     std::optional<std::string> twitter;
 
     /**
-     * @brief A URL of this user’s YouTube channel, if available.
+     * @brief A URL of this user's YouTube channel, if available.
      *
      * @since 2.0.0
      */
@@ -423,7 +423,7 @@ namespace topgg {
     std::optional<std::string> bio;
 
     /**
-     * @brief The URL of this user’s profile banner image, if available.
+     * @brief The URL of this user's profile banner image, if available.
      *
      * @since 2.0.0
      */
