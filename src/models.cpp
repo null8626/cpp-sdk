@@ -63,7 +63,7 @@ static void strptime(const char* s, const char* f, tm* t) {
 
 #define DESERIALIZE_OPTIONAL_STRING(j, name)                      \
   IGNORE_EXCEPTION({                                              \
-    const auto value = j[#name].template get<std::string>(); \
+    const auto value{j[#name].template get<std::string>()};       \
                                                                   \
     if (value.size() > 0) {                                       \
       name = std::optional{value};                                \
@@ -72,7 +72,7 @@ static void strptime(const char* s, const char* f, tm* t) {
 
 #define DESERIALIZE_OPTIONAL_STRING_ALIAS(j, name, prop)          \
   IGNORE_EXCEPTION({                                              \
-    const auto value = j[#name].template get<std::string>(); \
+    const auto value{j[#name].template get<std::string>()};       \
                                                                   \
     if (value.size() > 0) {                                       \
       prop = std::optional{value};                                \
@@ -97,8 +97,8 @@ account::account(const dpp::json& j) {
   DESERIALIZE(j, username, std::string);
 
   try {
-    const auto hash = j["avatar"].template get<std::string>();
-    const char* ext = hash.rfind("a_", 0) == 0 ? "gif" : "png";
+    const auto hash{j["avatar"].template get<std::string>()};
+    const char* ext{hash.rfind("a_", 0) == 0 ? "gif" : "png"};
 
     avatar = "https://cdn.discordapp.com/avatars/" + std::to_string(id) + "/" + hash + "." + ext + "?size=1024";
   } catch (TOPGG_UNUSED const std::exception&) {
@@ -121,7 +121,7 @@ bot::bot(const dpp::json& j)
   DESERIALIZE_OPTIONAL_STRING(j, github);
 
   IGNORE_EXCEPTION({
-    const auto j_owners = j["owners"].template get<std::vector<std::string>>();
+    const auto j_owners{j["owners"].template get<std::vector<std::string>>()};
 
     owners.reserve(j_owners.size());
 
@@ -132,7 +132,7 @@ bot::bot(const dpp::json& j)
 
   DESERIALIZE_OPTIONAL_STRING_ALIAS(j, bannerUrl, banner);
 
-  const auto j_approved_at = j["date"].template get<std::string>();
+  const auto j_approved_at{j["date"].template get<std::string>()};
   tm approved_at_tm;
 
   strptime(j_approved_at.data(), "%Y-%m-%dT%H:%M:%S", &approved_at_tm);
@@ -151,7 +151,7 @@ bot::bot(const dpp::json& j)
   }
 
   IGNORE_EXCEPTION({
-    const auto j_support = j["support"].template get<std::string>();
+    const auto j_support{j["support"].template get<std::string>()};
 
     if (j_support.size() > 0) {
       support = std::optional{"https://discord.com/invite/" + j_support};
@@ -174,8 +174,8 @@ static std::string querystring(const std::string& value) {
 
   output.reserve(value.length());
 
-  for (size_t i = 0; i < value.length(); i++) {
-    const auto c = value[i];
+  for (size_t i{}; i < value.length(); i++) {
+    const auto c{value[i]};
 
     if (('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || ('0' <= c && c <= '9')) {
       output.push_back(c);
@@ -217,7 +217,7 @@ void bot_query::finish(const topgg::get_bots_completion_t& callback) {
   m_query.pop_back();
 
   m_client->basic_request<std::vector<topgg::bot>>(m_query, callback, [](const auto& j) {
-    std::vector<topgg::bot> bots;
+    std::vector<topgg::bot> bots{};
 
     for (const auto& part: j["results"].template get<std::vector<dpp::json>>()) {
       bots.push_back(topgg::bot{part});
@@ -226,6 +226,12 @@ void bot_query::finish(const topgg::get_bots_completion_t& callback) {
     return bots;
   });
 }
+
+#ifdef DPP_CORO
+dpp::async<std::vector<topgg::bot>> bot_query::co_finish() {
+  return dpp::async<std::vector<topgg::bot>>{ [this] <typename C> (C&& cc) { return finish(std::forward<C>(cc)); }};
+}
+#endif
 
 stats::stats(const dpp::json& j) {
   DESERIALIZE_PRIVATE_OPTIONAL(j, server_count, size_t);
@@ -246,7 +252,7 @@ stats::stats(const std::vector<size_t>& shards, const TOPGG_UNUSED size_t shard_
   : m_server_count(std::optional{std::reduce(shards.begin(), shards.end())}) {}
 
 std::string stats::to_json() const {
-  dpp::json j;
+  dpp::json j{};
 
   SERIALIZE_PRIVATE_OPTIONAL(j, server_count);
 

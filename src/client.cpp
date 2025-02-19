@@ -44,8 +44,8 @@ dpp::async<bool> client::co_post_stats() {
 #endif
 
 void client::post_stats(const stats& s, const topgg::post_stats_completion_t& callback)  {
-  auto headers = std::multimap<std::string, std::string>{m_headers};
-  const auto s_json = s.to_json();
+  std::multimap<std::string, std::string> headers{m_headers};
+  const auto s_json{s.to_json()};
 
   headers.insert(std::pair("Content-Length", std::to_string(s_json.size())));
 
@@ -72,7 +72,7 @@ topgg::async_result<topgg::stats> client::co_get_stats() {
 
 void client::get_voters(const topgg::get_voters_completion_t& callback) {
   basic_request<std::vector<topgg::voter>>("/bots/votes", callback, [](const auto& j) {
-    std::vector<topgg::voter> voters;
+    std::vector<topgg::voter> voters{};
 
     for (const auto& part: j) {
       voters.push_back(topgg::voter{part});
@@ -133,8 +133,8 @@ void client::start_autoposter(const topgg::custom_autopost_callback_t& callback,
    */
   if (!m_autoposter_timer) {
     m_autoposter_timer = m_cluster.start_timer([this, callback](TOPGG_UNUSED dpp::timer) {
-      const auto s = callback(m_cluster);
-      const auto s_json = s.to_json();
+      const auto s{callback(m_cluster)};
+      const auto s_json{s.to_json()};
       std::multimap<std::string, std::string> headers{m_headers};
       headers.insert(std::pair("Content-Length", std::to_string(s_json.length())));
       

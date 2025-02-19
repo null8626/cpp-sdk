@@ -209,6 +209,61 @@ namespace topgg {
     topgg::async_result<topgg::bot> co_get_bot(const dpp::snowflake bot_id);
 #endif
 
+    /**
+     * @brief Queries/searches through the Top.gg database to look for matching listed Discord bots.
+     *
+     * C++17 example:
+     *
+     * ```cpp
+     * dpp::cluster bot{"your bot token"};
+     * topgg::client topgg_client{bot, "your top.gg token"};
+     *
+     * topgg_client
+     *   .get_bots()
+     *   .limit(250)
+     *   .skip(50)
+     *   .username("shiro")
+     *   .sort_by_monthly_votes()
+     *   .finish([](const auto& result) {
+     *     try {
+     *       const auto bots = result.get();
+     *   
+     *       for (const auto& bot: bots) {
+     *         std::cout << bot.username << std::endl;
+     *       }
+     *     } catch (const std::exception& exc) {
+     *       std::cerr << "error: " << exc.what() << std::endl;
+     *     }
+     *   });
+     * ```
+     * 
+     * C++20 example:
+     * 
+     * ```cpp
+     * dpp::cluster bot{"your bot token"};
+     * topgg::client topgg_client{bot, "your top.gg token"};
+     *
+     * try {
+     *   const auto bots = co_await topgg_client
+     *     .get_bots()
+     *     .limit(250)
+     *     .skip(50)
+     *     .username("shiro")
+     *     .sort_by_monthly_votes()
+     *     .finish();
+     *
+     *   for (const auto& bot: bots) {
+     *     std::cout << topgg_bot.username << std::endl;
+     *   }
+     * } catch (const std::exception& exc) {
+     *   std::cerr << "error: " << exc.what() << std::endl;
+     * }
+     * ```
+     * 
+     * @return bot_query An object for configuring the query in get_bots before being sent to the Top.gg API.
+     * @see topgg::bot_query
+     * @since 2.0.1
+     */
     inline bot_query get_bots() noexcept {
       return bot_query{this};
     }
