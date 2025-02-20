@@ -22,7 +22,8 @@ jobs:
       - name: Run tests
         run: |
           copy .\deps\*.dll
-          cl /nologo /EHsc /Iinclude /std:c++20 test.cpp .\deps\dpp.lib
+          copy .\build\Release\*.dll
+          cl /nologo /EHsc /Iinclude /std:c++20 test.cpp .\build\Release\topgg.lib .\deps\dpp.lib
           .\test.exe
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}

@@ -7,6 +7,7 @@ project(
   DESCRIPTION "The official C++ wrapper for the Top.gg API."
 )
 
+set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 set(CMAKE_BUILD_TYPE Debug CACHE STRING "Build type")
 option(BUILD_SHARED_LIBS "Build shared libraries" ON)
 option(ENABLE_CORO "Support for C++20 coroutines" OFF)
@@ -41,7 +42,6 @@ set_target_properties(topgg PROPERTIES
 )
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake)
-set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
 find_package(DPP REQUIRED)
 
