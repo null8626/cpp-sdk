@@ -1,0 +1,29 @@
+name: Run tests
+on:
+  push:
+    branches: [main, v0]
+    tags-ignore: ['**']
+    paths: ['src/*.cpp', 'include/topgg/*.h']
+  pull_request:
+    tags-ignore: ['**']
+    paths: ['src/*.cpp', 'include/topgg/*.h']
+jobs:
+  test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: amd64
+      - name: Build
+        run: |
+          cmake -B build .
+          cmake --build build --config Release
+      - name: Run tests
+        run: |
+          copy .\deps\*.dll
+          cl /nologo /EHsc /Iinclude /std:c++20 test.cpp .\deps\dpp.lib
+          .\test.exe
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          TOPGG_TOKEN: ${{ secrets.TOPGG_TOKEN }}

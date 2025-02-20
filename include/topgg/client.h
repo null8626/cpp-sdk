@@ -4,7 +4,7 @@
  * @brief The official C++ wrapper for the Top.gg API.
  * @authors Top.gg, null8626
  * @copyright Copyright (c) 2024-2025 Top.gg & null8626
- * @date 2025-02-19
+ * @date 2025-02-20
  * @version 3.0.0
  */
 
@@ -25,14 +25,6 @@ namespace topgg {
    * @since 2.0.0
    */
   using get_bot_completion_t = std::function<void(const result<bot>&)>;
-
-  /**
-   * @brief The callback function to call when get_user completes.
-   *
-   * @see topgg::client::get_user
-   * @since 2.0.0
-   */
-  using get_user_completion_t = std::function<void(const result<user>&)>;
 
   /**
    * @brief The callback function to call when get_server_count completes.
@@ -82,6 +74,7 @@ namespace topgg {
   class TOPGG_EXPORT client {
     std::multimap<std::string, std::string> m_headers;
     std::string m_token;
+    std::string m_id;
     dpp::cluster& m_cluster;
     dpp::timer m_autoposter_timer;
 
@@ -266,71 +259,6 @@ namespace topgg {
     inline bot_query get_bots() noexcept {
       return bot_query{this};
     }
-
-    /**
-     * @brief Fetches a user from a Discord ID.
-     *
-     * Example:
-     *
-     * ```cpp
-     * dpp::cluster bot{"your bot token"};
-     * topgg::client topgg_client{bot, "your top.gg token"};
-     *
-     * topgg_client.get_user(661200758510977084, [](const auto& result) {
-     *   try {
-     *     const auto user = result.get();
-     *
-     *     std::cout << user.username << std::endl;
-     *   } catch (const std::exception& exc) {
-     *     std::cerr << "error: " << exc.what() << std::endl;
-     *   }
-     * });
-     * ```
-     *
-     * @param user_id The Discord user ID to fetch from.
-     * @param callback The callback function to call when get_user completes.
-     * @note For its C++20 coroutine counterpart, see co_get_user.
-     * @see topgg::result
-     * @see topgg::user
-     * @see topgg::co_get_user
-     * @since 2.0.0
-     */
-    void get_user(const dpp::snowflake user_id, const get_user_completion_t& callback);
-
-#ifdef DPP_CORO
-    /**
-     * @brief Fetches a user from a Discord ID through a C++20 coroutine.
-     *
-     * Example:
-     *
-     * ```cpp
-     * dpp::cluster bot{"your bot token"};
-     * topgg::client topgg_client{bot, "your top.gg token"};
-     *
-     * try {
-     *   const auto user = co_await topgg_client.co_get_user(661200758510977084);
-     *
-     *   std::cout << user.username << std::endl;
-     * } catch (const std::exception& exc) {
-     *   std::cerr << "error: " << exc.what() << std::endl;
-     * }
-     * ```
-     *
-     * @param user_id The Discord user ID to fetch from.
-     * @throw topgg::internal_server_error Thrown when the client receives an unexpected error from Top.gg's end.
-     * @throw topgg::invalid_token Thrown when its known that the client uses an invalid Top.gg API token.
-     * @throw topgg::not_found Thrown when such query does not exist.
-     * @throw topgg::ratelimited Thrown when the client gets ratelimited from sending more HTTP requests.
-     * @throw dpp::http_error Thrown when an unexpected HTTP exception has occured.
-     * @return co_await to retrieve a topgg::user if successful
-     * @note For its C++17 callback-based counterpart, see get_user.
-     * @see topgg::async_result
-     * @see topgg::bot
-     * @see topgg::client::get_user
-     * @since 2.0.0
-     */
-    topgg::async_result<topgg::user> co_get_user(const dpp::snowflake user_id);
-#endif
 
     /**
      * @brief Fetches your Discord bot's posted server count.

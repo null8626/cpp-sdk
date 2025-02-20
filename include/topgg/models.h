@@ -4,7 +4,7 @@
  * @brief The official C++ wrapper for the Top.gg API.
  * @authors Top.gg, null8626
  * @copyright Copyright (c) 2024-2025 Top.gg & null8626
- * @date 2025-02-19
+ * @date 2025-02-20
  * @version 3.0.0
  */
 
@@ -50,7 +50,6 @@ namespace topgg {
    * @brief Base class of the account data stored in the Top.gg API.
    *
    * @see topgg::bot
-   * @see topgg::user
    * @see topgg::voter
    * @since 2.0.0
    */
@@ -445,125 +444,6 @@ namespace topgg {
   class autoposter_source {
   public:
     virtual size_t TOPGG_EXPORT get_server_count(dpp::cluster&) = 0;
-  };
-
-  class user;
-
-  /**
-   * @brief Represents a user's social links, if available.
-   *
-   * @see topgg::user
-   * @since 2.0.0
-   */
-  class TOPGG_EXPORT user_socials {
-    user_socials(const dpp::json& j);
-
-  public:
-    user_socials() = delete;
-
-    /**
-     * @brief A URL of this user's GitHub account, if available.
-     *
-     * @since 2.0.0
-     */
-    std::optional<std::string> github;
-
-    /**
-     * @brief A URL of this user's Instagram account, if available.
-     *
-     * @since 2.0.0
-     */
-    std::optional<std::string> instagram;
-
-    /**
-     * @brief A URL of this user's Reddit account, if available.
-     *
-     * @since 2.0.0
-     */
-    std::optional<std::string> reddit;
-
-    /**
-     * @brief A URL of this user's Twitter/X account, if available.
-     *
-     * @since 2.0.0
-     */
-    std::optional<std::string> twitter;
-
-    /**
-     * @brief A URL of this user's YouTube channel, if available.
-     *
-     * @since 2.0.0
-     */
-    std::optional<std::string> youtube;
-
-    friend class user;
-  };
-
-  /**
-   * @brief Represents a user logged into Top.gg.
-   *
-   * @see topgg::user_socials
-   * @see topgg::client::get_user
-   * @see topgg::voter
-   * @see topgg::account
-   * @since 2.0.0
-   */
-  class TOPGG_EXPORT user: public account {
-    user(const dpp::json& j);
-
-  public:
-    user() = delete;
-
-    /**
-     * @brief The user's bio, if available.
-     *
-     * @since 2.0.0
-     */
-    std::optional<std::string> bio;
-
-    /**
-     * @brief The URL of this user's profile banner image, if available.
-     *
-     * @since 2.0.0
-     */
-    std::optional<std::string> banner;
-
-    /**
-     * @brief This user's social links, if available.
-     *
-     * @since 2.0.0
-     */
-    std::optional<user_socials> socials;
-
-    /**
-     * @brief Whether this user is a Top.gg supporter or not.
-     *
-     * @since 2.0.0
-     */
-    bool is_supporter;
-
-    /**
-     * @brief Whether this user is a Top.gg moderator or not.
-     *
-     * @since 2.0.0
-     */
-    bool is_moderator;
-
-    /**
-     * @brief Whether this user is a Top.gg website moderator or not.
-     *
-     * @since 2.0.0
-     */
-    bool is_web_moderator;
-
-    /**
-     * @brief Whether this user is a Top.gg website administrator or not.
-     *
-     * @since 2.0.0
-     */
-    bool is_admin;
-
-    friend class client;
   };
 }; // namespace topgg
 

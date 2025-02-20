@@ -79,33 +79,6 @@ try {
 }
 ```
 
-### Fetching a user from its Discord ID
-
-```cpp
-dpp::cluster bot{"your bot token"};
-topgg::client topgg_client{bot, "your top.gg token"};
-
-// using C++17 callbacks
-topgg_client.get_user(264811613708746752, [](const auto& result) {
-  try {
-    const auto user = result.get();
-  
-    std::cout << user.username << std::endl;
-  } catch (const std::exception& exc) {
-    std::cerr << "error: " << exc.what() << std::endl;
-  }
-});
-
-// using C++20 coroutines
-try {
-  const auto user = co_await topgg_client.co_get_user(661200758510977084);
-  
-  std::cout << user.username << std::endl;
-} catch (const std::exception& exc) {
-  std::cerr << "error: " << exc.what() << std::endl;
-}
-```
-
 ### Posting your bot's server count
 
 ```cpp

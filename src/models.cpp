@@ -3,8 +3,6 @@
 using topgg::account;
 using topgg::bot;
 using topgg::bot_query;
-using topgg::user;
-using topgg::user_socials;
 
 #ifdef _WIN32
 #include <sstream>
@@ -217,26 +215,3 @@ dpp::async<std::vector<topgg::bot>> bot_query::co_finish() {
   return dpp::async<std::vector<topgg::bot>>{ [this] <typename C> (C&& cc) { return finish(std::forward<C>(cc)); }};
 }
 #endif
-
-user_socials::user_socials(const dpp::json& j) {
-  DESERIALIZE_OPTIONAL_STRING(j, github);
-  DESERIALIZE_OPTIONAL_STRING(j, instagram);
-  DESERIALIZE_OPTIONAL_STRING(j, reddit);
-  DESERIALIZE_OPTIONAL_STRING(j, twitter);
-  DESERIALIZE_OPTIONAL_STRING(j, youtube);
-}
-
-user::user(const dpp::json& j)
-  : account(j) {
-  DESERIALIZE_OPTIONAL_STRING(j, bio);
-  DESERIALIZE_OPTIONAL_STRING(j, banner);
-
-  if (j.contains("socials")) {
-    socials = std::optional{user_socials{j["socials"].template get<dpp::json>()}};
-  }
-
-  DESERIALIZE_ALIAS(j, supporter, is_supporter, bool);
-  DESERIALIZE_ALIAS(j, mod, is_moderator, bool);
-  DESERIALIZE_ALIAS(j, webMod, is_web_moderator, bool);
-  DESERIALIZE_ALIAS(j, admin, is_admin, bool);
-}
