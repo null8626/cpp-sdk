@@ -8,3 +8,6 @@ include/dpp/
 build/
 deps/
 docs/html/
+
+test.exe
+test.obj

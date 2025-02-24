@@ -86,7 +86,7 @@ static void strptime(const char* s, const char* f, tm* t) {
 account::account(const dpp::json& j) {
   id = dpp::snowflake{j["id"].template get<std::string>()};
 
-  DESERIALIZE(j, username, std::string);
+  DESERIALIZE_ALIAS(j, username, name, std::string);
 
   try {
     const auto hash{j["avatar"].template get<std::string>()};
@@ -129,20 +129,9 @@ bot::bot(const dpp::json& j)
 
   DESERIALIZE_ALIAS(j, points, votes, size_t);
   DESERIALIZE_ALIAS(j, monthlyPoints, monthly_votes, size_t);
-
-  try {
-    DESERIALIZE(j, invite, std::string);
-  } catch (TOPGG_UNUSED const std::exception&) {
-    invite = "https://discord.com/oauth2/authorize?scope=bot&client_id=" + std::to_string(id);
-  }
-
-  IGNORE_EXCEPTION({
-    const auto j_support{j["support"].template get<std::string>()};
-
-    if (j_support.size() > 0) {
-      support = std::optional{"https://discord.com/invite/" + j_support};
-    }
-  });
+  DESERIALIZE_OPTIONAL(j, invite, std::string);
+  DESERIALIZE_OPTIONAL(j, support, std::string);
+  DESERIALIZE_OPTIONAL(j, server_count, size_t);
 
   try {
     url.append(j["vanity"].template get<std::string>());

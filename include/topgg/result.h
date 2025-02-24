@@ -4,7 +4,7 @@
  * @brief The official C++ wrapper for the Top.gg API.
  * @authors Top.gg, null8626
  * @copyright Copyright (c) 2024-2025 Top.gg & null8626
- * @date 2025-02-20
+ * @date 2025-02-25
  * @version 3.0.0
  */
 
@@ -81,7 +81,7 @@ namespace topgg {
   template<typename T>
   class result;
 
-  class TOPGG_EXPORT internal_result {
+  class internal_result {
     const dpp::http_request_completion_t m_response;
 
     void prepare() const;
@@ -106,7 +106,7 @@ namespace topgg {
    * @since 2.0.0
    */
   template<typename T>
-  class TOPGG_EXPORT result {
+  class result {
     const internal_result m_internal;
     const std::function<T(const dpp::json& json)> m_parse_fn;
 

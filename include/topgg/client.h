@@ -4,7 +4,7 @@
  * @brief The official C++ wrapper for the Top.gg API.
  * @authors Top.gg, null8626
  * @copyright Copyright (c) 2024-2025 Top.gg & null8626
- * @date 2025-02-20
+ * @date 2025-02-25
  * @version 3.0.0
  */
 
@@ -85,10 +85,6 @@ namespace topgg {
 
     size_t get_server_count();
     void post_server_count_inner(const size_t server_count, dpp::http_completion_event callback);
-
-    inline void post_server_count_inner(dpp::http_completion_event callback) {
-      return post_server_count_inner(get_server_count(), callback);
-    }
     
   public:
     client() = delete;
@@ -381,7 +377,7 @@ namespace topgg {
      * @throw topgg::not_found Thrown when such query does not exist.
      * @throw topgg::ratelimited Thrown when the client gets ratelimited from sending more HTTP requests.
      * @throw dpp::http_error Thrown when an unexpected HTTP exception has occured.
-     * @return co_await to retrieve a std::vector<voter> if successful
+     * @return co_await to retrieve a vector of topgg::voter if successful
      * @note For its C++17 callback-based counterpart, see get_voters.
      * @see topgg::async_result
      * @see topgg::voter
@@ -585,14 +581,13 @@ namespace topgg {
      * bot.start_autoposter();
      * ```
      *
-     * @param delay The minimum delay between post requests in seconds. Defaults to 30 minutes.
-     * @throw std::invalid_argument Throws if the delay argument is shorter than 15 minutes.
+     * @param delay The minimum delay between post requests in seconds. Defaults to 15 minutes.
      * @note This function has no effect if the autoposter is already running.
      * @see topgg::client::post_server_count
      * @see topgg::client::stop_autoposter
      * @since 2.0.0
      */
-    void start_autoposter(const time_t delay = 1800);
+    void start_autoposter(time_t delay = 900);
     
     /**
      * @brief Starts autoposting your bot's server count using a custom data source.
@@ -614,15 +609,14 @@ namespace topgg {
      * ```
      *
      * @param source A pointer to an autoposter source located in the heap memory. This pointer must be allocated with new, and it will be deleted once the autoposter thread gets stopped.
-     * @param delay The minimum delay between post requests in seconds. Defaults to 30 minutes.
-     * @throw std::invalid_argument Throws if the delay argument is shorter than 15 minutes.
+     * @param delay The minimum delay between post requests in seconds. Defaults to 15 minutes.
      * @note This function has no effect if the autoposter is already running.
      * @see topgg::client::autoposter_source
      * @see topgg::client::post_server_count
      * @see topgg::client::stop_autoposter
      * @since 3.0.0
      */
-    void start_autoposter(autoposter_source* source, const time_t delay = 1800);
+    void start_autoposter(autoposter_source* source, time_t delay = 900);
     
     /**
      * @brief Prematurely stops the autoposter. Calling this function is usually unnecessary as this function is called later in the destructor.

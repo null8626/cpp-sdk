@@ -4,7 +4,7 @@
  * @brief The official C++ wrapper for the Top.gg API.
  * @authors Top.gg, null8626
  * @copyright Copyright (c) 2024-2025 Top.gg & null8626
- * @date 2025-02-20
+ * @date 2025-02-25
  * @version 3.0.0
  */
 
@@ -61,29 +61,28 @@ namespace topgg {
     account() = delete;
 
     /**
-     * @brief The account's Discord ID.
+     * @brief This account's Discord ID.
      *
      * @since 2.0.0
      */
     dpp::snowflake id;
 
     /**
-     * @brief The account's entire Discord avatar URL.
+     * @brief This account's avatar URL.
      *
-     * @note This avatar URL can be animated if possible.
      * @since 2.0.0
      */
     std::string avatar;
 
     /**
-     * @brief The account's username.
+     * @brief This account's username.
      *
-     * @since 2.0.0
+     * @since 3.0.0
      */
-    std::string username;
+    std::string name;
 
     /**
-     * @brief The unix timestamp of when this account was created.
+     * @brief When this account was created.
      *
      * @since 2.0.0
      */
@@ -125,21 +124,21 @@ namespace topgg {
     bot() = delete;
 
     /**
-     * @brief The Discord bot's command prefix.
+     * @brief This bot's prefix.
      *
      * @since 2.0.0
      */
     std::string prefix;
 
     /**
-     * @brief The Discord bot's short description.
+     * @brief This bot's short description.
      *
      * @since 2.0.0
      */
     std::string short_description;
 
     /**
-     * @brief The Discord bot's long description, if available.
+     * @brief This bot's long description.
      *
      * @note This long description can contain Markdown and/or HTML.
      * @since 2.0.0
@@ -147,81 +146,88 @@ namespace topgg {
     std::optional<std::string> long_description;
 
     /**
-     * @brief A list of the Discord bot's tags.
+     * @brief This bot's tags.
      *
      * @since 2.0.0
      */
     std::vector<std::string> tags;
 
     /**
-     * @brief A link to the Discord bot's website, if available.
+     * @brief This bot's website URL.
      *
      * @since 2.0.0
      */
     std::optional<std::string> website;
 
     /**
-     * @brief A link to the Discord bot's GitHub repository, if available.
+     * @brief This bot's GitHub repository URL.
      *
      * @since 2.0.0
      */
     std::optional<std::string> github;
 
     /**
-     * @brief A list of the Discord bot's owners, represented in Discord user IDs.
+     * @brief This bot's owners IDs.
      *
      * @since 2.0.0
      */
     std::vector<dpp::snowflake> owners;
 
     /**
-     * @brief The Discord bot's page banner URL, if available.
+     * @brief This bot's banner URL.
      *
      * @since 2.0.0
      */
     std::optional<std::string> banner;
 
     /**
-     * @brief The unix timestamp of when this Discord bot was approved on Top.gg by a Bot Reviewer.
+     * @brief When this bot was approved on Top.gg.
      *
      * @since 2.0.0
      */
     time_t approved_at;
 
     /**
-     * @brief The amount of upvotes this Discord bot has.
+     * @brief The amount of votes this bot has.
      *
      * @since 2.0.0
      */
     size_t votes;
 
     /**
-     * @brief The amount of upvotes this Discord bot has this month.
+     * @brief The amount of votes this bot has this month.
      *
      * @since 2.0.0
      */
     size_t monthly_votes;
 
     /**
-     * @brief The Discord bot's support server invite URL, if available.
+     * @brief This bot's support URL.
      *
      * @since 2.0.0
      */
     std::optional<std::string> support;
 
     /**
-     * @brief The invite URL of this Discord bot.
+     * @brief This bot's invite URL.
      *
      * @since 2.0.0
      */
-    std::string invite;
+    std::optional<std::string> invite;
 
     /**
-     * @brief The URL of this Discord bot's Top.gg page.
+     * @brief This bot's Top.gg page URL.
      *
      * @since 2.0.0
      */
     std::string url;
+
+    /**
+     * @brief This bot's posted server count.
+     *
+     * @since 3.0.0
+     */
+    std::optional<size_t> server_count;
 
     friend class bot_query;
     friend class client;

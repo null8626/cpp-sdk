@@ -19,6 +19,7 @@
       const auto _result = raw_result.get();             \
       std::cout << "ok" << std::endl;                    \
     } catch (const std::exception& exc) {                \
+      g_exit_code = 1;                                   \
       std::cerr << "error: " << exc.what() << std::endl; \
     }                                                    \
     g_sem.release();                                     \
@@ -27,7 +28,7 @@
 using namespace std::chrono_literals;
 
 static std::binary_semaphore g_sem{0};
-static int g_exit_code = 0;
+static int g_exit_code{};
 
 int main() {
   const auto discord_token{std::getenv("BOT_TOKEN")};
@@ -44,10 +45,14 @@ int main() {
   dpp::cluster bot{discord_token};
   topgg::client topgg_client{bot, topgg_token};
 
-  std::cout << "get_bot ";
+  std::cout << "starting bot ";
+
+  bot.start(dpp::start_type::st_return);
+
+  std::cout << "ok\nget_bot ";
 
   topgg_client.get_bot(264811613708746752, TEST_RESULT_CALLBACK());
-
+  
   ACQUIRE_TEST_THREAD();
   std::cout << "get_bots ";
 
@@ -58,6 +63,39 @@ int main() {
     .username("shiro")
     .sort_by_monthly_votes()
     .finish(TEST_RESULT_CALLBACK());
+
+  ACQUIRE_TEST_THREAD();
+  std::cout << "has_voted ";
+  
+  topgg_client.has_voted(661200758510977084, TEST_RESULT_CALLBACK());
+  
+  ACQUIRE_TEST_THREAD();
+  std::cout << "post_server_count ";
+
+  topgg_client.post_server_count([](const auto success) {
+    if (success) {
+      std::cout << "ok" << std::endl;
+    } else {
+      g_exit_code = 1;
+      std::cerr << "error" << std::endl;
+    }
+
+    g_sem.release();
+  });
+  ACQUIRE_TEST_THREAD();
+  std::cout << "get_server_count ";
+
+  topgg_client.get_server_count(TEST_RESULT_CALLBACK());
+  
+  ACQUIRE_TEST_THREAD();
+  std::cout << "get_voters ";
+
+  topgg_client.get_voters(TEST_RESULT_CALLBACK());
+
+  ACQUIRE_TEST_THREAD();
+  std::cout << "is_weekend ";
+
+  topgg_client.is_weekend(TEST_RESULT_CALLBACK());
 
   ACQUIRE_TEST_THREAD();
 
