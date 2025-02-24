@@ -82,6 +82,7 @@ int main() {
 
     g_sem.release();
   });
+  
   ACQUIRE_TEST_THREAD();
   std::cout << "get_server_count ";
 
