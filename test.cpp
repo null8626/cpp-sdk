@@ -16,7 +16,7 @@
 #define TEST_RESULT_CALLBACK()                           \
   [](const auto& raw_result) {                           \
     try {                                                \
-      const auto _result = raw_result.get();             \
+      const auto _result{raw_result.get()};              \
       std::cout << "ok" << std::endl;                    \
     } catch (const std::exception& exc) {                \
       g_exit_code = 1;                                   \
