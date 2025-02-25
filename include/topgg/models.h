@@ -260,7 +260,7 @@ namespace topgg {
   using get_bots_completion_t = std::function<void(const result<std::vector<bot>>&)>;
 
   /**
-   * @brief A class for configuring the query in get_bots before being sent to the Top.gg API.
+   * @brief A class for configuring the query in get_bots before being sent to the API.
    *
    * @see topgg::client::get_bots
    * @since 2.0.1
@@ -379,7 +379,7 @@ namespace topgg {
     TOPGG_BOT_QUERY_SEARCH(std::string&, vanity);
     
     /**
-     * @brief Sends the query to the Top.gg API.
+     * @brief Sends the query to the API.
      *
      * Example:
      *
