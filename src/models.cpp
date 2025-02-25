@@ -87,15 +87,7 @@ account::account(const dpp::json& j) {
   id = dpp::snowflake{j["id"].template get<std::string>()};
 
   DESERIALIZE_ALIAS(j, username, name, std::string);
-
-  try {
-    const auto hash{j["avatar"].template get<std::string>()};
-    const char* ext{hash.rfind("a_", 0) == 0 ? "gif" : "png"};
-
-    avatar = "https://cdn.discordapp.com/avatars/" + std::to_string(id) + "/" + hash + "." + ext + "?size=1024";
-  } catch (TOPGG_UNUSED const std::exception&) {
-    avatar = "https://cdn.discordapp.com/embed/avatars/" + std::to_string((id >> 22) % 6) + ".png";
-  }
+  DESERIALIZE(j, avatar, std::string);
 
   created_at = static_cast<time_t>(((id >> 22) / 1000) + 1420070400);
 }
@@ -121,11 +113,11 @@ bot::bot(const dpp::json& j)
 
   DESERIALIZE_OPTIONAL_STRING_ALIAS(j, bannerUrl, banner);
 
-  const auto j_approved_at{j["date"].template get<std::string>()};
-  tm approved_at_tm;
+  const auto j_submitted_at{j["date"].template get<std::string>()};
+  tm submitted_at_tm;
 
-  strptime(j_approved_at.data(), "%Y-%m-%dT%H:%M:%S", &approved_at_tm);
-  approved_at = mktime(&approved_at_tm);
+  strptime(j_submitted_at.data(), "%Y-%m-%dT%H:%M:%S", &submitted_at_tm);
+  submitted_at = mktime(&submitted_at_tm);
 
   DESERIALIZE_ALIAS(j, points, votes, size_t);
   DESERIALIZE_ALIAS(j, monthlyPoints, monthly_votes, size_t);
@@ -177,7 +169,7 @@ void bot_query::add_search(const char* key, const size_t value) {
   ADD_SEARCH(key, std::to_string(value));
 }
 
-void bot_query::finish(const topgg::get_bots_completion_t& callback) {
+void bot_query::send(const topgg::get_bots_completion_t& callback) {
   if (m_sort != nullptr) {
     add_query("sort", m_sort);
   }
@@ -200,7 +192,7 @@ void bot_query::finish(const topgg::get_bots_completion_t& callback) {
 }
 
 #ifdef DPP_CORO
-dpp::async<std::vector<topgg::bot>> bot_query::co_finish() {
-  return dpp::async<std::vector<topgg::bot>>{ [this] <typename C> (C&& cc) { return finish(std::forward<C>(cc)); }};
+dpp::async<std::vector<topgg::bot>> bot_query::co_send() {
+  return dpp::async<std::vector<topgg::bot>>{ [this] <typename C> (C&& cc) { return send(std::forward<C>(cc)); }};
 }
 #endif

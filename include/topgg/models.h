@@ -181,11 +181,11 @@ namespace topgg {
     std::optional<std::string> banner;
 
     /**
-     * @brief When this bot was approved on Top.gg.
+     * @brief When this bot was submitted on Top.gg.
      *
-     * @since 2.0.0
+     * @since 3.0.0
      */
-    time_t approved_at;
+    time_t submitted_at;
 
     /**
      * @brief The amount of votes this bot has.
@@ -274,13 +274,13 @@ namespace topgg {
     TOPGG_BOT_QUERY_SORT(id, id);
 
     /**
-     * @brief Sorts results based on each bot's approval date.
+     * @brief Sorts results based on each bot's submit date.
      * 
      * @return bot_query The current modified object.
      * @see topgg::client::get_bots
-     * @since 2.0.1
+     * @since 3.0.0
      */
-    TOPGG_BOT_QUERY_SORT(approval_date, date);
+    TOPGG_BOT_QUERY_SORT(submit_date, date);
 
     /**
      * @brief Sorts results based on each bot's monthly vote count.
@@ -309,7 +309,7 @@ namespace topgg {
      * @see topgg::client::get_bots
      * @since 2.0.1
      */
-    TOPGG_BOT_QUERY_QUERY(uint16_t, skip, 499);
+    TOPGG_BOT_QUERY_QUERY(uint16_t, offset, 499);
 
     /**
      * @brief Queries only Discord bots that has this username.
@@ -373,10 +373,10 @@ namespace topgg {
      * topgg_client
      *   .get_bots()
      *   .limit(250)
-     *   .skip(50)
+     *   .offset(50)
      *   .username("shiro")
      *   .sort_by_monthly_votes()
-     *   .finish([](const auto& result) {
+     *   .send([](const auto& result) {
      *     try {
      *       const auto bots = result.get();
      *   
@@ -389,13 +389,13 @@ namespace topgg {
      *   });
      * ```
      * 
-     * @param callback The callback function to call when finish completes.
-     * @note For its C++20 coroutine counterpart, see co_finish.
+     * @param callback The callback function to call when send( completes.
+     * @note For its C++20 coroutine counterpart, see co_send(.
      * @see topgg::client::get_bots
-     * @see topgg::bot_query::co_finish
+     * @see topgg::bot_query::co_send(
      * @since 2.0.1
      */
-    void finish(const get_bots_completion_t& callback);
+    void send(const get_bots_completion_t& callback);
 
 #ifdef DPP_CORO
     /**
@@ -411,10 +411,10 @@ namespace topgg {
      *   const auto bots = co_await topgg_client
      *     .get_bots()
      *     .limit(250)
-     *     .skip(50)
+     *     .offset(50)
      *     .username("shiro")
      *     .sort_by_monthly_votes()
-     *     .finish();
+     *     .send();
      *
      *   for (const auto& bot: bots) {
      *     std::cout << topgg_bot.username << std::endl;
@@ -432,10 +432,10 @@ namespace topgg {
      * @return co_await to retrieve a vector of topgg::bot if successful
      * @note For its C++17 callback-based counterpart, see get_bot.
      * @see topgg::client::get_bots
-     * @see topgg::bot_query::co_finish
+     * @see topgg::bot_query::co_send(
      * @since 2.0.1
      */
-    topgg::async_result<std::vector<topgg::bot>> co_finish();
+    topgg::async_result<std::vector<topgg::bot>> co_send();
 #endif
 
     friend class client;

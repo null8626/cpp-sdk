@@ -59,10 +59,10 @@ int main() {
   topgg_client
     .get_bots()
     .limit(250)
-    .skip(50)
+    .offset(50)
     .username("shiro")
     .sort_by_monthly_votes()
-    .finish(TEST_RESULT_CALLBACK());
+    .send(TEST_RESULT_CALLBACK());
 
   ACQUIRE_TEST_THREAD();
   std::cout << "has_voted ";

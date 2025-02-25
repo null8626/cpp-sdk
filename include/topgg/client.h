@@ -209,10 +209,10 @@ namespace topgg {
      * topgg_client
      *   .get_bots()
      *   .limit(250)
-     *   .skip(50)
+     *   .offset(50)
      *   .username("shiro")
      *   .sort_by_monthly_votes()
-     *   .finish([](const auto& result) {
+     *   .send([](const auto& result) {
      *     try {
      *       const auto bots = result.get();
      *   
@@ -235,10 +235,10 @@ namespace topgg {
      *   const auto bots = co_await topgg_client
      *     .get_bots()
      *     .limit(250)
-     *     .skip(50)
+     *     .offset(50)
      *     .username("shiro")
      *     .sort_by_monthly_votes()
-     *     .finish();
+     *     .send();
      *
      *   for (const auto& bot: bots) {
      *     std::cout << topgg_bot.username << std::endl;
@@ -320,7 +320,7 @@ namespace topgg {
 #endif
 
     /**
-     * @brief Fetches your Discord bot's last 1000 voters.
+     * @brief Fetches your Discord bot's last 1000 unique voters.
      *
      * Example:
      *
@@ -353,7 +353,7 @@ namespace topgg {
 
 #ifdef DPP_CORO
     /**
-     * @brief Fetches your Discord bot's last 1000 voters through a C++20 coroutine.
+     * @brief Fetches your Discord bot's last 1000 unique voters through a C++20 coroutine.
      *
      * Example:
      *
