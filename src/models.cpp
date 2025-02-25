@@ -1,8 +1,8 @@
 #include <topgg/topgg.h>
 
-using topgg::account;
 using topgg::bot;
 using topgg::bot_query;
+using topgg::voter;
 
 #ifdef _WIN32
 #include <sstream>
@@ -71,6 +71,9 @@ static void strptime(const char* s, const char* f, tm* t) {
     }                                                             \
   })
 
+#define SNOWFLAKE_FROM_JSON(j, name) \
+  dpp::snowflake{j[#name].template get<std::string>()}
+
 #define ADD_QUERY(key, value) \
   m_query.append(key);        \
   m_query.push_back('=');     \
@@ -83,17 +86,19 @@ static void strptime(const char* s, const char* f, tm* t) {
   m_search.append(value);      \
   m_search.append("%20")
 
-account::account(const dpp::json& j) {
-  id = dpp::snowflake{j["id"].template get<std::string>()};
+static time_t timestamp_from_id(const dpp::snowflake& id) {
+  return static_cast<time_t>(((id >> 22) / 1000) + 1420070400);
+}
+
+bot::bot(const dpp::json& j): url("https://top.gg/bot/") {
+  id = SNOWFLAKE_FROM_JSON(j, clientid);
+  topgg_id = SNOWFLAKE_FROM_JSON(j, id);
 
   DESERIALIZE_ALIAS(j, username, name, std::string);
   DESERIALIZE(j, avatar, std::string);
 
-  created_at = static_cast<time_t>(((id >> 22) / 1000) + 1420070400);
-}
+  created_at = timestamp_from_id(id);
 
-bot::bot(const dpp::json& j)
-  : account(j), url("https://top.gg/bot/") {
   DESERIALIZE(j, prefix, std::string);
   DESERIALIZE_ALIAS(j, shortdesc, short_description, std::string);
   DESERIALIZE_OPTIONAL_STRING_ALIAS(j, longdesc, long_description);
@@ -196,3 +201,12 @@ dpp::async<std::vector<topgg::bot>> bot_query::co_send() {
   return dpp::async<std::vector<topgg::bot>>{ [this] <typename C> (C&& cc) { return send(std::forward<C>(cc)); }};
 }
 #endif
+
+voter::voter(const dpp::json& j) {
+  id = SNOWFLAKE_FROM_JSON(j, id);
+
+  DESERIALIZE_ALIAS(j, username, name, std::string);
+  DESERIALIZE(j, avatar, std::string);
+
+  created_at = timestamp_from_id(id);
+}

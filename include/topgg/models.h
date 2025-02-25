@@ -46,49 +46,6 @@
   }
 
 namespace topgg {
-  /**
-   * @brief Base class of the account data stored in the Top.gg API.
-   *
-   * @see topgg::bot
-   * @see topgg::voter
-   * @since 2.0.0
-   */
-  class TOPGG_EXPORT account {
-  protected:
-    account(const dpp::json& j);
-
-  public:
-    account() = delete;
-
-    /**
-     * @brief This account's Discord ID.
-     *
-     * @since 2.0.0
-     */
-    dpp::snowflake id;
-
-    /**
-     * @brief This account's avatar URL.
-     *
-     * @since 2.0.0
-     */
-    std::string avatar;
-
-    /**
-     * @brief This account's username.
-     *
-     * @since 3.0.0
-     */
-    std::string name;
-
-    /**
-     * @brief When this account was created.
-     *
-     * @since 2.0.0
-     */
-    time_t created_at;
-  };
-
   class bot_query;
   class client;
 
@@ -97,15 +54,41 @@ namespace topgg {
    *
    * @see topgg::client::get_voters
    * @see topgg::client::start_autoposter
-   * @see topgg::account
    * @since 2.0.0
    */
-  class TOPGG_EXPORT voter: public account {
-    inline voter(const dpp::json& j)
-      : account(j) {}
-
+  class TOPGG_EXPORT voter {
   public:
     voter() = delete;
+
+    /**
+     * @brief This voter's Discord ID.
+     *
+     * @since 2.0.0
+     */
+    dpp::snowflake id;
+
+    /**
+     * @brief This voter's avatar URL.
+     *
+     * @since 2.0.0
+     */
+    std::string avatar;
+
+    /**
+     * @brief This voter's username.
+     *
+     * @since 3.0.0
+     */
+    std::string name;
+
+    /**
+     * @brief This voter's creation date.
+     *
+     * @since 2.0.0
+     */
+    time_t created_at;
+
+    voter(const dpp::json& j);
 
     friend class client;
   };
@@ -114,14 +97,48 @@ namespace topgg {
    * @brief Represents a Discord bot listed on Top.gg.
    *
    * @see topgg::client::get_bot
-   * @see topgg::account
    * @since 2.0.0
    */
-  class TOPGG_EXPORT bot: public account {
+  class TOPGG_EXPORT bot {
     bot(const dpp::json& j);
 
   public:
     bot() = delete;
+
+    /**
+     * @brief This bot's Discord ID.
+     *
+     * @since 2.0.0
+     */
+    dpp::snowflake id;
+
+    /**
+     * @brief This bot's Top.gg ID.
+     *
+     * @since 3.0.0
+     */
+    dpp::snowflake topgg_id;
+
+    /**
+     * @brief This bot's avatar URL.
+     *
+     * @since 2.0.0
+     */
+    std::string avatar;
+
+    /**
+     * @brief This bot's username.
+     *
+     * @since 3.0.0
+     */
+    std::string name;
+
+    /**
+     * @brief This bot's creation date.
+     *
+     * @since 2.0.0
+     */
+    time_t created_at;
 
     /**
      * @brief This bot's prefix.
@@ -181,7 +198,7 @@ namespace topgg {
     std::optional<std::string> banner;
 
     /**
-     * @brief When this bot was submitted on Top.gg.
+     * @brief This bot's submission date.
      *
      * @since 3.0.0
      */
@@ -274,13 +291,13 @@ namespace topgg {
     TOPGG_BOT_QUERY_SORT(id, id);
 
     /**
-     * @brief Sorts results based on each bot's submit date.
+     * @brief Sorts results based on each bot's submission date.
      * 
      * @return bot_query The current modified object.
      * @see topgg::client::get_bots
      * @since 3.0.0
      */
-    TOPGG_BOT_QUERY_SORT(submit_date, date);
+    TOPGG_BOT_QUERY_SORT(submission_date, date);
 
     /**
      * @brief Sorts results based on each bot's monthly vote count.
