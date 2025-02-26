@@ -59,8 +59,8 @@ int main() {
   topgg_client
     .get_bots()
     .limit(250)
-    .offset(50)
-    .username("shiro")
+    .skip(50)
+    .name("shiro")
     .sort_by_monthly_votes()
     .send(TEST_RESULT_CALLBACK());
 

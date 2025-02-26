@@ -27,22 +27,22 @@
 #undef _XOPEN_SOURCE
 #endif
 
-#define TOPGG_BOT_QUERY_SORT(lib_name, api_name)    \
-  inline bot_query& sort_by_##lib_name() noexcept { \
-    m_sort = #api_name;                             \
-    return *this;                                   \
+#define TOPGG_BOT_QUERY_SORT(lib_name, api_name)               \
+  inline bot_query& sort_by_##lib_name() noexcept {            \
+    m_sort = #api_name;                                        \
+    return *this;                                              \
   }
 
-#define TOPGG_BOT_QUERY_QUERY(type, name, ...)   \
-  inline bot_query& name(const type name) {      \
-    add_query(#name, name, __VA_ARGS__);         \
-    return *this;                                \
+#define TOPGG_BOT_QUERY_QUERY(type, lib_name, api_name, ...)   \
+  inline bot_query& lib_name(const type lib_name) {            \
+    add_query(#api_name, lib_name, __VA_ARGS__);               \
+    return *this;                                              \
   }
 
-#define TOPGG_BOT_QUERY_SEARCH(type, name, ...)  \
-  inline bot_query& name(const type name) {      \
-    add_search(#name, name, __VA_ARGS__);        \
-    return *this;                                \
+#define TOPGG_BOT_QUERY_SEARCH(type, lib_name, api_name, ...)  \
+  inline bot_query& lib_name(const type lib_name) {            \
+    add_search(#api_name, lib_name, __VA_ARGS__);              \
+    return *this;                                              \
   }
 
 namespace topgg {
@@ -315,7 +315,7 @@ namespace topgg {
      * @see topgg::client::get_bots
      * @since 2.0.1
      */
-    TOPGG_BOT_QUERY_QUERY(uint16_t, limit, 500);
+    TOPGG_BOT_QUERY_QUERY(uint16_t, limit, limit, 500);
 
     /**
      * @brief Sets the amount of bots to be skipped during the query.
@@ -325,7 +325,7 @@ namespace topgg {
      * @see topgg::client::get_bots
      * @since 2.0.1
      */
-    TOPGG_BOT_QUERY_QUERY(uint16_t, offset, 499);
+    TOPGG_BOT_QUERY_QUERY(uint16_t, skip, offset, 499);
 
     /**
      * @brief Queries only Discord bots that has this username.
@@ -335,7 +335,7 @@ namespace topgg {
      * @see topgg::client::get_bots
      * @since 2.0.1
      */
-    TOPGG_BOT_QUERY_SEARCH(std::string&, username);
+    TOPGG_BOT_QUERY_SEARCH(std::string&, name, username);
 
     /**
      * @brief Queries only Discord bots that has this prefix.
@@ -345,7 +345,7 @@ namespace topgg {
      * @see topgg::client::get_bots
      * @since 2.0.1
      */
-    TOPGG_BOT_QUERY_SEARCH(std::string&, prefix);
+    TOPGG_BOT_QUERY_SEARCH(std::string&, prefix, prefix);
 
     /**
      * @brief Queries only Discord bots that has this vote count.
@@ -355,7 +355,7 @@ namespace topgg {
      * @see topgg::client::get_bots
      * @since 2.0.1
      */
-    TOPGG_BOT_QUERY_SEARCH(size_t, votes);
+    TOPGG_BOT_QUERY_SEARCH(size_t, votes, points);
 
     /**
      * @brief Queries only Discord bots that has this monthly vote count.
@@ -365,7 +365,7 @@ namespace topgg {
      * @see topgg::client::get_bots
      * @since 2.0.1
      */
-    TOPGG_BOT_QUERY_SEARCH(size_t, monthly_votes);
+    TOPGG_BOT_QUERY_SEARCH(size_t, monthly_votes, monthlyPoints);
 
     /**
      * @brief Queries only Discord bots that has this Top.gg vanity URL.
@@ -375,7 +375,7 @@ namespace topgg {
      * @see topgg::client::get_bots
      * @since 2.0.1
      */
-    TOPGG_BOT_QUERY_SEARCH(std::string&, vanity);
+    TOPGG_BOT_QUERY_SEARCH(std::string&, vanity, vanity);
     
     /**
      * @brief Sends the query to the API.
@@ -389,8 +389,8 @@ namespace topgg {
      * topgg_client
      *   .get_bots()
      *   .limit(250)
-     *   .offset(50)
-     *   .username("shiro")
+     *   .skip(50)
+     *   .name("shiro")
      *   .sort_by_monthly_votes()
      *   .send([](const auto& result) {
      *     try {
@@ -427,8 +427,8 @@ namespace topgg {
      *   const auto bots = co_await topgg_client
      *     .get_bots()
      *     .limit(250)
-     *     .offset(50)
-     *     .username("shiro")
+     *     .skip(50)
+     *     .name("shiro")
      *     .sort_by_monthly_votes()
      *     .send();
      *
