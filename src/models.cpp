@@ -176,12 +176,14 @@ void bot_query::send(const topgg::get_bots_completion_t& callback) {
     search.append(search_query.second);
   }
 
-  const auto search_raw{search.c_str() + 3};
+  if (!search.empty()) {
+    const auto search_raw{search.c_str() + 3};
 
-  if (*search_raw != 0) {
-    path.append("search=");
-    path.append(search_raw);
-    path.push_back('&');
+    if (*search_raw != 0) {
+      path.append("search=");
+      path.append(search_raw);
+      path.push_back('&');
+    }
   }
 
   for (const auto& additional_query: m_query) {
