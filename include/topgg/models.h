@@ -12,7 +12,7 @@
 
 #include <topgg/topgg.h>
 
-#include <string>
+#include <unordered_map>
 #include <optional>
 #include <string>
 #include <vector>
@@ -267,11 +267,11 @@ namespace topgg {
    */
   class TOPGG_EXPORT bot_query {
     client* m_client;
-    std::string m_query;
-    std::string m_search;
+    std::unordered_map<const char*, std::string> m_query;
+    std::unordered_map<const char*, std::string> m_search;
     const char* m_sort;
   
-    inline bot_query(client* c): m_client(c), m_query("/bots?"), m_sort(nullptr) {}
+    inline bot_query(client* c): m_client(c), m_sort(nullptr) {}
     
     void add_query(const char* key, const uint16_t value, const uint16_t max);
     void add_query(const char* key, const char* value);
@@ -369,9 +369,9 @@ namespace topgg {
     TOPGG_BOT_QUERY_SEARCH(size_t, monthly_votes);
 
     /**
-     * @brief Queries only Discord bots that has this vanity URL.
+     * @brief Queries only Discord bots that has this Top.gg vanity URL.
      * 
-     * @param vanity The bot's vanity URL.
+     * @param vanity The bot's Top.gg vanity URL.
      * @return bot_query The current modified object.
      * @see topgg::client::get_bots
      * @since 2.0.1
@@ -406,10 +406,10 @@ namespace topgg {
      *   });
      * ```
      * 
-     * @param callback The callback function to call when send( completes.
-     * @note For its C++20 coroutine counterpart, see co_send(.
+     * @param callback The callback function to call when send() completes.
+     * @note For its C++20 coroutine counterpart, see co_send().
      * @see topgg::client::get_bots
-     * @see topgg::bot_query::co_send(
+     * @see topgg::bot_query::co_send
      * @since 2.0.1
      */
     void send(const get_bots_completion_t& callback);
@@ -449,7 +449,7 @@ namespace topgg {
      * @return co_await to retrieve a vector of topgg::bot if successful
      * @note For its C++17 callback-based counterpart, see get_bot.
      * @see topgg::client::get_bots
-     * @see topgg::bot_query::co_send(
+     * @see topgg::bot_query::send
      * @since 2.0.1
      */
     topgg::async_result<std::vector<topgg::bot>> co_send();

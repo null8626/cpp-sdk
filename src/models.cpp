@@ -74,18 +74,6 @@ static void strptime(const char* s, const char* f, tm* t) {
 #define SNOWFLAKE_FROM_JSON(j, name) \
   dpp::snowflake{j[#name].template get<std::string>()}
 
-#define ADD_QUERY(key, value) \
-  m_query.append(key);        \
-  m_query.push_back('=');     \
-  m_query.append(value);      \
-  m_query.push_back('&')
-
-#define ADD_SEARCH(key, value) \
-  m_search.append(key);        \
-  m_search.append("%3A%20");   \
-  m_search.append(value);      \
-  m_search.append("%20")
-
 static time_t timestamp_from_id(const dpp::snowflake& id) {
   return static_cast<time_t>(((id >> 22) / 1000) + 1420070400);
 }
@@ -159,37 +147,63 @@ static std::string querystring(const std::string& value) {
 }
 
 void bot_query::add_query(const char* key, const uint16_t value, const uint16_t max) {
-  ADD_QUERY(key, std::to_string(std::min(value, max)));
+  m_query.insert_or_assign(key, std::to_string(std::min(value, max)));
 }
 
 void bot_query::add_query(const char* key, const char* value) {
-  ADD_QUERY(key, value); // querystring() not needed here
+  m_query.insert_or_assign(key, value);
 }
 
 void bot_query::add_search(const char* key, const std::string& value) {
-  ADD_SEARCH(key, querystring(value));
+  m_search.insert_or_assign(key, querystring(value));
 }
 
 void bot_query::add_search(const char* key, const size_t value) {
-  ADD_SEARCH(key, std::to_string(value));
+  m_search.insert_or_assign(key, std::to_string(value));
 }
 
 void bot_query::send(const topgg::get_bots_completion_t& callback) {
+  std::string path{"/bots?"};
+
   if (m_sort != nullptr) {
-    add_query("sort", m_sort);
+    path.append("sort=");
+    path.append(m_sort);
+    path.push_back('&');
   }
 
-  if (!m_search.empty()) {
-    add_query("search", m_search.c_str());
+  std::string search{};
+
+  for (const auto& search_query: m_search) {
+    search.append("%20");
+    search.append(search_query.first);
+    search.append("%3A%20");
+    search.append(querystring(search_query.second));
   }
 
-  m_query.pop_back();
+  const auto search_raw{search.c_str() + 3};
 
-  m_client->basic_request<std::vector<topgg::bot>>(m_query, callback, [](const auto& j) {
+  if (*search_raw != 0) {
+    path.append("search=");
+    path.append(search_raw);
+    path.push_back('&');
+  }
+
+  for (const auto& additional_query: m_query) {
+    path.append(additional_query.first);
+    path.push_back('=');
+    path.append(additional_query.second);
+    path.push_back('&');
+  }
+
+  path.pop_back();
+
+  m_client->basic_request<std::vector<topgg::bot>>(path, callback, [](const auto& j) {
     std::vector<topgg::bot> bots{};
+    
+    bots.reserve(j["count"].template get<size_t>());
 
-    for (const auto& part: j["results"].template get<std::vector<dpp::json>>()) {
-      bots.push_back(topgg::bot{part});
+    for (const auto& bot: j["results"].template get<std::vector<dpp::json>>()) {
+      bots.push_back(topgg::bot{bot});
     }
 
     return bots;
