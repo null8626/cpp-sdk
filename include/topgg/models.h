@@ -246,6 +246,20 @@ namespace topgg {
      */
     std::optional<size_t> server_count;
 
+    /**
+     * @brief This bot's average review score out of 5.
+     * 
+     * @since 3.0.0
+     */
+    double review_score;
+
+    /**
+     * @brief This bot's review count.
+     * 
+     * @since 3.0.0
+     */
+    size_t review_count;
+
     friend class bot_query;
     friend class client;
   };

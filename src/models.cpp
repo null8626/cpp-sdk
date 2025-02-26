@@ -123,6 +123,11 @@ bot::bot(const dpp::json& j): url("https://top.gg/bot/") {
   } catch (TOPGG_UNUSED const std::exception&) {
     url.append(std::to_string(id));
   }
+
+  const auto reviews{j["reviews"]};
+
+  DESERIALIZE_ALIAS(reviews, averageScore, review_score, double);
+  DESERIALIZE_ALIAS(reviews, count, review_count, size_t);
 }
 
 static std::string querystring(const std::string& value) {
