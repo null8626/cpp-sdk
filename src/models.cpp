@@ -150,10 +150,6 @@ void bot_query::add_query(const char* key, const uint16_t value, const uint16_t 
   m_query.insert_or_assign(key, std::to_string(std::min(value, max)));
 }
 
-void bot_query::add_query(const char* key, const char* value) {
-  m_query.insert_or_assign(key, value);
-}
-
 void bot_query::add_search(const char* key, const std::string& value) {
   m_search.insert_or_assign(key, querystring(value));
 }
@@ -177,7 +173,7 @@ void bot_query::send(const topgg::get_bots_completion_t& callback) {
     search.append("%20");
     search.append(search_query.first);
     search.append("%3A%20");
-    search.append(querystring(search_query.second));
+    search.append(search_query.second);
   }
 
   const auto search_raw{search.c_str() + 3};

@@ -274,7 +274,6 @@ namespace topgg {
     inline bot_query(client* c): m_client(c), m_sort(nullptr) {}
     
     void add_query(const char* key, const uint16_t value, const uint16_t max);
-    void add_query(const char* key, const char* value);
     void add_search(const char* key, const std::string& value);
     void add_search(const char* key, const size_t value);
 
