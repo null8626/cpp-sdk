@@ -106,6 +106,9 @@ topgg::async_result<topgg::bot> client::co_get_bot(const dpp::snowflake bot_id) 
 #endif
 
 size_t client::get_server_count() {
+#ifdef __TOPGG_TESTING__
+  return 2;
+#else
   size_t server_count{};
 
   for (auto& s: m_cluster.get_shards()) {
@@ -113,6 +116,7 @@ size_t client::get_server_count() {
   }
 
   return server_count;
+#endif
 }
 
 void client::post_server_count_inner(const size_t server_count, dpp::http_completion_event callback) {
@@ -128,11 +132,7 @@ void client::post_server_count(const topgg::post_server_count_completion_t& call
   const auto server_count{get_server_count()};
 
   if (server_count == 0) {
-#ifdef __TOPGG_TESTING__
-    return callback(true);
-#else
     return callback(false);
-#endif
   }
 
   post_server_count_inner(server_count, [callback](const auto& response) {
