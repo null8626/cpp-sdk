@@ -35,6 +35,12 @@
 #define TOPGG_UNUSED
 #endif
 
+#ifdef __TOPGG_TESTING__
+#define TOPGG_AUTOPOSTER_MIN_DELAY 5
+#else
+#define TOPGG_AUTOPOSTER_MIN_DELAY 900
+#endif
+
 #ifdef __clang__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunknown-warning-option"

@@ -271,7 +271,7 @@ namespace topgg {
    * @see topgg::bot_query
    * @since 2.0.1
    */
-  using get_bots_completion_t = std::function<void(const result<std::vector<bot>>&)>;
+  using get_bots_completion_event = std::function<void(const result<std::vector<bot>>&)>;
 
   /**
    * @brief A class for configuring the query in get_bots before being sent to the API.
@@ -425,7 +425,7 @@ namespace topgg {
      * @see topgg::bot_query::co_send
      * @since 2.0.1
      */
-    void send(const get_bots_completion_t& callback);
+    void send(const get_bots_completion_event& callback);
 
 #ifdef DPP_CORO
     /**

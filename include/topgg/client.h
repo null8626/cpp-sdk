@@ -24,7 +24,7 @@ namespace topgg {
    * @see topgg::client::get_bot
    * @since 2.0.0
    */
-  using get_bot_completion_t = std::function<void(const result<bot>&)>;
+  using get_bot_completion_event = std::function<void(const result<bot>&)>;
 
   /**
    * @brief The callback function to call when get_server_count completes.
@@ -32,7 +32,7 @@ namespace topgg {
    * @see topgg::client::get_server_count
    * @since 3.0.0
    */
-  using get_server_count_completion_t = std::function<void(const result<std::optional<size_t>>&)>;
+  using get_server_count_completion_event = std::function<void(const result<std::optional<size_t>>&)>;
 
   /**
    * @brief The callback function to call when get_voters completes.
@@ -40,7 +40,7 @@ namespace topgg {
    * @see topgg::client::get_voters
    * @since 2.0.0
    */
-  using get_voters_completion_t = std::function<void(const result<std::vector<voter>>&)>;
+  using get_voters_completion_event = std::function<void(const result<std::vector<voter>>&)>;
 
   /**
    * @brief The callback function to call when has_voted completes.
@@ -48,7 +48,7 @@ namespace topgg {
    * @see topgg::client::has_voted
    * @since 2.0.0
    */
-  using has_voted_completion_t = std::function<void(const result<bool>&)>;
+  using has_voted_completion_event = std::function<void(const result<bool>&)>;
 
   /**
    * @brief The callback function to call when is_weekend completes.
@@ -56,7 +56,7 @@ namespace topgg {
    * @see topgg::client::is_weekend
    * @since 2.0.0
    */
-  using is_weekend_completion_t = std::function<void(const result<bool>&)>;
+  using is_weekend_completion_event = std::function<void(const result<bool>&)>;
   
   /**
    * @brief The callback function to call when post_server_count completes.
@@ -64,7 +64,16 @@ namespace topgg {
    * @see topgg::client::post_server_count
    * @since 3.0.0
    */
-  using post_server_count_completion_t = std::function<void(const bool)>;
+  using post_server_count_completion_event = std::function<void(const bool)>;
+
+  /**
+   * @brief The callback function to call after every request to the API, successful or not.
+   *
+   * @see topgg::client::start_autoposter
+   * @see topgg::client::stop_autoposter
+   * @since 3.0.0
+   */
+  using autopost_completion_event = std::function<void(const std::optional<size_t>&)>;
   
   /**
    * @brief Main client class that lets you make HTTP requests with the Top.gg API.
@@ -160,7 +169,7 @@ namespace topgg {
      * @see topgg::client::co_get_bot
      * @since 2.0.0
      */
-    void get_bot(const dpp::snowflake bot_id, const get_bot_completion_t& callback);
+    void get_bot(const dpp::snowflake bot_id, const get_bot_completion_event& callback);
 
 #ifdef DPP_CORO
     /**
@@ -283,7 +292,7 @@ namespace topgg {
      * @see topgg::client::co_get_server_count
      * @since 3.0.0
      */
-    void get_server_count(const get_server_count_completion_t& callback);
+    void get_server_count(const get_server_count_completion_event& callback);
 
 #ifdef DPP_CORO
     /**
@@ -349,7 +358,7 @@ namespace topgg {
      * @see topgg::client::co_get_voters
      * @since 2.0.0
      */
-    void get_voters(const get_voters_completion_t& callback);
+    void get_voters(const get_voters_completion_event& callback);
 
 #ifdef DPP_CORO
     /**
@@ -416,7 +425,7 @@ namespace topgg {
      * @note For its C++20 coroutine counterpart, see co_has_voted.
      * @since 2.0.0
      */
-    void has_voted(const dpp::snowflake user_id, const has_voted_completion_t& callback);
+    void has_voted(const dpp::snowflake user_id, const has_voted_completion_event& callback);
 
 #ifdef DPP_CORO
     /**
@@ -481,7 +490,7 @@ namespace topgg {
      * @see topgg::client::co_is_weekend
      * @since 2.0.0
      */
-    void is_weekend(const is_weekend_completion_t& callback);
+    void is_weekend(const is_weekend_completion_event& callback);
 
 #ifdef DPP_CORO
     /**
@@ -541,7 +550,7 @@ namespace topgg {
      * @see topgg::client::co_post_server_count
      * @since 3.0.0
      */
-    void post_server_count(const post_server_count_completion_t& callback);
+    void post_server_count(const post_server_count_completion_event& callback);
 
 #ifdef DPP_CORO
     /**
@@ -578,6 +587,32 @@ namespace topgg {
      * dpp::cluster bot{"your bot token"};
      * topgg::client topgg_client{bot, "your top.gg token"};
      *
+     * bot.start_autoposter([](const auto& result) {
+     *   if (result) {
+     *     std::cout << "Successfully posted " << *result << " servers to the Top.gg API!" << std::endl;
+     *   }
+     * });
+     * ```
+     *
+     * @param callback The callback function to call after every request to the API, successful or not.
+     * @param delay The minimum delay between post requests in seconds. Defaults to 15 minutes.
+     * @note This function has no effect if the autoposter is already running.
+     * @see topgg::client::post_server_count
+     * @see topgg::client::stop_autoposter
+     * @see topgg::autopost_completion_event
+     * @since 2.0.0
+     */
+    void start_autoposter(const autopost_completion_event& callback, time_t delay = TOPGG_AUTOPOSTER_MIN_DELAY);
+
+    /**
+     * @brief Starts autoposting your bot's server count using data directly from your D++ cluster instance.
+     *
+     * Example:
+     *
+     * ```cpp
+     * dpp::cluster bot{"your bot token"};
+     * topgg::client topgg_client{bot, "your top.gg token"};
+     *
      * bot.start_autoposter();
      * ```
      *
@@ -587,8 +622,43 @@ namespace topgg {
      * @see topgg::client::stop_autoposter
      * @since 2.0.0
      */
-    void start_autoposter(time_t delay = 900);
-    
+    void start_autoposter(time_t delay = TOPGG_AUTOPOSTER_MIN_DELAY);
+
+    /**
+     * @brief Starts autoposting your bot's server count using a custom data source.
+     *
+     * Example:
+     *
+     * ```cpp
+     * class my_autoposter_source: private topgg::autoposter_source {
+     * public:
+     *   virtual size_t get_server_count(dpp::cluster& bot) {
+     *     return ...;
+     *   }
+     * };
+     * 
+     * dpp::cluster bot{"your bot token"};
+     * topgg::client topgg_client{bot, "your top.gg token"};
+     * 
+     * topgg_client.start_autoposter(reinterpret_cast<topgg::autoposter_source*>(new my_autoposter_source), [](const auto& result) {
+     *   if (result) {
+     *     std::cout << "Successfully posted " << *result << " servers to the Top.gg API!" << std::endl;
+     *   }
+     * });
+     * ```
+     *
+     * @param source A pointer to an autoposter source located in the heap memory. This pointer must be allocated with new, and it will be deleted once the autoposter thread gets stopped.
+     * @param callback The callback function to call after every request to the API, successful or not.
+     * @param delay The minimum delay between post requests in seconds. Defaults to 15 minutes.
+     * @note This function has no effect if the autoposter is already running.
+     * @see topgg::client::post_server_count
+     * @see topgg::client::stop_autoposter
+     * @see topgg::autopost_completion_event
+     * @see topgg::autoposter_source
+     * @since 2.0.0
+     */
+    void start_autoposter(autoposter_source* source, const autopost_completion_event& callback, time_t delay = TOPGG_AUTOPOSTER_MIN_DELAY);
+
     /**
      * @brief Starts autoposting your bot's server count using a custom data source.
      *
@@ -611,12 +681,12 @@ namespace topgg {
      * @param source A pointer to an autoposter source located in the heap memory. This pointer must be allocated with new, and it will be deleted once the autoposter thread gets stopped.
      * @param delay The minimum delay between post requests in seconds. Defaults to 15 minutes.
      * @note This function has no effect if the autoposter is already running.
-     * @see topgg::client::autoposter_source
      * @see topgg::client::post_server_count
      * @see topgg::client::stop_autoposter
+     * @see topgg::autoposter_source
      * @since 3.0.0
      */
-    void start_autoposter(autoposter_source* source, time_t delay = 900);
+    void start_autoposter(autoposter_source* source, time_t delay = TOPGG_AUTOPOSTER_MIN_DELAY);
     
     /**
      * @brief Prematurely stops the autoposter. Calling this function is usually unnecessary as this function is called later in the destructor.

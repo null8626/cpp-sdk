@@ -163,7 +163,7 @@ void bot_query::add_search(const char* key, const size_t value) {
   m_search.insert_or_assign(key, std::to_string(value));
 }
 
-void bot_query::send(const topgg::get_bots_completion_t& callback) {
+void bot_query::send(const topgg::get_bots_completion_event& callback) {
   std::string path{"/bots?"};
 
   if (m_sort != nullptr) {
