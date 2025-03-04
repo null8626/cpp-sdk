@@ -164,8 +164,12 @@ topgg::async_result<std::optional<size_t>> client::co_get_server_count() {
 }
 #endif
 
-void client::get_voters(const topgg::get_voters_completion_event& callback) {
-  basic_request<std::vector<topgg::voter>>("/bots/" + m_id + "/votes", callback, [](const auto& j) {
+void client::get_voters(size_t page, const topgg::get_voters_completion_event& callback) {
+  if (page < 1) {
+    page = 1;
+  }
+
+  basic_request<std::vector<topgg::voter>>("/bots/" + m_id + "/votes?page=" + std::to_string(page), callback, [](const auto& j) {
     std::vector<topgg::voter> voters{};
 
     for (const auto& part: j) {
@@ -176,12 +180,15 @@ void client::get_voters(const topgg::get_voters_completion_event& callback) {
   });
 }
 
+void client::get_voters(const topgg::get_voters_completion_event& callback) {
+  get_voters(1, callback);
+}
+
 #ifdef DPP_CORO
-topgg::async_result<std::vector<topgg::voter>> client::co_get_voters() {
-  return topgg::async_result<std::vector<topgg::voter>>{ [this] <typename C> (C&& cc) { return get_voters(std::forward<C>(cc)); }};
+topgg::async_result<std::vector<topgg::voter>> client::co_get_voters(size_t page) {
+  return topgg::async_result<std::vector<topgg::voter>>{ [this, page] <typename C> (C&& cc) { return get_voters(page, std::forward<C>(cc)); }};
 }
 #endif
-
 
 void client::has_voted(const dpp::snowflake user_id, const topgg::has_voted_completion_event& callback) {
   basic_request<bool>("/bots/" + m_id + "/check?userId=" + std::to_string(user_id), callback, [](const auto& j) {

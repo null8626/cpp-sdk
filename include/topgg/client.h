@@ -329,7 +329,40 @@ namespace topgg {
 #endif
 
     /**
-     * @brief Fetches your Discord bot's last 1000 unique voters.
+     * @brief Fetches your Discord bot's recent unique voters.
+     *
+     * Example:
+     *
+     * ```cpp
+     * dpp::cluster bot{"your bot token"};
+     * topgg::client topgg_client{bot, "your top.gg token"};
+     *
+     * topgg_client.get_voters(1, [](const auto& result) {
+     *   try {
+     *     auto voters = result.get();
+     *
+     *     for (auto& voter: voters) {
+     *       std::cout << voter.username << std::endl;
+     *     }
+     *   } catch (const std::exception& exc) {
+     *     std::cerr << "error: " << exc.what() << std::endl;
+     *   }
+     * });
+     * ```
+     *
+     * @param page The page number. Each page can only have at most 100 voters.
+     * @param callback The callback function to call when get_voters completes.
+     * @note For its C++20 coroutine counterpart, see co_get_voters.
+     * @see topgg::result
+     * @see topgg::voter
+     * @see topgg::client::start_autoposter
+     * @see topgg::client::co_get_voters
+     * @since 2.0.0
+     */
+    void get_voters(size_t page, const get_voters_completion_event& callback);
+
+    /**
+     * @brief Fetches your Discord bot's recent 100 unique voters.
      *
      * Example:
      *
@@ -362,7 +395,7 @@ namespace topgg {
 
 #ifdef DPP_CORO
     /**
-     * @brief Fetches your Discord bot's last 1000 unique voters through a C++20 coroutine.
+     * @brief Fetches your Discord bot's recent unique voters through a C++20 coroutine.
      *
      * Example:
      *
@@ -381,6 +414,7 @@ namespace topgg {
      * }
      * ```
      *
+     * @param page The page number. Each page can only have at most 100 voters.
      * @throw topgg::internal_server_error Thrown when the client receives an unexpected error from Top.gg's end.
      * @throw topgg::invalid_token Thrown when its known that the client uses an invalid Top.gg API token.
      * @throw topgg::not_found Thrown when such query does not exist.
@@ -394,7 +428,7 @@ namespace topgg {
      * @see topgg::client::get_voters
      * @since 2.0.0
      */
-    topgg::async_result<std::vector<voter>> co_get_voters();
+    topgg::async_result<std::vector<voter>> co_get_voters(size_t page = 1);
 #endif
 
     /**
