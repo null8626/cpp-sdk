@@ -4,7 +4,7 @@ project(
   topgg
   LANGUAGES CXX
   HOMEPAGE_URL "https://docs.top.gg/docs"
-  DESCRIPTION "The official C++ wrapper for the Top.gg API."
+  DESCRIPTION "A simple API wrapper for Top.gg written in C++."
 )
 
 set(CMAKE_VERBOSE_MAKEFILE ON)

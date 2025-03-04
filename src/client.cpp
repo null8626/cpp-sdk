@@ -2,6 +2,7 @@
 
 using topgg::client;
 
+// clang-format off
 static constexpr unsigned char g_base64_decoding_table[] = {
   64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
   64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
@@ -19,6 +20,7 @@ static constexpr unsigned char g_base64_decoding_table[] = {
   64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
   64, 64, 64, 64
 };
+// clang-format on
 
 static bool base64_decode(const std::string& input, std::string& output) {
   const auto input_size{input.size()};
@@ -28,11 +30,11 @@ static bool base64_decode(const std::string& input, std::string& output) {
   }
 
   auto output_size{input_size / 4 * 3};
-  
+
   if (input_size >= 1 && input[input_size - 1] == '=') {
     output_size--;
   }
-  
+
   if (input_size >= 2 && input[input_size - 2] == '=') {
     output_size--;
   }
@@ -72,11 +74,11 @@ static std::string id_from_bot_token(std::string bot_token) {
     std::string decoded_base64{};
     auto base64_input{bot_token.substr(0, pos)};
     const auto additional_equals{4 - (base64_input.length() % 4)};
-  
+
     for (size_t j{}; j < additional_equals; j++) {
       base64_input.push_back('=');
     }
-  
+
     if (base64_decode(base64_input, decoded_base64)) {
       return decoded_base64;
     }
@@ -85,7 +87,8 @@ static std::string id_from_bot_token(std::string bot_token) {
   throw std::invalid_argument{"Got a malformed Discord Bot token."};
 }
 
-client::client(dpp::cluster& cluster, const std::string& token): m_token(token), m_cluster(cluster), m_autoposter_timer(0) {
+client::client(dpp::cluster& cluster, const std::string& token)
+  : m_token(token), m_cluster(cluster), m_autoposter_timer(0) {
   m_id = id_from_bot_token(cluster.token);
 
   m_headers.insert(std::pair("Authorization", token));
@@ -101,7 +104,7 @@ void client::get_bot(const dpp::snowflake bot_id, const topgg::get_bot_completio
 
 #ifdef DPP_CORO
 topgg::async_result<topgg::bot> client::co_get_bot(const dpp::snowflake bot_id) {
-  return topgg::async_result<topgg::bot>{ [this, bot_id] <typename C> (C&& cc) { return get_bot(bot_id, std::forward<C>(cc)); }};
+  return topgg::async_result<topgg::bot>{[this, bot_id]<typename C>(C&& cc) { return get_bot(bot_id, std::forward<C>(cc)); }};
 }
 #endif
 
@@ -142,14 +145,14 @@ void client::post_server_count(const topgg::post_server_count_completion_event& 
 
 #ifdef DPP_CORO
 dpp::async<bool> client::co_post_server_count() {
-  return dpp::async<bool>{ [this] <typename C> (C&& cc) { return post_server_count(std::forward<C>(cc)); }};
+  return dpp::async<bool>{[this]<typename C>(C&& cc) { return post_server_count(std::forward<C>(cc)); }};
 }
 #endif
 
 void client::get_server_count(const topgg::get_server_count_completion_event& callback) {
   basic_request<std::optional<size_t>>("/bots/" + m_id + "/stats", callback, [](const auto& j) {
     std::optional<size_t> server_count{};
-    
+
     try {
       *server_count = j["server_count"].template get<size_t>();
     } catch (const std::exception&) {}
@@ -160,7 +163,7 @@ void client::get_server_count(const topgg::get_server_count_completion_event& ca
 
 #ifdef DPP_CORO
 topgg::async_result<std::optional<size_t>> client::co_get_server_count() {
-  return topgg::async_result<std::optional<size_t>>{ [this] <typename C> (C&& cc) { return get_server_count(std::forward<C>(cc)); }};
+  return topgg::async_result<std::optional<size_t>>{[this]<typename C>(C&& cc) { return get_server_count(std::forward<C>(cc)); }};
 }
 #endif
 
@@ -186,7 +189,7 @@ void client::get_voters(const topgg::get_voters_completion_event& callback) {
 
 #ifdef DPP_CORO
 topgg::async_result<std::vector<topgg::voter>> client::co_get_voters(size_t page) {
-  return topgg::async_result<std::vector<topgg::voter>>{ [this, page] <typename C> (C&& cc) { return get_voters(page, std::forward<C>(cc)); }};
+  return topgg::async_result<std::vector<topgg::voter>>{[this, page]<typename C>(C&& cc) { return get_voters(page, std::forward<C>(cc)); }};
 }
 #endif
 
@@ -198,7 +201,7 @@ void client::has_voted(const dpp::snowflake user_id, const topgg::has_voted_comp
 
 #ifdef DPP_CORO
 topgg::async_result<bool> client::co_has_voted(const dpp::snowflake user_id) {
-  return topgg::async_result<bool>{ [user_id, this] <typename C> (C&& cc) { return has_voted(user_id, std::forward<C>(cc)); }};
+  return topgg::async_result<bool>{[user_id, this]<typename C>(C&& cc) { return has_voted(user_id, std::forward<C>(cc)); }};
 }
 #endif
 
@@ -210,20 +213,21 @@ void client::is_weekend(const topgg::is_weekend_completion_event& callback) {
 
 #ifdef DPP_CORO
 topgg::async_result<bool> client::co_is_weekend() {
-  return topgg::async_result<bool>{ [this] <typename C> (C&& cc) { return is_weekend(std::forward<C>(cc)); }};
+  return topgg::async_result<bool>{[this]<typename C>(C&& cc) { return is_weekend(std::forward<C>(cc)); }};
 }
 #endif
 
-void client::start_autoposter(const topgg::autopost_completion_event& callback, time_t delay) {
-  if (delay < TOPGG_AUTOPOSTER_MIN_DELAY) {
-    delay = TOPGG_AUTOPOSTER_MIN_DELAY;
+void client::start_autoposter(const topgg::autopost_completion_event& callback, time_t interval) {
+  if (interval < TOPGG_AUTOPOSTER_MIN_INTERVAL) {
+    interval = TOPGG_AUTOPOSTER_MIN_INTERVAL;
   }
-  
+
   /**
    * Create a D++ timer, this is managed by the D++ cluster and ticks every n seconds.
    * It can be stopped at any time without blocking, and does not need to create extra threads.
    */
   if (!m_autoposter_timer) {
+    // clang-format off
     m_autoposter_timer = m_cluster.start_timer([this, callback](TOPGG_UNUSED dpp::timer) {
       const auto server_count{get_server_count()};
 
@@ -236,20 +240,22 @@ void client::start_autoposter(const topgg::autopost_completion_event& callback, 
           }
         });
       }
-    }, delay);
+    }, interval);
+    // clang-format on
   }
 }
 
-void client::start_autoposter(const time_t delay) {
-  start_autoposter([](TOPGG_UNUSED const auto&) {}, delay);
+void client::start_autoposter(const time_t interval) {
+  start_autoposter([](TOPGG_UNUSED const auto&) {}, interval);
 }
 
-void client::start_autoposter(topgg::autoposter_source* source, const topgg::autopost_completion_event& callback, time_t delay) {
+void client::start_autoposter(topgg::autoposter_source* source, const topgg::autopost_completion_event& callback, time_t interval) {
   if (!m_autoposter_timer) {
-    if (delay < TOPGG_AUTOPOSTER_MIN_DELAY) {
-      delay = TOPGG_AUTOPOSTER_MIN_DELAY;
+    if (interval < TOPGG_AUTOPOSTER_MIN_INTERVAL) {
+      interval = TOPGG_AUTOPOSTER_MIN_INTERVAL;
     }
 
+    // clang-format off
     m_autoposter_timer = m_cluster.start_timer([this, callback, source](TOPGG_UNUSED dpp::timer) {
       const auto server_count{source->get_server_count(m_cluster)};
 
@@ -262,14 +268,13 @@ void client::start_autoposter(topgg::autoposter_source* source, const topgg::aut
           }
         });
       }
-    }, delay, [source](TOPGG_UNUSED dpp::timer) {
-      delete source;
-    });
+    }, interval, [source](TOPGG_UNUSED dpp::timer) { delete source; });
+    // clang-format on
   }
 }
 
-void client::start_autoposter(topgg::autoposter_source* source, time_t delay) {
-  start_autoposter(source, [](TOPGG_UNUSED const auto&) {}, delay);
+void client::start_autoposter(topgg::autoposter_source* source, time_t interval) {
+  start_autoposter(source, [](TOPGG_UNUSED const auto&) {}, interval);
 }
 
 void client::stop_autoposter() noexcept {

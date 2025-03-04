@@ -49,7 +49,7 @@ int main() {
   dpp::cluster bot{discord_token};
   topgg::client topgg_client{bot, topgg_token};
 
-  std::cout << "starting bot ";
+  std::cout << "Starting bot... ";
 
   bot.start(dpp::start_type::st_return);
 

@@ -1,7 +1,7 @@
 /**
  * @module topgg
  * @file client.h
- * @brief The official C++ wrapper for the Top.gg API.
+ * @brief A simple API wrapper for Top.gg written in C++.
  * @authors Top.gg, null8626
  * @copyright Copyright (c) 2024-2025 Top.gg & null8626
  * @date 2025-02-25
@@ -57,7 +57,7 @@ namespace topgg {
    * @since 2.0.0
    */
   using is_weekend_completion_event = std::function<void(const result<bool>&)>;
-  
+
   /**
    * @brief The callback function to call when post_server_count completes.
    *
@@ -67,16 +67,16 @@ namespace topgg {
   using post_server_count_completion_event = std::function<void(const bool)>;
 
   /**
-   * @brief The callback function to call after every request to the API, successful or not.
+   * @brief The callback function to call after every autopost request to the API, successful or not.
    *
    * @see topgg::client::start_autoposter
    * @see topgg::client::stop_autoposter
    * @since 3.0.0
    */
   using autopost_completion_event = std::function<void(const std::optional<size_t>&)>;
-  
+
   /**
-   * @brief Main client class that lets you make HTTP requests with the Top.gg API.
+   * @brief Interact with the API's endpoints.
    *
    * @since 2.0.0
    */
@@ -94,7 +94,7 @@ namespace topgg {
 
     size_t get_server_count();
     void post_server_count_inner(const size_t server_count, dpp::http_completion_event callback);
-    
+
   public:
     client() = delete;
 
@@ -102,7 +102,7 @@ namespace topgg {
      * @brief Constructs the client class.
      *
      * @param cluster A pointer to the bot's D++ cluster using this library.
-     * @param token The Top.gg API token to use.
+     * @param token The API token to use. To retrieve it, see https://github.com/top-gg/rust-sdk/assets/60427892/d2df5bd3-bc48-464c-b878-a04121727bff.
      * @since 2.0.0
      */
     client(dpp::cluster& cluster, const std::string& token);
@@ -142,7 +142,7 @@ namespace topgg {
     client& operator=(client&& other) = delete;
 
     /**
-     * @brief Fetches a listed Discord bot from a Discord ID.
+     * @brief Fetches a Discord bot from its ID.
      *
      * Example:
      *
@@ -161,7 +161,7 @@ namespace topgg {
      * });
      * ```
      *
-     * @param bot_id The Discord bot ID to fetch from.
+     * @param bot_id The requested ID.
      * @param callback The callback function to call when get_bot completes.
      * @note For its C++20 coroutine counterpart, see co_get_bot.
      * @see topgg::result
@@ -173,7 +173,7 @@ namespace topgg {
 
 #ifdef DPP_CORO
     /**
-     * @brief Fetches a listed Discord bot from a Discord ID through a C++20 coroutine.
+     * @brief Fetches a Discord bot from its ID through a C++20 coroutine.
      *
      * Example:
      *
@@ -190,12 +190,12 @@ namespace topgg {
      * }
      * ```
      *
-     * @param bot_id The Discord bot ID to fetch from.
-     * @throw topgg::internal_server_error Thrown when the client receives an unexpected error from Top.gg's end.
-     * @throw topgg::invalid_token Thrown when its known that the client uses an invalid Top.gg API token.
-     * @throw topgg::not_found Thrown when such query does not exist.
-     * @throw topgg::ratelimited Thrown when the client gets ratelimited from sending more HTTP requests.
-     * @throw dpp::http_error Thrown when an unexpected HTTP exception has occured.
+     * @param bot_id The requested ID.
+     * @throw topgg::internal_server_error Unexpected error from Top.gg's end.
+     * @throw topgg::invalid_token Invalid API token.
+     * @throw topgg::not_found Such query does not exist.
+     * @throw topgg::ratelimited Ratelimited from sending more requests.
+     * @throw dpp::http_error An unexpected HTTP exception has occured.
      * @return co_await to retrieve a topgg::bot if successful
      * @note For its C++17 callback-based counterpart, see get_bot.
      * @see topgg::async_result
@@ -207,7 +207,7 @@ namespace topgg {
 #endif
 
     /**
-     * @brief Queries/searches through the Top.gg database to look for matching listed Discord bots.
+     * @brief Returns an object that allows you to configure a bot query before sending it to the API.
      *
      * C++17 example:
      *
@@ -224,7 +224,7 @@ namespace topgg {
      *   .send([](const auto& result) {
      *     try {
      *       const auto bots = result.get();
-     *   
+     *
      *       for (const auto& bot: bots) {
      *         std::cout << bot.username << std::endl;
      *       }
@@ -233,9 +233,9 @@ namespace topgg {
      *     }
      *   });
      * ```
-     * 
+     *
      * C++20 example:
-     * 
+     *
      * ```cpp
      * dpp::cluster bot{"your bot token"};
      * topgg::client topgg_client{bot, "your top.gg token"};
@@ -256,8 +256,8 @@ namespace topgg {
      *   std::cerr << "error: " << exc.what() << std::endl;
      * }
      * ```
-     * 
-     * @return bot_query An object for configuring the query in get_bots before being sent to the Top.gg API.
+     *
+     * @return bot_query An object that allows you to configure a bot query before sending it to the API.
      * @see topgg::bot_query
      * @since 2.0.1
      */
@@ -313,11 +313,11 @@ namespace topgg {
      * }
      * ```
      *
-     * @throw topgg::internal_server_error Thrown when the client receives an unexpected error from Top.gg's end.
-     * @throw topgg::invalid_token Thrown when its known that the client uses an invalid Top.gg API token.
-     * @throw topgg::not_found Thrown when such query does not exist.
-     * @throw topgg::ratelimited Thrown when the client gets ratelimited from sending more HTTP requests.
-     * @throw dpp::http_error Thrown when an unexpected HTTP exception has occured.
+     * @throw topgg::internal_server_error Unexpected error from Top.gg's end.
+     * @throw topgg::invalid_token Invalid API token.
+     * @throw topgg::not_found Such query does not exist.
+     * @throw topgg::ratelimited Ratelimited from sending more requests.
+     * @throw dpp::http_error An unexpected HTTP exception has occured.
      * @return co_await to retrieve an optional size_t if successful
      * @note For its C++17 callback-based counterpart, see get_server_count.
      * @see topgg::async_result
@@ -329,7 +329,7 @@ namespace topgg {
 #endif
 
     /**
-     * @brief Fetches your Discord bot's recent unique voters.
+     * @brief Fetches your Discord bot's recent 100 unique voters.
      *
      * Example:
      *
@@ -395,7 +395,7 @@ namespace topgg {
 
 #ifdef DPP_CORO
     /**
-     * @brief Fetches your Discord bot's recent unique voters through a C++20 coroutine.
+     * @brief Fetches your Discord bot's recent 100 unique voters through a C++20 coroutine.
      *
      * Example:
      *
@@ -414,12 +414,12 @@ namespace topgg {
      * }
      * ```
      *
-     * @param page The page number. Each page can only have at most 100 voters.
-     * @throw topgg::internal_server_error Thrown when the client receives an unexpected error from Top.gg's end.
-     * @throw topgg::invalid_token Thrown when its known that the client uses an invalid Top.gg API token.
-     * @throw topgg::not_found Thrown when such query does not exist.
-     * @throw topgg::ratelimited Thrown when the client gets ratelimited from sending more HTTP requests.
-     * @throw dpp::http_error Thrown when an unexpected HTTP exception has occured.
+     * @param page The page number. Each page can only have at most 100 voters. Defaults to 1.
+     * @throw topgg::internal_server_error Unexpected error from Top.gg's end.
+     * @throw topgg::invalid_token Invalid API token.
+     * @throw topgg::not_found Such query does not exist.
+     * @throw topgg::ratelimited Ratelimited from sending more requests.
+     * @throw dpp::http_error An unexpected HTTP exception has occured.
      * @return co_await to retrieve a vector of topgg::voter if successful
      * @note For its C++17 callback-based counterpart, see get_voters.
      * @see topgg::async_result
@@ -432,7 +432,7 @@ namespace topgg {
 #endif
 
     /**
-     * @brief Checks if the specified user has voted your Discord bot.
+     * @brief Checks if the specified Discord user has voted your Discord bot.
      *
      * Example:
      *
@@ -443,7 +443,7 @@ namespace topgg {
      * topgg_client.has_voted(661200758510977084, [](const auto& result) {
      *   try {
      *     if (result.get()) {
-     *       std::cout << "checks out" << std::endl;
+     *       std::cout << "Checks out." << std::endl;
      *     }
      *   } catch (const std::exception& exc) {
      *     std::cerr << "error: " << exc.what() << std::endl;
@@ -451,7 +451,7 @@ namespace topgg {
      * });
      * ```
      *
-     * @param user_id The Discord user ID to check from.
+     * @param user_id The requested user's ID.
      * @param callback The callback function to call when has_voted completes.
      * @note For its C++20 coroutine counterpart, see co_has_voted.
      * @see topgg::result
@@ -463,7 +463,7 @@ namespace topgg {
 
 #ifdef DPP_CORO
     /**
-     * @brief Checks if the specified user has voted your Discord bot through a C++20 coroutine.
+     * @brief Checks if the specified Discord user has voted your Discord bot through a C++20 coroutine.
      *
      * Example:
      *
@@ -475,19 +475,19 @@ namespace topgg {
      *   const auto voted = co_await topgg_client.co_has_voted(661200758510977084);
      *
      *   if (voted) {
-     *     std::cout << "checks out" << std::endl;
+     *     std::cout << "Checks out." << std::endl;
      *   }
      * } catch (const std::exception& exc) {
      *   std::cerr << "error: " << exc.what() << std::endl;
      * }
      * ```
      *
-     * @param user_id The Discord user ID to check from.
-     * @throw topgg::internal_server_error Thrown when the client receives an unexpected error from Top.gg's end.
-     * @throw topgg::invalid_token Thrown when its known that the client uses an invalid Top.gg API token.
-     * @throw topgg::not_found Thrown when such query does not exist.
-     * @throw topgg::ratelimited Thrown when the client gets ratelimited from sending more HTTP requests.
-     * @throw dpp::http_error Thrown when an unexpected HTTP exception has occured.
+     * @param user_id The requested user's ID.
+     * @throw topgg::internal_server_error Unexpected error from Top.gg's end.
+     * @throw topgg::invalid_token Invalid API token.
+     * @throw topgg::not_found Such query does not exist.
+     * @throw topgg::ratelimited Ratelimited from sending more requests.
+     * @throw dpp::http_error An unexpected HTTP exception has occured.
      * @return co_await to retrieve a bool if successful
      * @note For its C++17 callback-based counterpart, see has_voted.
      * @see topgg::async_result
@@ -499,7 +499,7 @@ namespace topgg {
 #endif
 
     /**
-     * @brief Checks if the weekend multiplier is active.
+     * @brief Checks if the weekend multiplier is active, where a single vote counts as two.
      *
      * Example:
      *
@@ -510,7 +510,7 @@ namespace topgg {
      * topgg_client.is_weekend([](const auto& result) {
      *   try {
      *     if (result.get()) {
-     *       std::cout << "the weekend multiplier is active" << std::endl;
+     *       std::cout << "The weekend multiplier is active" << std::endl;
      *     }
      *   } catch (const std::exception& exc) {
      *     std::cerr << "error: " << exc.what() << std::endl;
@@ -528,7 +528,7 @@ namespace topgg {
 
 #ifdef DPP_CORO
     /**
-     * @brief Checks if the weekend multiplier is active through a C++20 coroutine.
+     * @brief Checks if the weekend multiplier is active through a C++20 coroutine, where a single vote counts as two.
      *
      * Example:
      *
@@ -540,18 +540,18 @@ namespace topgg {
      *   const auto is_weekend = co_await topgg_client.co_is_weekend();
      *
      *   if (is_weekend) {
-     *     std::cout << "the weekend multiplier is active" << std::endl;
+     *     std::cout << "The weekend multiplier is active" << std::endl;
      *   }
      * } catch (const std::exception& exc) {
      *   std::cerr << "error: " << exc.what() << std::endl;
      * }
      * ```
      *
-     * @throw topgg::internal_server_error Thrown when the client receives an unexpected error from Top.gg's end.
-     * @throw topgg::invalid_token Thrown when its known that the client uses an invalid Top.gg API token.
-     * @throw topgg::not_found Thrown when such query does not exist.
-     * @throw topgg::ratelimited Thrown when the client gets ratelimited from sending more HTTP requests.
-     * @throw dpp::http_error Thrown when an unexpected HTTP exception has occured.
+     * @throw topgg::internal_server_error Unexpected error from Top.gg's end.
+     * @throw topgg::invalid_token Invalid API token.
+     * @throw topgg::not_found Such query does not exist.
+     * @throw topgg::ratelimited Ratelimited from sending more requests.
+     * @throw dpp::http_error An unexpected HTTP exception has occured.
      * @return co_await to retrieve a bool if successful
      * @note For its C++17 callback-based counterpart, see is_weekend.
      * @see topgg::async_result
@@ -562,7 +562,7 @@ namespace topgg {
 #endif
 
     /**
-     * @brief Manually posts your Discord bot's server count using data directly from your D++ cluster instance.
+     * @brief Posts your Discord bot's server count to the API. This will update the server count in your bot's Top.gg page.
      *
      * Example:
      *
@@ -572,7 +572,7 @@ namespace topgg {
      *
      * topgg_client.post_server_count([](const auto success) {
      *   if (success) {
-     *     std::cout << "stats posted!" << std::endl;
+     *     std::cout << "Stats posted!" << std::endl;
      *   }
      * });
      * ```
@@ -588,7 +588,7 @@ namespace topgg {
 
 #ifdef DPP_CORO
     /**
-     * @brief Manually posts your Discord bot's server count using data directly from your D++ cluster instance through a C++20 coroutine.
+     * @brief Posts your Discord bot's server count to the API through a C++20 coroutine. This will update the server count in your bot's Top.gg page.
      *
      * Example:
      *
@@ -599,7 +599,7 @@ namespace topgg {
      * const auto success = co_await topgg_client.co_post_server_count();
      *
      * if (success) {
-     *   std::cout << "stats posted!" << std::endl;
+     *   std::cout << "Stats posted!" << std::endl;
      * }
      * ```
      *
@@ -613,7 +613,7 @@ namespace topgg {
 #endif
 
     /**
-     * @brief Starts autoposting your bot's server count using data directly from your D++ cluster instance.
+     * @brief Starts autoposting your Discord bot's server count using data directly from your D++ cluster instance.
      *
      * Example:
      *
@@ -623,23 +623,23 @@ namespace topgg {
      *
      * bot.start_autoposter([](const auto& result) {
      *   if (result) {
-     *     std::cout << "Successfully posted " << *result << " servers to the Top.gg API!" << std::endl;
+     *     std::cout << "Successfully posted " << *result << " servers to the API!" << std::endl;
      *   }
      * });
      * ```
      *
      * @param callback The callback function to call after every request to the API, successful or not.
-     * @param delay The minimum delay between post requests in seconds. Defaults to 15 minutes.
+     * @param interval The interval between posting in seconds. Defaults to 15 minutes.
      * @note This function has no effect if the autoposter is already running.
      * @see topgg::client::post_server_count
      * @see topgg::client::stop_autoposter
      * @see topgg::autopost_completion_event
      * @since 2.0.0
      */
-    void start_autoposter(const autopost_completion_event& callback, time_t delay = TOPGG_AUTOPOSTER_MIN_DELAY);
+    void start_autoposter(const autopost_completion_event& callback, time_t interval = TOPGG_AUTOPOSTER_MIN_INTERVAL);
 
     /**
-     * @brief Starts autoposting your bot's server count using data directly from your D++ cluster instance.
+     * @brief Starts autoposting your Discord bot's server count using data directly from your D++ cluster instance.
      *
      * Example:
      *
@@ -650,16 +650,16 @@ namespace topgg {
      * bot.start_autoposter();
      * ```
      *
-     * @param delay The minimum delay between post requests in seconds. Defaults to 15 minutes.
+     * @param interval The interval between posting in seconds. Defaults to 15 minutes.
      * @note This function has no effect if the autoposter is already running.
      * @see topgg::client::post_server_count
      * @see topgg::client::stop_autoposter
      * @since 2.0.0
      */
-    void start_autoposter(time_t delay = TOPGG_AUTOPOSTER_MIN_DELAY);
+    void start_autoposter(time_t interval = TOPGG_AUTOPOSTER_MIN_INTERVAL);
 
     /**
-     * @brief Starts autoposting your bot's server count using a custom data source.
+     * @brief Starts autoposting your Discord bot's server count using a custom data source.
      *
      * Example:
      *
@@ -670,20 +670,20 @@ namespace topgg {
      *     return ...;
      *   }
      * };
-     * 
+     *
      * dpp::cluster bot{"your bot token"};
      * topgg::client topgg_client{bot, "your top.gg token"};
-     * 
+     *
      * topgg_client.start_autoposter(reinterpret_cast<topgg::autoposter_source*>(new my_autoposter_source), [](const auto& result) {
      *   if (result) {
-     *     std::cout << "Successfully posted " << *result << " servers to the Top.gg API!" << std::endl;
+     *     std::cout << "Successfully posted " << *result << " servers to the API!" << std::endl;
      *   }
      * });
      * ```
      *
      * @param source A pointer to an autoposter source located in the heap memory. This pointer must be allocated with new, and it will be deleted once the autoposter thread gets stopped.
      * @param callback The callback function to call after every request to the API, successful or not.
-     * @param delay The minimum delay between post requests in seconds. Defaults to 15 minutes.
+     * @param interval The interval between posting in seconds. Defaults to 15 minutes.
      * @note This function has no effect if the autoposter is already running.
      * @see topgg::client::post_server_count
      * @see topgg::client::stop_autoposter
@@ -691,10 +691,10 @@ namespace topgg {
      * @see topgg::autoposter_source
      * @since 2.0.0
      */
-    void start_autoposter(autoposter_source* source, const autopost_completion_event& callback, time_t delay = TOPGG_AUTOPOSTER_MIN_DELAY);
+    void start_autoposter(autoposter_source* source, const autopost_completion_event& callback, time_t interval = TOPGG_AUTOPOSTER_MIN_INTERVAL);
 
     /**
-     * @brief Starts autoposting your bot's server count using a custom data source.
+     * @brief Starts autoposting your Discord bot's server count using a custom data source.
      *
      * Example:
      *
@@ -705,25 +705,25 @@ namespace topgg {
      *     return ...;
      *   }
      * };
-     * 
+     *
      * dpp::cluster bot{"your bot token"};
      * topgg::client topgg_client{bot, "your top.gg token"};
-     * 
+     *
      * topgg_client.start_autoposter(reinterpret_cast<topgg::autoposter_source*>(new my_autoposter_source));
      * ```
      *
      * @param source A pointer to an autoposter source located in the heap memory. This pointer must be allocated with new, and it will be deleted once the autoposter thread gets stopped.
-     * @param delay The minimum delay between post requests in seconds. Defaults to 15 minutes.
+     * @param interval The interval between posting in seconds. Defaults to 15 minutes.
      * @note This function has no effect if the autoposter is already running.
      * @see topgg::client::post_server_count
      * @see topgg::client::stop_autoposter
      * @see topgg::autoposter_source
      * @since 3.0.0
      */
-    void start_autoposter(autoposter_source* source, time_t delay = TOPGG_AUTOPOSTER_MIN_DELAY);
-    
+    void start_autoposter(autoposter_source* source, time_t interval = TOPGG_AUTOPOSTER_MIN_INTERVAL);
+
     /**
-     * @brief Prematurely stops the autoposter. Calling this function is usually unnecessary as this function is called later in the destructor.
+     * @brief Prematurely stops the autoposter. Calling this function is usually unnecessary as this function will be called in the destructor.
      *
      * Example:
      *
@@ -743,7 +743,7 @@ namespace topgg {
      * @since 2.0.0
      */
     void stop_autoposter() noexcept;
-    
+
     /**
      * @brief The destructor. Stops the autoposter if it's running.
      */

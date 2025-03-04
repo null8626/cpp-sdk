@@ -1,6 +1,6 @@
 # Top.gg SDK for C++
 
-The official C++ SDK for the [Top.gg API](https://docs.top.gg).
+A simple API wrapper for [Top.gg](https://top.gg) written in C++.
 
 ## Building from source
 
@@ -58,7 +58,7 @@ cmake --build build --config Release
 dpp::cluster bot{"your bot token"};
 topgg::client topgg_client{bot, "your top.gg token"};
 
-// using C++17 callbacks
+// Using C++17 callbacks
 topgg_client.get_bot(264811613708746752, [](const auto& result) {
   try {
     const auto topgg_bot = result.get();
@@ -69,7 +69,7 @@ topgg_client.get_bot(264811613708746752, [](const auto& result) {
   }
 });
 
-// using C++20 coroutines
+// Using C++20 coroutines
 try {
   const auto topgg_bot = co_await topgg_client.co_get_bot(264811613708746752);
   
@@ -85,18 +85,18 @@ try {
 dpp::cluster bot{"your bot token"};
 topgg::client topgg_client{bot, "your top.gg token"};
 
-// using C++17 callbacks
+// Using C++17 callbacks
 topgg_client.post_server_count([](const auto success) {
   if (success) {
-    std::cout << "stats posted!" << std::endl;
+    std::cout << "Stats posted!" << std::endl;
   }
 });
 
-// using C++20 coroutines
+// Using C++20 coroutines
 const auto success = co_await topgg_client.co_post_server_count();
 
 if (success) {
-  std::cout << "stats posted!" << std::endl;
+  std::cout << "Stats posted!" << std::endl;
 }
 ```
 
@@ -106,23 +106,23 @@ if (success) {
 dpp::cluster bot{"your bot token"};
 topgg::client topgg_client{bot, "your top.gg token"};
 
-// using C++17 callbacks
+// Using C++17 callbacks
 topgg_client.has_voted(661200758510977084, [](const auto& result) {
   try {
     if (result.get()) {
-      std::cout << "checks out" << std::endl;
+      std::cout << "Checks out." << std::endl;
     }
   } catch (const std::exception& exc) {
     std::cerr << "error: " << exc.what() << std::endl;
   }
 });
 
-// using C++20 coroutines
+// Using C++20 coroutines
 try {
   const auto voted = co_await topgg_client.co_has_voted(661200758510977084);
 
   if (voted) {
-    std::cout << "checks out" << std::endl;
+    std::cout << "Checks out." << std::endl;
   }
 } catch (const std::exception& exc) {
   std::cerr << "error: " << exc.what() << std::endl;

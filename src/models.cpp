@@ -78,7 +78,8 @@ static time_t timestamp_from_id(const dpp::snowflake& id) {
   return static_cast<time_t>(((id >> 22) / 1000) + 1420070400);
 }
 
-bot::bot(const dpp::json& j): url("https://top.gg/bot/") {
+bot::bot(const dpp::json& j)
+  : url("https://top.gg/bot/") {
   id = SNOWFLAKE_FROM_JSON(j, clientid);
   topgg_id = SNOWFLAKE_FROM_JSON(j, id);
 
@@ -121,7 +122,7 @@ bot::bot(const dpp::json& j): url("https://top.gg/bot/") {
   try {
     url.append(j["vanity"].template get<std::string>());
   } catch (TOPGG_UNUSED const std::exception&) {
-    url.append(std::to_string(id));
+    url.append(std::to_string(topgg_id));
   }
 
   const auto reviews{j["reviews"]};
@@ -202,7 +203,7 @@ void bot_query::send(const topgg::get_bots_completion_event& callback) {
 
   m_client->basic_request<std::vector<topgg::bot>>(path, callback, [](const auto& j) {
     std::vector<topgg::bot> bots{};
-    
+
     bots.reserve(j["count"].template get<size_t>());
 
     for (const auto& bot: j["results"].template get<std::vector<dpp::json>>()) {
@@ -215,7 +216,7 @@ void bot_query::send(const topgg::get_bots_completion_event& callback) {
 
 #ifdef DPP_CORO
 dpp::async<std::vector<topgg::bot>> bot_query::co_send() {
-  return dpp::async<std::vector<topgg::bot>>{ [this] <typename C> (C&& cc) { return send(std::forward<C>(cc)); }};
+  return dpp::async<std::vector<topgg::bot>>{[this]<typename C>(C&& cc) { return send(std::forward<C>(cc)); }};
 }
 #endif
 

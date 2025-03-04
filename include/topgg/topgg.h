@@ -1,7 +1,7 @@
 /**
  * @module topgg
  * @file topgg.h
- * @brief The official C++ wrapper for the Top.gg API.
+ * @brief A simple API wrapper for Top.gg written in C++.
  * @authors Top.gg, null8626
  * @copyright Copyright (c) 2024-2025 Top.gg & null8626
  * @date 2025-02-25
@@ -36,9 +36,9 @@
 #endif
 
 #ifdef __TOPGG_TESTING__
-#define TOPGG_AUTOPOSTER_MIN_DELAY 5
+#define TOPGG_AUTOPOSTER_MIN_INTERVAL 5
 #else
-#define TOPGG_AUTOPOSTER_MIN_DELAY 900
+#define TOPGG_AUTOPOSTER_MIN_INTERVAL 900
 #endif
 
 #ifdef __clang__
