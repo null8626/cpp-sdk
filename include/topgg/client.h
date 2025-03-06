@@ -193,7 +193,7 @@ namespace topgg {
      * @param bot_id The requested ID.
      * @throw topgg::internal_server_error Unexpected error from Top.gg's end.
      * @throw topgg::invalid_token Invalid API token.
-     * @throw topgg::not_found Such query does not exist.
+     * @throw topgg::not_found The specified bot does not exist.
      * @throw topgg::ratelimited Ratelimited from sending more requests.
      * @throw dpp::http_error An unexpected HTTP exception has occured.
      * @return co_await to retrieve a topgg::bot if successful
@@ -315,7 +315,6 @@ namespace topgg {
      *
      * @throw topgg::internal_server_error Unexpected error from Top.gg's end.
      * @throw topgg::invalid_token Invalid API token.
-     * @throw topgg::not_found Such query does not exist.
      * @throw topgg::ratelimited Ratelimited from sending more requests.
      * @throw dpp::http_error An unexpected HTTP exception has occured.
      * @return co_await to retrieve an optional size_t if successful
@@ -417,7 +416,6 @@ namespace topgg {
      * @param page The page number. Each page can only have at most 100 voters. Defaults to 1.
      * @throw topgg::internal_server_error Unexpected error from Top.gg's end.
      * @throw topgg::invalid_token Invalid API token.
-     * @throw topgg::not_found Such query does not exist.
      * @throw topgg::ratelimited Ratelimited from sending more requests.
      * @throw dpp::http_error An unexpected HTTP exception has occured.
      * @return co_await to retrieve a vector of topgg::voter if successful
@@ -485,7 +483,7 @@ namespace topgg {
      * @param user_id The requested user's ID.
      * @throw topgg::internal_server_error Unexpected error from Top.gg's end.
      * @throw topgg::invalid_token Invalid API token.
-     * @throw topgg::not_found Such query does not exist.
+     * @throw topgg::not_found The specified user has not logged in to Top.gg.
      * @throw topgg::ratelimited Ratelimited from sending more requests.
      * @throw dpp::http_error An unexpected HTTP exception has occured.
      * @return co_await to retrieve a bool if successful
@@ -549,7 +547,6 @@ namespace topgg {
      *
      * @throw topgg::internal_server_error Unexpected error from Top.gg's end.
      * @throw topgg::invalid_token Invalid API token.
-     * @throw topgg::not_found Such query does not exist.
      * @throw topgg::ratelimited Ratelimited from sending more requests.
      * @throw dpp::http_error An unexpected HTTP exception has occured.
      * @return co_await to retrieve a bool if successful
