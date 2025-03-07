@@ -4,7 +4,7 @@
  * @brief A simple API wrapper for Top.gg written in C++.
  * @authors Top.gg, null8626
  * @copyright Copyright (c) 2024-2025 Top.gg & null8626
- * @date 2025-03-06
+ * @date 2025-03-08
  * @version 3.0.0
  */
 
@@ -79,7 +79,7 @@ namespace topgg {
      *
      * @since 3.0.0
      */
-    std::string name;
+    std::string username;
 
     /**
      * @brief This voter's creation date.
@@ -131,7 +131,7 @@ namespace topgg {
      *
      * @since 3.0.0
      */
-    std::string name;
+    std::string username;
 
     /**
      * @brief This bot's creation date.

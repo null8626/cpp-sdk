@@ -83,7 +83,7 @@ bot::bot(const dpp::json& j)
   id = SNOWFLAKE_FROM_JSON(j, clientid);
   topgg_id = SNOWFLAKE_FROM_JSON(j, id);
 
-  DESERIALIZE_ALIAS(j, username, name, std::string);
+  DESERIALIZE(j, username, std::string);
   DESERIALIZE(j, avatar, std::string);
 
   created_at = timestamp_from_id(id);
@@ -223,7 +223,7 @@ dpp::async<std::vector<topgg::bot>> bot_query::co_send() {
 voter::voter(const dpp::json& j) {
   id = SNOWFLAKE_FROM_JSON(j, id);
 
-  DESERIALIZE_ALIAS(j, username, name, std::string);
+  DESERIALIZE(j, username, std::string);
   DESERIALIZE(j, avatar, std::string);
 
   created_at = timestamp_from_id(id);

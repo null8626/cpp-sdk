@@ -2,95 +2,8 @@
 
 using topgg::client;
 
-// clang-format off
-static constexpr unsigned char g_base64_decoding_table[] = {
-  64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
-  64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
-  64, 64, 64, 64, 64, 64, 64, 62, 64, 64, 64, 63, 52, 53, 54, 55, 56, 57,
-  58, 59, 60, 61, 64, 64, 64, 64, 64, 64, 64, 0,  1,  2,  3,  4,  5,  6,
-  7,  8,  9,  10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24,
-  25, 64, 64, 64, 64, 64, 64, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36,
-  37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 64, 64, 64,
-  64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
-  64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
-  64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
-  64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
-  64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
-  64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
-  64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
-  64, 64, 64, 64
-};
-// clang-format on
-
-static bool base64_decode(const std::string& input, std::string& output) {
-  const auto input_size{input.size()};
-
-  if (input_size % 4 != 0) {
-    return false;
-  }
-
-  auto output_size{input_size / 4 * 3};
-
-  if (input_size >= 1 && input[input_size - 1] == '=') {
-    output_size--;
-  }
-
-  if (input_size >= 2 && input[input_size - 2] == '=') {
-    output_size--;
-  }
-
-  output.resize(output_size);
-
-  uint32_t a, b, c, d, triple{};
-
-  for (size_t i = 0, j = 0; i < input_size;) {
-    a = input[i] == '=' ? 0 & i++ : g_base64_decoding_table[static_cast<int>(input[i++])];
-    b = input[i] == '=' ? 0 & i++ : g_base64_decoding_table[static_cast<int>(input[i++])];
-    c = input[i] == '=' ? 0 & i++ : g_base64_decoding_table[static_cast<int>(input[i++])];
-    d = input[i] == '=' ? 0 & i++ : g_base64_decoding_table[static_cast<int>(input[i++])];
-
-    triple = (a << 3 * 6) + (b << 2 * 6) + (c << 1 * 6) + (d << 0 * 6);
-
-    if (j < output_size) {
-      output[j++] = (triple >> 2 * 8) & 0xFF;
-    }
-
-    if (j < output_size) {
-      output[j++] = (triple >> 1 * 8) & 0xFF;
-    }
-
-    if (j < output_size) {
-      output[j++] = (triple >> 0 * 8) & 0xFF;
-    }
-  }
-
-  return true;
-}
-
-static std::string id_from_bot_token(std::string bot_token) {
-  const auto pos{bot_token.find('.')};
-
-  if (pos != std::string::npos) {
-    std::string decoded_base64{};
-    auto base64_input{bot_token.substr(0, pos)};
-    const auto additional_equals{4 - (base64_input.length() % 4)};
-
-    for (size_t j{}; j < additional_equals; j++) {
-      base64_input.push_back('=');
-    }
-
-    if (base64_decode(base64_input, decoded_base64)) {
-      return decoded_base64;
-    }
-  }
-
-  throw std::invalid_argument{"Got a malformed Discord Bot token."};
-}
-
 client::client(dpp::cluster& cluster, const std::string& token)
   : m_token(token), m_cluster(cluster), m_autoposter_timer(0) {
-  m_id = id_from_bot_token(cluster.token);
-
   m_headers.insert(std::pair("Authorization", token));
   m_headers.insert(std::pair("Content-Type", "application/json"));
   m_headers.insert(std::pair("User-Agent", "topgg (https://github.com/top-gg-community/cpp-sdk) D++"));
@@ -128,7 +41,7 @@ void client::post_server_count_inner(const size_t server_count, dpp::http_comple
 
   j["server_count"] = server_count;
 
-  m_cluster.request(TOPGG_BASE_URL "/bots/" + m_id + "/stats", dpp::m_post, callback, j.dump(), "application/json", headers);
+  m_cluster.request(TOPGG_BASE_URL "/bots/stats", dpp::m_post, callback, j.dump(), "application/json", headers);
 }
 
 void client::post_server_count(const topgg::post_server_count_completion_event& callback) {
@@ -150,7 +63,7 @@ dpp::async<bool> client::co_post_server_count() {
 #endif
 
 void client::get_server_count(const topgg::get_server_count_completion_event& callback) {
-  basic_request<std::optional<size_t>>("/bots/" + m_id + "/stats", callback, [](const auto& j) {
+  basic_request<std::optional<size_t>>("/bots/stats", callback, [](const auto& j) {
     std::optional<size_t> server_count{};
 
     try {
@@ -172,7 +85,7 @@ void client::get_voters(size_t page, const topgg::get_voters_completion_event& c
     page = 1;
   }
 
-  basic_request<std::vector<topgg::voter>>("/bots/" + m_id + "/votes?page=" + std::to_string(page), callback, [](const auto& j) {
+  basic_request<std::vector<topgg::voter>>("/bots/votes?page=" + std::to_string(page), callback, [](const auto& j) {
     std::vector<topgg::voter> voters{};
 
     for (const auto& part: j) {
@@ -194,7 +107,7 @@ topgg::async_result<std::vector<topgg::voter>> client::co_get_voters(size_t page
 #endif
 
 void client::has_voted(const dpp::snowflake user_id, const topgg::has_voted_completion_event& callback) {
-  basic_request<bool>("/bots/" + m_id + "/check?userId=" + std::to_string(user_id), callback, [](const auto& j) {
+  basic_request<bool>("/bots/check?userId=" + std::to_string(user_id), callback, [](const auto& j) {
     return j["voted"].template get<uint8_t>() != 0;
   });
 }
