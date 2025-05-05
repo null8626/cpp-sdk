@@ -191,13 +191,6 @@ namespace topgg {
     std::vector<dpp::snowflake> owners;
 
     /**
-     * @brief This bot's banner URL.
-     *
-     * @since 2.0.0
-     */
-    std::optional<std::string> banner;
-
-    /**
      * @brief This bot's submission date.
      *
      * @since 3.0.0
@@ -233,11 +226,11 @@ namespace topgg {
     std::optional<std::string> invite;
 
     /**
-     * @brief This bot's Top.gg page URL.
+     * @brief This bot's Top.gg vanity code.
      *
-     * @since 2.0.0
+     * @since 3.0.0
      */
-    std::string url;
+    std::optional<std::string> vanity;
 
     /**
      * @brief This bot's posted server count.

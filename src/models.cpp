@@ -78,8 +78,7 @@ static time_t timestamp_from_id(const dpp::snowflake& id) {
   return static_cast<time_t>(((id >> 22) / 1000) + 1420070400);
 }
 
-bot::bot(const dpp::json& j)
-  : url("https://top.gg/bot/") {
+bot::bot(const dpp::json& j) {
   id = SNOWFLAKE_FROM_JSON(j, clientid);
   topgg_id = SNOWFLAKE_FROM_JSON(j, id);
 
@@ -105,8 +104,6 @@ bot::bot(const dpp::json& j)
     }
   });
 
-  DESERIALIZE_OPTIONAL_STRING_ALIAS(j, bannerUrl, banner);
-
   const auto j_submitted_at{j["date"].template get<std::string>()};
   tm submitted_at_tm;
 
@@ -116,15 +113,10 @@ bot::bot(const dpp::json& j)
   DESERIALIZE_ALIAS(j, points, votes, size_t);
   DESERIALIZE_ALIAS(j, monthlyPoints, monthly_votes, size_t);
   DESERIALIZE_OPTIONAL(j, invite, std::string);
+  DESERIALIZE_OPTIONAL(j, vanity, std::string);
   DESERIALIZE_OPTIONAL(j, support, std::string);
   DESERIALIZE_OPTIONAL(j, server_count, size_t);
-
-  try {
-    url.append(j["vanity"].template get<std::string>());
-  } catch (TOPGG_UNUSED const std::exception&) {
-    url.append(std::to_string(topgg_id));
-  }
-
+  
   const auto reviews{j["reviews"]};
 
   DESERIALIZE_ALIAS(reviews, averageScore, review_score, double);
