@@ -84,7 +84,7 @@ static std::string id_from_bot_token(std::string bot_token) {
     }
   }
 
-  throw std::invalid_argument{"Got a malformed Discord Bot token."};
+  throw std::invalid_argument{"Got a malformed API token."};
 }
 
 client::client(dpp::cluster& cluster, const std::string& token)
