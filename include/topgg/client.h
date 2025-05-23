@@ -83,6 +83,7 @@ namespace topgg {
   class TOPGG_EXPORT client {
     std::multimap<std::string, std::string> m_headers;
     std::string m_token;
+    std::string m_id;
     dpp::cluster& m_cluster;
     dpp::timer m_autoposter_timer;
 
