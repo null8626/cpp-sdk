@@ -148,14 +148,6 @@ void bot_query::add_query(const char* key, const uint16_t value, const uint16_t 
   m_query.insert_or_assign(key, std::to_string(std::min(value, max)));
 }
 
-void bot_query::add_search(const char* key, const std::string& value) {
-  m_search.insert_or_assign(key, querystring(value));
-}
-
-void bot_query::add_search(const char* key, const size_t value) {
-  m_search.insert_or_assign(key, std::to_string(value));
-}
-
 void bot_query::send(const topgg::get_bots_completion_event& callback) {
   std::string path{"/bots?"};
 
@@ -163,25 +155,6 @@ void bot_query::send(const topgg::get_bots_completion_event& callback) {
     path.append("sort=");
     path.append(m_sort);
     path.push_back('&');
-  }
-
-  std::string search{};
-
-  for (const auto& search_query: m_search) {
-    search.append("%20");
-    search.append(search_query.first);
-    search.append("%3A%20");
-    search.append(search_query.second);
-  }
-
-  if (!search.empty()) {
-    const auto search_raw{search.c_str() + 3};
-
-    if (*search_raw != 0) {
-      path.append("search=");
-      path.append(search_raw);
-      path.push_back('&');
-    }
   }
 
   for (const auto& additional_query: m_query) {

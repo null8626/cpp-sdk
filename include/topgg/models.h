@@ -39,12 +39,6 @@
     return *this;                                              \
   }
 
-#define TOPGG_BOT_QUERY_SEARCH(type, lib_name, api_name, ...)  \
-  inline bot_query& lib_name(const type lib_name) {            \
-    add_search(#api_name, lib_name, __VA_ARGS__);              \
-    return *this;                                              \
-  }
-
 namespace topgg {
   class bot_query;
   class client;
@@ -275,15 +269,12 @@ namespace topgg {
   class TOPGG_EXPORT bot_query {
     client* m_client;
     std::unordered_map<const char*, std::string> m_query;
-    std::unordered_map<const char*, std::string> m_search;
     const char* m_sort;
 
     inline bot_query(client* c)
       : m_client(c), m_sort(nullptr) {}
 
     void add_query(const char* key, const uint16_t value, const uint16_t max);
-    void add_search(const char* key, const std::string& value);
-    void add_search(const char* key, const size_t value);
 
   public:
     bot_query() = delete;
@@ -336,56 +327,6 @@ namespace topgg {
     TOPGG_BOT_QUERY_QUERY(uint16_t, skip, offset, 499);
 
     /**
-     * @brief Queries only bots that has this username.
-     *
-     * @param username The bot's username.
-     * @return bot_query The current modified object.
-     * @see topgg::client::get_bots
-     * @since 2.0.1
-     */
-    TOPGG_BOT_QUERY_SEARCH(std::string&, name, username);
-
-    /**
-     * @brief Queries only bots that has this prefix.
-     *
-     * @param prefix The bot's prefix.
-     * @return bot_query The current modified object.
-     * @see topgg::client::get_bots
-     * @since 2.0.1
-     */
-    TOPGG_BOT_QUERY_SEARCH(std::string&, prefix, prefix);
-
-    /**
-     * @brief Queries only bots that has this vote count.
-     *
-     * @param votes The bot's vote count.
-     * @return bot_query The current modified object.
-     * @see topgg::client::get_bots
-     * @since 2.0.1
-     */
-    TOPGG_BOT_QUERY_SEARCH(size_t, votes, points);
-
-    /**
-     * @brief Queries only bots that has this monthly vote count.
-     *
-     * @param monthly_votes The bot's monthly vote count.
-     * @return bot_query The current modified object.
-     * @see topgg::client::get_bots
-     * @since 2.0.1
-     */
-    TOPGG_BOT_QUERY_SEARCH(size_t, monthly_votes, monthlyPoints);
-
-    /**
-     * @brief Queries only bots that has this Top.gg vanity URL.
-     *
-     * @param vanity The bot's Top.gg vanity URL.
-     * @return bot_query The current modified object.
-     * @see topgg::client::get_bots
-     * @since 2.0.1
-     */
-    TOPGG_BOT_QUERY_SEARCH(std::string&, vanity, vanity);
-
-    /**
      * @brief Sends the query to the API.
      *
      * Example:
@@ -398,7 +339,6 @@ namespace topgg {
      *   .get_bots()
      *   .limit(250)
      *   .skip(50)
-     *   .name("shiro")
      *   .sort_by_monthly_votes()
      *   .send([](const auto& result) {
      *     try {
@@ -436,7 +376,6 @@ namespace topgg {
      *     .get_bots()
      *     .limit(250)
      *     .skip(50)
-     *     .name("shiro")
      *     .sort_by_monthly_votes()
      *     .send();
      *

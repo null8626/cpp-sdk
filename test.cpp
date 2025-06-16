@@ -64,7 +64,6 @@ int main() {
     .get_bots()
     .limit(250)
     .skip(50)
-    .name("shiro")
     .sort_by_monthly_votes()
     .send(TEST_RESULT_CALLBACK());
 

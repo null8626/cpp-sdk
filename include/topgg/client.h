@@ -219,7 +219,6 @@ namespace topgg {
      *   .get_bots()
      *   .limit(250)
      *   .skip(50)
-     *   .name("shiro")
      *   .sort_by_monthly_votes()
      *   .send([](const auto& result) {
      *     try {
@@ -245,7 +244,6 @@ namespace topgg {
      *     .get_bots()
      *     .limit(250)
      *     .skip(50)
-     *     .name("shiro")
      *     .sort_by_monthly_votes()
      *     .send();
      *
