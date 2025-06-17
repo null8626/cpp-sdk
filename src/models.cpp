@@ -193,3 +193,7 @@ voter::voter(const dpp::json& j) {
 
   created_at = timestamp_from_id(id);
 }
+
+std::string topgg::widget::large(const dpp::snowflake id) {
+  return TOPGG_BASE_URL "/widgets/large/" + std::to_string(id);
+}

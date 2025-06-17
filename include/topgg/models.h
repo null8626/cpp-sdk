@@ -4,7 +4,7 @@
  * @brief A simple API wrapper for Top.gg written in C++.
  * @authors Top.gg, null8626
  * @copyright Copyright (c) 2024-2025 Top.gg & null8626
- * @date 2025-06-16
+ * @date 2025-06-17
  * @version 3.0.0
  */
 
@@ -413,6 +413,24 @@ namespace topgg {
   public:
     virtual size_t TOPGG_EXPORT get_server_count(dpp::cluster&) = 0;
   };
+
+    namespace widget {
+      /**
+       * @brief Generates a large widget URL.
+       *
+       * Example:
+       *
+       * ```cpp
+       * const auto widget_url{topgg::widget::large(264811613708746752)};
+       * 
+       * std::cout << widget_url << std::endl;
+       * ```
+       *
+       * @param id The ID.
+       * @since 3.0.0
+       */
+      std::string large(const dpp::snowflake id);
+    }; // namespace widget
 }; // namespace topgg
 
 #undef TOPGG_BOT_QUERY_SEARCH
