@@ -194,6 +194,18 @@ voter::voter(const dpp::json& j) {
   created_at = timestamp_from_id(id);
 }
 
-std::string topgg::widget::large(const dpp::snowflake id) {
-  return TOPGG_BASE_URL "/widgets/large/" + std::to_string(id);
+std::string topgg::widget::large(const char* ty, const dpp::snowflake id) {
+  return TOPGG_BASE_URL "/widgets/large/" + std::string{ty} +  "/" + std::to_string(id);
+}
+
+std::string topgg::widget::votes(const char* ty, const dpp::snowflake id) {
+  return TOPGG_BASE_URL "/widgets/small/votes/" + std::string{ty} + "/" + std::to_string(id);
+}
+
+std::string topgg::widget::owner(const char* ty, const dpp::snowflake id) {
+  return TOPGG_BASE_URL "/widgets/small/owner/" + std::string{ty} + "/" + std::to_string(id);
+}
+
+std::string topgg::widget::social(const char* ty, const dpp::snowflake id) {
+  return TOPGG_BASE_URL "/widgets/small/social/" + std::string{ty} + "/" + std::to_string(id);
 }

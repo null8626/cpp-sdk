@@ -27,6 +27,9 @@
 #undef _XOPEN_SOURCE
 #endif
 
+#define TOPGG_WIDGET_DISCORD_BOT "discord/bot"
+#define TOPGG_WIDGET_DISCORD_SERVER "discord/server"
+
 #define TOPGG_BOT_QUERY_SORT(lib_name, api_name)               \
   inline bot_query& sort_by_##lib_name() noexcept {            \
     m_sort = #api_name;                                        \
@@ -421,15 +424,67 @@ namespace topgg {
        * Example:
        *
        * ```cpp
-       * const auto widget_url{topgg::widget::large(264811613708746752)};
+       * const auto widget_url{topgg::widget::large(TOPGG_WIDGET_DISCORD_BOT, 264811613708746752)};
        * 
        * std::cout << widget_url << std::endl;
        * ```
        *
+       * @param ty The widget type. This can be TOPGG_WIDGET_DISCORD_BOT or TOPGG_WIDGET_DISCORD_SERVER.
        * @param id The ID.
        * @since 3.0.0
        */
-      std::string large(const dpp::snowflake id);
+      std::string large(const char* ty, const dpp::snowflake id);
+
+      /**
+       * @brief Generates a small widget URL for displaying votes.
+       *
+       * Example:
+       *
+       * ```cpp
+       * const auto widget_url{topgg::widget::votes(TOPGG_WIDGET_DISCORD_BOT, 264811613708746752)};
+       * 
+       * std::cout << widget_url << std::endl;
+       * ```
+       *
+       * @param ty The widget type. This can be TOPGG_WIDGET_DISCORD_BOT or TOPGG_WIDGET_DISCORD_SERVER.
+       * @param id The ID.
+       * @since 3.0.0
+       */
+      std::string votes(const char* ty, const dpp::snowflake id);
+
+      /**
+       * @brief Generates a small widget URL for displaying an entity's owner.
+       *
+       * Example:
+       *
+       * ```cpp
+       * const auto widget_url{topgg::widget::owner(TOPGG_WIDGET_DISCORD_BOT, 264811613708746752)};
+       * 
+       * std::cout << widget_url << std::endl;
+       * ```
+       *
+       * @param ty The widget type. This can be TOPGG_WIDGET_DISCORD_BOT or TOPGG_WIDGET_DISCORD_SERVER.
+       * @param id The ID.
+       * @since 3.0.0
+       */
+      std::string owner(const char* ty, const dpp::snowflake id);
+
+      /**
+       * @brief Generates a small widget URL for displaying social stats.
+       *
+       * Example:
+       *
+       * ```cpp
+       * const auto widget_url{topgg::widget::social(TOPGG_WIDGET_DISCORD_BOT, 264811613708746752)};
+       * 
+       * std::cout << widget_url << std::endl;
+       * ```
+       *
+       * @param ty The widget type. This can be TOPGG_WIDGET_DISCORD_BOT or TOPGG_WIDGET_DISCORD_SERVER.
+       * @param id The ID.
+       * @since 3.0.0
+       */
+      std::string social(const char* ty, const dpp::snowflake id);
     }; // namespace widget
 }; // namespace topgg
 
