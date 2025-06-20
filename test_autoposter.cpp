@@ -25,7 +25,7 @@ int main() {
   }
 
   dpp::cluster bot{discord_token};
-  topgg::client topgg_client{bot, topgg_token};
+  topgg::client client{bot, topgg_token};
 
   std::cout << "Starting bot... ";
 
@@ -33,7 +33,7 @@ int main() {
 
   std::cout << "ok\n";
 
-  topgg_client.start_autoposter([](const auto& result) {
+  client.start_autoposter([](const auto& result) {
     if (result) {
       std::cout << "Successfully posted " << *result << " servers to the API!" << std::endl;
       

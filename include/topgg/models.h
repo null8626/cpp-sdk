@@ -336,9 +336,9 @@ namespace topgg {
      *
      * ```cpp
      * dpp::cluster bot{"your bot token"};
-     * topgg::client topgg_client{bot, "your top.gg token"};
+     * topgg::client client{bot, "your top.gg token"};
      *
-     * topgg_client
+     * client
      *   .get_bots()
      *   .limit(250)
      *   .skip(50)
@@ -372,10 +372,10 @@ namespace topgg {
      *
      * ```cpp
      * dpp::cluster bot{"your bot token"};
-     * topgg::client topgg_client{bot, "your top.gg token"};
+     * topgg::client client{bot, "your top.gg token"};
      *
      * try {
-     *   const auto bots = co_await topgg_client
+     *   const auto bots = co_await client
      *     .get_bots()
      *     .limit(250)
      *     .skip(50)

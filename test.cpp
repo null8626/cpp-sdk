@@ -47,7 +47,7 @@ int main() {
   }
 
   dpp::cluster bot{discord_token};
-  topgg::client topgg_client{bot, topgg_token};
+  topgg::client client{bot, topgg_token};
 
   std::cout << "Starting bot... ";
 
@@ -55,12 +55,12 @@ int main() {
 
   std::cout << "ok\nget_bot ";
 
-  topgg_client.get_bot(264811613708746752, TEST_RESULT_CALLBACK());
+  client.get_bot(264811613708746752, TEST_RESULT_CALLBACK());
   
   ACQUIRE_TEST_THREAD();
   std::cout << "get_bots ";
 
-  topgg_client
+  client
     .get_bots()
     .limit(250)
     .skip(50)
@@ -70,12 +70,12 @@ int main() {
   ACQUIRE_TEST_THREAD();
   std::cout << "has_voted ";
   
-  topgg_client.has_voted(661200758510977084, TEST_RESULT_CALLBACK());
+  client.has_voted(661200758510977084, TEST_RESULT_CALLBACK());
   
   ACQUIRE_TEST_THREAD();
   std::cout << "post_server_count ";
 
-  topgg_client.post_server_count([](const auto success) {
+  client.post_server_count([](const auto success) {
     if (success) {
       std::cout << "ok" << std::endl;
     } else {
@@ -89,17 +89,17 @@ int main() {
   ACQUIRE_TEST_THREAD();
   std::cout << "get_server_count ";
 
-  topgg_client.get_server_count(TEST_RESULT_CALLBACK());
+  client.get_server_count(TEST_RESULT_CALLBACK());
   
   ACQUIRE_TEST_THREAD();
   std::cout << "get_voters ";
 
-  topgg_client.get_voters(TEST_RESULT_CALLBACK());
+  client.get_voters(TEST_RESULT_CALLBACK());
 
   ACQUIRE_TEST_THREAD();
   std::cout << "is_weekend ";
 
-  topgg_client.is_weekend(TEST_RESULT_CALLBACK());
+  client.is_weekend(TEST_RESULT_CALLBACK());
 
   ACQUIRE_TEST_THREAD();
 

@@ -148,9 +148,9 @@ namespace topgg {
      *
      * ```cpp
      * dpp::cluster bot{"your bot token"};
-     * topgg::client topgg_client{bot, "your top.gg token"};
+     * topgg::client client{bot, "your top.gg token"};
      *
-     * topgg_client.get_bot(264811613708746752, [](const auto& result) {
+     * client.get_bot(264811613708746752, [](const auto& result) {
      *   try {
      *     const auto topgg_bot = result.get();
      *
@@ -179,10 +179,10 @@ namespace topgg {
      *
      * ```cpp
      * dpp::cluster bot{"your bot token"};
-     * topgg::client topgg_client{bot, "your top.gg token"};
+     * topgg::client client{bot, "your top.gg token"};
      *
      * try {
-     *   const auto topgg_bot = co_await topgg_client.co_get_bot(264811613708746752);
+     *   const auto topgg_bot = co_await client.co_get_bot(264811613708746752);
      *
      *   std::cout << topgg_bot.username << std::endl;
      * } catch (const std::exception& exc) {
@@ -213,9 +213,9 @@ namespace topgg {
      *
      * ```cpp
      * dpp::cluster bot{"your bot token"};
-     * topgg::client topgg_client{bot, "your top.gg token"};
+     * topgg::client client{bot, "your top.gg token"};
      *
-     * topgg_client
+     * client
      *   .get_bots()
      *   .limit(250)
      *   .skip(50)
@@ -237,10 +237,10 @@ namespace topgg {
      *
      * ```cpp
      * dpp::cluster bot{"your bot token"};
-     * topgg::client topgg_client{bot, "your top.gg token"};
+     * topgg::client client{bot, "your top.gg token"};
      *
      * try {
-     *   const auto bots = co_await topgg_client
+     *   const auto bots = co_await client
      *     .get_bots()
      *     .limit(250)
      *     .skip(50)
@@ -270,9 +270,9 @@ namespace topgg {
      *
      * ```cpp
      * dpp::cluster bot{"your bot token"};
-     * topgg::client topgg_client{bot, "your top.gg token"};
+     * topgg::client client{bot, "your top.gg token"};
      *
-     * topgg_client.get_server_count([](const auto& result) {
+     * client.get_server_count([](const auto& result) {
      *   try {
      *     auto server_count = result.get();
      *
@@ -300,10 +300,10 @@ namespace topgg {
      *
      * ```cpp
      * dpp::cluster bot{"your bot token"};
-     * topgg::client topgg_client{bot, "your top.gg token"};
+     * topgg::client client{bot, "your top.gg token"};
      *
      * try {
-     *   const auto server_count = co_await topgg_client.co_get_server_count();
+     *   const auto server_count = co_await client.co_get_server_count();
      *
      *   std::cout << server_count.value_or(0) << std::endl;
      * } catch (const std::exception& exc) {
@@ -332,9 +332,9 @@ namespace topgg {
      *
      * ```cpp
      * dpp::cluster bot{"your bot token"};
-     * topgg::client topgg_client{bot, "your top.gg token"};
+     * topgg::client client{bot, "your top.gg token"};
      *
-     * topgg_client.get_voters(1, [](const auto& result) {
+     * client.get_voters(1, [](const auto& result) {
      *   try {
      *     auto voters = result.get();
      *
@@ -365,9 +365,9 @@ namespace topgg {
      *
      * ```cpp
      * dpp::cluster bot{"your bot token"};
-     * topgg::client topgg_client{bot, "your top.gg token"};
+     * topgg::client client{bot, "your top.gg token"};
      *
-     * topgg_client.get_voters([](const auto& result) {
+     * client.get_voters([](const auto& result) {
      *   try {
      *     auto voters = result.get();
      *
@@ -398,10 +398,10 @@ namespace topgg {
      *
      * ```cpp
      * dpp::cluster bot{"your bot token"};
-     * topgg::client topgg_client{bot, "your top.gg token"};
+     * topgg::client client{bot, "your top.gg token"};
      *
      * try {
-     *   const auto voters = co_await topgg_client.co_get_voters();
+     *   const auto voters = co_await client.co_get_voters();
      *
      *   for (const auto& voter: voters) {
      *     std::cout << voter.username << std::endl;
@@ -434,9 +434,9 @@ namespace topgg {
      *
      * ```cpp
      * dpp::cluster bot{"your bot token"};
-     * topgg::client topgg_client{bot, "your top.gg token"};
+     * topgg::client client{bot, "your top.gg token"};
      *
-     * topgg_client.has_voted(661200758510977084, [](const auto& result) {
+     * client.has_voted(661200758510977084, [](const auto& result) {
      *   try {
      *     if (result.get()) {
      *       std::cout << "Checks out." << std::endl;
@@ -465,10 +465,10 @@ namespace topgg {
      *
      * ```cpp
      * dpp::cluster bot{"your bot token"};
-     * topgg::client topgg_client{bot, "your top.gg token"};
+     * topgg::client client{bot, "your top.gg token"};
      *
      * try {
-     *   const auto voted = co_await topgg_client.co_has_voted(661200758510977084);
+     *   const auto voted = co_await client.co_has_voted(661200758510977084);
      *
      *   if (voted) {
      *     std::cout << "Checks out." << std::endl;
@@ -501,9 +501,9 @@ namespace topgg {
      *
      * ```cpp
      * dpp::cluster bot{"your bot token"};
-     * topgg::client topgg_client{bot, "your top.gg token"};
+     * topgg::client client{bot, "your top.gg token"};
      *
-     * topgg_client.is_weekend([](const auto& result) {
+     * client.is_weekend([](const auto& result) {
      *   try {
      *     if (result.get()) {
      *       std::cout << "The weekend multiplier is active" << std::endl;
@@ -530,10 +530,10 @@ namespace topgg {
      *
      * ```cpp
      * dpp::cluster bot{"your bot token"};
-     * topgg::client topgg_client{bot, "your top.gg token"};
+     * topgg::client client{bot, "your top.gg token"};
      *
      * try {
-     *   const auto is_weekend = co_await topgg_client.co_is_weekend();
+     *   const auto is_weekend = co_await client.co_is_weekend();
      *
      *   if (is_weekend) {
      *     std::cout << "The weekend multiplier is active" << std::endl;
@@ -563,9 +563,9 @@ namespace topgg {
      *
      * ```cpp
      * dpp::cluster bot{"your bot token"};
-     * topgg::client topgg_client{bot, "your top.gg token"};
+     * topgg::client client{bot, "your top.gg token"};
      *
-     * topgg_client.post_server_count([](const auto success) {
+     * client.post_server_count([](const auto success) {
      *   if (success) {
      *     std::cout << "Stats posted!" << std::endl;
      *   }
@@ -589,9 +589,9 @@ namespace topgg {
      *
      * ```cpp
      * dpp::cluster bot{"your bot token"};
-     * topgg::client topgg_client{bot, "your top.gg token"};
+     * topgg::client client{bot, "your top.gg token"};
      *
-     * const auto success = co_await topgg_client.co_post_server_count();
+     * const auto success = co_await client.co_post_server_count();
      *
      * if (success) {
      *   std::cout << "Stats posted!" << std::endl;
@@ -614,9 +614,9 @@ namespace topgg {
      *
      * ```cpp
      * dpp::cluster bot{"your bot token"};
-     * topgg::client topgg_client{bot, "your top.gg token"};
+     * topgg::client client{bot, "your top.gg token"};
      *
-     * bot.start_autoposter([](const auto& result) {
+     * client.start_autoposter([](const auto& result) {
      *   if (result) {
      *     std::cout << "Successfully posted " << *result << " servers to the API!" << std::endl;
      *   }
@@ -640,9 +640,9 @@ namespace topgg {
      *
      * ```cpp
      * dpp::cluster bot{"your bot token"};
-     * topgg::client topgg_client{bot, "your top.gg token"};
+     * topgg::client client{bot, "your top.gg token"};
      *
-     * bot.start_autoposter();
+     * client.start_autoposter();
      * ```
      *
      * @param interval The interval between posting in seconds. Defaults to 15 minutes.
@@ -667,9 +667,9 @@ namespace topgg {
      * };
      *
      * dpp::cluster bot{"your bot token"};
-     * topgg::client topgg_client{bot, "your top.gg token"};
+     * topgg::client client{bot, "your top.gg token"};
      *
-     * topgg_client.start_autoposter(reinterpret_cast<topgg::autoposter_source*>(new my_autoposter_source), [](const auto& result) {
+     * client.start_autoposter(reinterpret_cast<topgg::autoposter_source*>(new my_autoposter_source), [](const auto& result) {
      *   if (result) {
      *     std::cout << "Successfully posted " << *result << " servers to the API!" << std::endl;
      *   }
@@ -702,9 +702,9 @@ namespace topgg {
      * };
      *
      * dpp::cluster bot{"your bot token"};
-     * topgg::client topgg_client{bot, "your top.gg token"};
+     * topgg::client client{bot, "your top.gg token"};
      *
-     * topgg_client.start_autoposter(reinterpret_cast<topgg::autoposter_source*>(new my_autoposter_source));
+     * client.start_autoposter(reinterpret_cast<topgg::autoposter_source*>(new my_autoposter_source));
      * ```
      *
      * @param source A pointer to an autoposter source located in the heap memory. This pointer must be allocated with new, and it will be deleted once the autoposter thread gets stopped.
@@ -724,13 +724,13 @@ namespace topgg {
      *
      * ```cpp
      * dpp::cluster bot{"your bot token"};
-     * topgg::client topgg_client{bot, "your top.gg token"};
+     * topgg::client client{bot, "your top.gg token"};
      *
-     * bot.start_autoposter();
+     * client.start_autoposter();
      *
      * // ...
      *
-     * bot.stop_autoposter();
+     * client.stop_autoposter();
      * ```
      *
      * @note This function has no effect if the autoposter is already stopped.
