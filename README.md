@@ -8,17 +8,30 @@ First, clone the git repository like so:
 
 ```sh
 $ git clone https://github.com/Top-gg-Community/cpp-sdk --depth 1
+$ cd cpp-sdk
+$ git submodule update --init --recursive
 ```
 
-**NOTE:** To enable C++20 coroutine methods, add `-DENABLE_CORO=ON`!
+The C++ SDK provides building options that you can enable or disable by setting the corresponding variables to `ON` or `OFF`. They are as follows:
 
-### Linux (Debian-like)
+| Option name                   | Description                                      | Default |
+| ----------------------------- | ------------------------------------------------ | ------- |
+| `BUILD_SHARED_LIBS`           | Build shared libraries.                          | `ON`    |
+| `ENABLE_API`                  | Build primary API support.                       | `ON`    |
+| `ENABLE_CPP_HTTPLIB_WEBHOOKS` | Build support for webhooks via `cpp-httplib`.    | `OFF`   |
+| `ENABLE_DROGON_WEBHOOKS`      | Build support for webhooks via `drogon`.         | `OFF`   |
+| `ENABLE_CORO`                 | Add support for C++20 coroutines.                | `OFF`   |
+| `TESTING`                     | Enable this only if you are testing the library. | `OFF`   |
+
+### Main API wrapper
+
+#### Linux (Debian-like)
 
 Install D++:
 
 ```sh
 $ wget -O dpp.deb https://dl.dpp.dev/latest
-$ dpkg -i dpp.deb
+$ sudo dpkg -i dpp.deb
 ```
 
 Build `topgg`:
@@ -28,14 +41,14 @@ $ cmake -B build .
 $ cmake --build build --config Release
 ```
 
-### Linux (CentOS-like)
+#### Linux (CentOS-like)
 
 Install D++:
 
 ```sh
-$ yum install wget
+$ sudo yum install wget
 $ wget -O dpp.rpm https://dl.dpp.dev/latest/linux-x64/rpm
-$ yum localinstall dpp.rpm
+$ sudo yum localinstall dpp.rpm
 ```
 
 Build `topgg`:
@@ -45,7 +58,7 @@ $ cmake -B build .
 $ cmake --build build --config Release
 ```
 
-### macOS
+#### macOS
 
 Install D++:
 
@@ -61,16 +74,158 @@ $ cmake -B build .
 $ cmake --build build --config Release
 ```
 
-### Windows
+#### Windows
+
+Install D++ and build `topgg`:
 
 ```bat
 > cmake -B build .
 > cmake --build build --config Release
 ```
 
+### Webhooks only
+
+#### cpp-httplib
+
+Install `cpp-httplib` and build `topgg`:
+
+```bat
+> cmake -DENABLE_API=OFF -DENABLE_CPP_HTTPLIB_WEBHOOKS=ON -B build .
+> cmake --build build --config Release
+```
+
+#### Drogon
+
+##### Linux (Debian-like)
+
+Install the C/C++ compiler(s):
+
+```sh
+$ sudo apt install git gcc g++ cmake
+```
+
+Install Drogon's dependencies:
+
+```sh
+$ sudo apt install libjsoncpp-dev uuid-dev zlib1g-dev
+```
+
+Install Drogon and build `topgg`:
+
+```sh
+$ cmake -DENABLE_API=OFF -DENABLE_DROGON_WEBHOOKS=ON -B build .
+$ cmake --build build --config Release
+```
+
+##### Linux (Arch-like)
+
+Install the C/C++ compiler(s):
+
+```sh
+$ sudo pacman -S git gcc make cmake
+```
+
+Install Drogon's dependencies:
+
+```sh
+$ sudo pacman -S jsoncpp uuid zlib
+```
+
+Install Drogon and build `topgg`:
+
+```sh
+$ cmake -DENABLE_API=OFF -DENABLE_DROGON_WEBHOOKS=ON -B build .
+$ cmake --build build --config Release
+```
+
+##### Linux (CentOS-like)
+
+Install the C/C++ compiler(s):
+
+```sh
+$ sudo yum install git gcc gcc-c++
+```
+
+Install the latest version of CMake from source if you haven't already:
+
+```sh
+$ git clone https://github.com/Kitware/CMake --depth 1
+$ cd CMake
+$ ./bootstrap && make && make install
+$ cd ..
+```
+
+Update your system's GCC:
+
+```sh
+$ sudo yum install centos-release-scl devtoolset-11
+$ scl enable devtoolset-11 bash
+```
+
+Install Drogon's dependencies:
+
+```sh
+$ git clone https://github.com/open-source-parsers/jsoncpp --depth 1
+$ cd jsoncpp
+$ mkdir build && cd build
+$ cmake .. && make && make install
+$ cd ../..
+$ sudo yum install libuuid-devel zlib-devel
+```
+
+Install Drogon and build `topgg`:
+
+```sh
+$ cmake -DENABLE_API=OFF -DENABLE_DROGON_WEBHOOKS=ON -B build .
+$ cmake --build build --config Release
+```
+
+##### macOS
+
+Install Drogon's dependencies:
+
+```sh
+$ brew upgrade
+$ brew install jsoncpp ossp-uuid zlib-devel
+```
+
+Install Drogon and build `topgg`:
+
+```sh
+$ cmake -DENABLE_API=OFF -DENABLE_DROGON_WEBHOOKS=ON -B build .
+$ cmake --build build --config Release
+```
+
+##### Windows
+
+Install `conan` if you haven't already:
+
+```bat
+> pip install conan
+```
+
+Install Drogon's dependencies:
+
+```bat
+> conan profile detect --force
+> conan install . -s compiler="msvc" -s compiler.version=193 -s compiler.cppstd=17 -s build_type=Release --output-folder . --build=missing -g CMakeToolchain
+```
+
+Install Drogon and build `topgg`:
+
+```bat
+> cmake -DENABLE_API=OFF -DENABLE_DROGON_WEBHOOKS=ON -B build .
+> cmake --build build --config Release
+```
+
 ## Setting up
 
 ```cpp
+// If you compiled this library statically, uncomment the following:
+// #ifndef TOPGG_STATIC
+// #define TOPGG_STATIC
+// #endif
+
 #include <topgg/topgg.h>
 #include <dpp/dpp.h>
 
@@ -319,7 +474,7 @@ client.start_autoposter();
 ```cpp
 client.start_autoposter([](const auto& result) {
   if (result) {
-    std::cout << "Successfully posted " << *result << " servers to the API!" << std::endl;
+    std::cout << "Successfully posted " << *result << " servers to Top.gg!" << std::endl;
   }
 });
 ```
@@ -336,7 +491,7 @@ public:
 
 client.start_autoposter(reinterpret_cast<topgg::autoposter_source*>(new my_autoposter_source), [](const auto& result) {
   if (result) {
-    std::cout << "Successfully posted " << *result << " servers to the API!" << std::endl;
+    std::cout << "Successfully posted " << *result << " servers to Top.gg!" << std::endl;
   }
 });
 ```
@@ -395,4 +550,104 @@ const auto widget_url{topgg::widget::owner(TOPGG_WIDGET_DISCORD_BOT, 26481161370
 
 ```cpp
 const auto widget_url{topgg::widget::social(TOPGG_WIDGET_DISCORD_BOT, 264811613708746752)};
+```
+
+### Webhooks
+
+#### Being notified whenever someone voted for your bot
+
+##### cpp-httplib
+
+```cpp
+// If you compiled this library statically, uncomment the following:
+// #ifndef TOPGG_STATIC
+// #define TOPGG_STATIC
+// #endif
+
+#include <cpp-httplib/cpp-httplib.h>
+#include <topgg/webhooks/cpp-httplib.h>
+
+#include <iostream>
+#include <string>
+
+template<class T>
+using cpp_httplib_webhook = topgg::webhook::cpp_httplib<T>;
+using topgg::webhook::vote;
+
+class my_vote_listener: public cpp_httplib_webhook<vote> {
+public:
+  inline my_vote_listener(const std::string& authorization): cpp_httplib_webhook<vote>(authorization) {}
+
+  void callback(const vote& v) override {
+    std::cout << "A user with the ID of " << v.voter_id << " has voted us on Top.gg!" << std::endl;
+  }
+};
+
+int main() {
+  const auto authorization{std::getenv("MY_TOPGG_WEBHOOK_SECRET")};
+
+  if (authorization == nullptr) {
+    std::cerr << "error: missing MY_TOPGG_WEBHOOK_SECRET environment variable" << std::endl;
+    return 1;
+  }
+
+  httplib::Server server{};
+  my_vote_listener webhook{authorization};
+
+  server.Post("/votes", webhook.endpoint());
+  server.listen("localhost", 8080);
+  
+  return 0;
+}
+```
+
+##### Drogon
+
+```cpp
+// If you compiled this library statically, uncomment the following:
+// #ifndef TOPGG_STATIC
+// #define TOPGG_STATIC
+// #endif
+
+#include <topgg/webhooks/drogon.h>
+
+#include <iostream>
+#include <memory>
+#include <string>
+
+template<class T>
+using drogon_webhook = topgg::webhook::drogon<T>;
+using topgg::webhook::vote;
+
+class my_vote_listener: public ::drogon::HttpSimpleController<my_vote_listener, false>, public drogon_webhook<vote> {
+public:
+  inline my_vote_listener(const std::string& authorization): drogon_webhook<vote>(authorization) {}
+
+  TOPGG_DROGON_WEBHOOK();
+
+  PATH_LIST_BEGIN
+  PATH_ADD("/votes", ::drogon::Post);
+  PATH_LIST_END
+
+  void callback(const vote& v) override {
+    std::cout << "A user with the ID of " << v.voter_id << " has voted us on Top.gg!" << std::endl;
+  }
+};
+
+int main() {
+  const auto authorization{std::getenv("MY_TOPGG_WEBHOOK_SECRET")};
+
+  if (authorization == nullptr) {
+    std::cerr << "error: missing MY_TOPGG_WEBHOOK_SECRET environment variable" << std::endl;
+    return 1;
+  }
+
+  auto& app{drogon::app()};
+
+  app.registerController(std::make_shared<my_vote_listener>(authorization));
+  app.addListener("127.0.0.1", 8080);
+  app.run();
+
+  return 0;
+}
 ```

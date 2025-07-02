@@ -4,7 +4,7 @@
  * @brief A simple API wrapper for Top.gg written in C++.
  * @authors Top.gg, null8626
  * @copyright Copyright (c) 2024-2025 Top.gg & null8626
- * @date 2025-06-17
+ * @date 2025-07-02
  * @version 3.0.0
  */
 
@@ -54,6 +54,8 @@ namespace topgg {
    * @since 2.0.0
    */
   class TOPGG_EXPORT voter {
+    voter(const dpp::json& j);
+
   public:
     voter() = delete;
 
@@ -84,8 +86,6 @@ namespace topgg {
      * @since 2.0.0
      */
     time_t created_at;
-
-    voter(const dpp::json& j);
 
     friend class client;
   };

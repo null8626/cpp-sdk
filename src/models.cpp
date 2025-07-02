@@ -1,9 +1,5 @@
 #include <topgg/topgg.h>
 
-using topgg::bot;
-using topgg::bot_query;
-using topgg::voter;
-
 #ifdef _WIN32
 #include <sstream>
 #include <iomanip>
@@ -19,51 +15,51 @@ static void strptime(const char* s, const char* f, tm* t) {
 #endif
 #endif
 
-#define DESERIALIZE(j, name, type) \
+#define _TOPGG_DESERIALIZE(j, name, type) \
   name = j[#name].template get<type>()
 
-#define DESERIALIZE_ALIAS(j, name, prop, type) \
+#define _TOPGG_DESERIALIZE_ALIAS(j, name, prop, type) \
   prop = j[#name].template get<type>()
 
-#define IGNORE_EXCEPTION(scope) \
+#define _TOPGG_IGNORE_EXCEPTION(scope) \
   try scope catch (TOPGG_UNUSED const std::exception&) {}
 
-#define DESERIALIZE_VECTOR(j, name, type)                  \
-  IGNORE_EXCEPTION({                                       \
-    name = j[#name].template get<std::vector<type>>();     \
+#define _TOPGG_DESERIALIZE_VECTOR(j, name, type)                  \
+  _TOPGG_IGNORE_EXCEPTION({                                       \
+    name = j[#name].template get<std::vector<type>>();            \
   })
 
-#define DESERIALIZE_VECTOR_ALIAS(j, name, prop, type)      \
-  IGNORE_EXCEPTION({                                       \
-    prop = j[#name].template get<std::vector<type>>();     \
+#define _TOPGG_DESERIALIZE_VECTOR_ALIAS(j, name, prop, type)      \
+  _TOPGG_IGNORE_EXCEPTION({                                       \
+    prop = j[#name].template get<std::vector<type>>();            \
   })
 
-#define DESERIALIZE_OPTIONAL(j, name, type)   \
-  IGNORE_EXCEPTION({                          \
-    name = j[#name].template get<type>();     \
+#define _TOPGG_DESERIALIZE_OPTIONAL(j, name, type)   \
+  _TOPGG_IGNORE_EXCEPTION({                          \
+    name = j[#name].template get<type>();            \
   })
 
-#define DESERIALIZE_PRIVATE_OPTIONAL(j, name, type)   \
-  IGNORE_EXCEPTION({                                  \
-    m_##name = j[#name].template get<type>();         \
+#define _TOPGG_DESERIALIZE_PRIVATE_OPTIONAL(j, name, type)   \
+  _TOPGG_IGNORE_EXCEPTION({                                  \
+    m_##name = j[#name].template get<type>();                \
   })
 
-#define DESERIALIZE_OPTIONAL_ALIAS(j, name, prop) \
-  IGNORE_EXCEPTION({                              \
-    prop = j[#name].template get<type>();         \
+#define _TOPGG_DESERIALIZE_OPTIONAL_ALIAS(j, name, prop) \
+  _TOPGG_IGNORE_EXCEPTION({                              \
+    prop = j[#name].template get<type>();                \
   })
 
-#define DESERIALIZE_OPTIONAL_STRING(j, name)                      \
-  IGNORE_EXCEPTION({                                              \
-    const auto value{j[#name].template get<std::string>()};       \
-                                                                  \
-    if (value.size() > 0) {                                       \
-      name = std::optional{value};                                \
-    }                                                             \
+#define _TOPGG_DESERIALIZE_OPTIONAL_STRING(j, name)                      \
+  _TOPGG_IGNORE_EXCEPTION({                                              \
+    const auto value{j[#name].template get<std::string>()};              \
+                                                                         \
+    if (value.size() > 0) {                                              \
+      name = std::optional{value};                                       \
+    }                                                                    \
   })
 
-#define DESERIALIZE_OPTIONAL_STRING_ALIAS(j, name, prop)          \
-  IGNORE_EXCEPTION({                                              \
+#define _TOPGG_DESERIALIZE_OPTIONAL_STRING_ALIAS(j, name, prop)          \
+  _TOPGG_IGNORE_EXCEPTION({                                              \
     const auto value{j[#name].template get<std::string>()};       \
                                                                   \
     if (value.size() > 0) {                                       \
@@ -71,30 +67,34 @@ static void strptime(const char* s, const char* f, tm* t) {
     }                                                             \
   })
 
-#define SNOWFLAKE_FROM_JSON(j, name) \
+#define _TOPGG_SNOWFLAKE_FROM_JSON(j, name) \
   dpp::snowflake{j[#name].template get<std::string>()}
+
+using topgg::bot;
+using topgg::bot_query;
+using topgg::voter;
 
 static time_t timestamp_from_id(const dpp::snowflake& id) {
   return static_cast<time_t>(((id >> 22) / 1000) + 1420070400);
 }
 
 bot::bot(const dpp::json& j) {
-  id = SNOWFLAKE_FROM_JSON(j, clientid);
-  topgg_id = SNOWFLAKE_FROM_JSON(j, id);
+  id = _TOPGG_SNOWFLAKE_FROM_JSON(j, clientid);
+  topgg_id = _TOPGG_SNOWFLAKE_FROM_JSON(j, id);
 
-  DESERIALIZE(j, username, std::string);
-  DESERIALIZE(j, avatar, std::string);
+  _TOPGG_DESERIALIZE(j, username, std::string);
+  _TOPGG_DESERIALIZE(j, avatar, std::string);
 
   created_at = timestamp_from_id(id);
 
-  DESERIALIZE(j, prefix, std::string);
-  DESERIALIZE_ALIAS(j, shortdesc, short_description, std::string);
-  DESERIALIZE_OPTIONAL_STRING_ALIAS(j, longdesc, long_description);
-  DESERIALIZE_VECTOR(j, tags, std::string);
-  DESERIALIZE_OPTIONAL_STRING(j, website);
-  DESERIALIZE_OPTIONAL_STRING(j, github);
+  _TOPGG_DESERIALIZE(j, prefix, std::string);
+  _TOPGG_DESERIALIZE_ALIAS(j, shortdesc, short_description, std::string);
+  _TOPGG_DESERIALIZE_OPTIONAL_STRING_ALIAS(j, longdesc, long_description);
+  _TOPGG_DESERIALIZE_VECTOR(j, tags, std::string);
+  _TOPGG_DESERIALIZE_OPTIONAL_STRING(j, website);
+  _TOPGG_DESERIALIZE_OPTIONAL_STRING(j, github);
 
-  IGNORE_EXCEPTION({
+  _TOPGG_IGNORE_EXCEPTION({
     const auto j_owners{j["owners"].template get<std::vector<std::string>>()};
 
     owners.reserve(j_owners.size());
@@ -105,22 +105,22 @@ bot::bot(const dpp::json& j) {
   });
 
   const auto j_submitted_at{j["date"].template get<std::string>()};
-  tm submitted_at_tm;
+  tm submitted_at_tm{};
 
   strptime(j_submitted_at.data(), "%Y-%m-%dT%H:%M:%S", &submitted_at_tm);
   submitted_at = mktime(&submitted_at_tm);
 
-  DESERIALIZE_ALIAS(j, points, votes, size_t);
-  DESERIALIZE_ALIAS(j, monthlyPoints, monthly_votes, size_t);
-  DESERIALIZE_OPTIONAL(j, invite, std::string);
-  DESERIALIZE_OPTIONAL(j, vanity, std::string);
-  DESERIALIZE_OPTIONAL(j, support, std::string);
-  DESERIALIZE_OPTIONAL(j, server_count, size_t);
+  _TOPGG_DESERIALIZE_ALIAS(j, points, votes, size_t);
+  _TOPGG_DESERIALIZE_ALIAS(j, monthlyPoints, monthly_votes, size_t);
+  _TOPGG_DESERIALIZE_OPTIONAL(j, invite, std::string);
+  _TOPGG_DESERIALIZE_OPTIONAL(j, vanity, std::string);
+  _TOPGG_DESERIALIZE_OPTIONAL(j, support, std::string);
+  _TOPGG_DESERIALIZE_OPTIONAL(j, server_count, size_t);
   
   const auto reviews{j["reviews"]};
 
-  DESERIALIZE_ALIAS(reviews, averageScore, review_score, double);
-  DESERIALIZE_ALIAS(reviews, count, review_count, size_t);
+  _TOPGG_DESERIALIZE_ALIAS(reviews, averageScore, review_score, double);
+  _TOPGG_DESERIALIZE_ALIAS(reviews, count, review_count, size_t);
 }
 
 static std::string querystring(const std::string& value) {
@@ -186,10 +186,10 @@ dpp::async<std::vector<topgg::bot>> bot_query::co_send() {
 #endif
 
 voter::voter(const dpp::json& j) {
-  id = SNOWFLAKE_FROM_JSON(j, id);
+  id = _TOPGG_SNOWFLAKE_FROM_JSON(j, id);
 
-  DESERIALIZE(j, username, std::string);
-  DESERIALIZE(j, avatar, std::string);
+  _TOPGG_DESERIALIZE(j, username, std::string);
+  _TOPGG_DESERIALIZE(j, avatar, std::string);
 
   created_at = timestamp_from_id(id);
 }

@@ -1,7 +1,3 @@
-#ifndef __TOPGG_TESTING__
-#define __TOPGG_TESTING__
-#endif
-
 #include <topgg/topgg.h>
 #include <dpp/dpp.h>
 
