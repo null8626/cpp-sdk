@@ -4,7 +4,7 @@
  * @brief A simple API wrapper for Top.gg written in C++.
  * @authors Top.gg, null8626
  * @copyright Copyright (c) 2024-2025 Top.gg & null8626
- * @date 2025-07-02
+ * @date 2025-09-12
  * @version 3.0.0
  */
 
@@ -41,6 +41,7 @@ namespace topgg {
     inline invalid_token()
       : std::invalid_argument("Invalid API token.") {}
 
+    friend class client;
     friend class internal_result;
   };
 
@@ -84,16 +85,14 @@ namespace topgg {
   class internal_result {
     const dpp::http_request_completion_t m_response;
 
-    void prepare() const;
+    static void handle_response(const dpp::http_request_completion_t& response);
 
-    inline internal_result(const dpp::http_request_completion_t& response)
-      : m_response(response) {}
-
-  public:
-    internal_result() = delete;
+    inline internal_result(): m_response() {}
+    inline internal_result(const dpp::http_request_completion_t& response): m_response(response) {}
 
     template<typename T>
     friend class result;
+    friend class client;
   };
 
   class client;
@@ -107,10 +106,10 @@ namespace topgg {
   template<typename T>
   class result {
     const internal_result m_internal;
-    const std::function<T(const dpp::json& json)> m_parse_fn;
+    const std::variant<std::function<T(const dpp::json& json)>, T> m_data;
 
-    inline result(const dpp::http_request_completion_t& response, const std::function<T(const dpp::json&)>& parse_fn)
-      : m_internal(response), m_parse_fn(parse_fn) {}
+    inline result(const T& data): m_data(data) {}
+    inline result(const dpp::http_request_completion_t& response, const std::function<T(const dpp::json&)>& parse_fn): m_internal(response), m_data(parse_fn) {}
 
   public:
     result() = delete;
@@ -127,9 +126,15 @@ namespace topgg {
      * @since 2.0.0
      */
     T get() const {
-      m_internal.prepare();
+      try {
+        const auto parse_fn{std::get<std::function<T(const dpp::json& json)>>(m_data)};
 
-      return m_parse_fn(dpp::json::parse(m_internal.m_response.body));
+        internal_result::handle_response(m_internal.m_response);
+
+        return parse_fn(dpp::json::parse(m_internal.m_response.body));
+      } catch (TOPGG_UNUSED const std::bad_variant_access&) {
+        return std::get<T>(m_data);
+      }
     }
 
     friend class client;

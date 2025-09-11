@@ -8,11 +8,11 @@
 
 template<class T>
 using drogon_webhook = topgg::webhook::drogon<T>;
-using topgg::webhook::vote;
+using topgg::webhook::vote_event;
 
-class my_vote_listener: public ::drogon::HttpSimpleController<my_vote_listener, false>, public drogon_webhook<vote> {
+class my_vote_listener: public ::drogon::HttpSimpleController<my_vote_listener, false>, public drogon_webhook<vote_event> {
 public:
-  inline my_vote_listener(const std::string& authorization): drogon_webhook<vote>(authorization) {}
+  inline my_vote_listener(const std::string& authorization): drogon_webhook<vote_event>(authorization) {}
 
   TOPGG_DROGON_WEBHOOK();
 
@@ -20,7 +20,7 @@ public:
   PATH_ADD("/votes", ::drogon::Post);
   PATH_LIST_END
 
-  void callback(const vote& v) override {
+  void callback(const vote_event& v) override {
     std::cout << "A user with the ID of " << v.voter_id << " has voted us on Top.gg!" << std::endl;
   }
 };

@@ -7,13 +7,13 @@
 
 template<class T>
 using cpp_httplib_webhook = topgg::webhook::cpp_httplib<T>;
-using topgg::webhook::vote;
+using topgg::webhook::vote_event;
 
-class my_vote_listener: public cpp_httplib_webhook<vote> {
+class my_vote_listener: public cpp_httplib_webhook<vote_event> {
 public:
-  inline my_vote_listener(const std::string& authorization): cpp_httplib_webhook<vote>(authorization) {}
+  inline my_vote_listener(const std::string& authorization): cpp_httplib_webhook<vote_event>(authorization) {}
 
-  void callback(const vote& v) override {
+  void callback(const vote_event& v) override {
     std::cout << "A user with the ID of " << v.voter_id << " has voted us on Top.gg!" << std::endl;
   }
 };

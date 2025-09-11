@@ -64,14 +64,19 @@ int main() {
     .send(TEST_RESULT_CALLBACK());
 
   ACQUIRE_TEST_THREAD();
-  std::cout << "has_voted ";
+  std::cout << "get_vote for discord ";
   
-  client.has_voted(661200758510977084, TEST_RESULT_CALLBACK());
+  client.get_vote(661200758510977084, TOPGG_USER_SOURCE_DISCORD, TEST_RESULT_CALLBACK());
+
+  ACQUIRE_TEST_THREAD();
+  std::cout << "get_vote for top.gg ";
+  
+  client.get_vote(8226924471638491136, TOPGG_USER_SOURCE_TOPGG, TEST_RESULT_CALLBACK());
   
   ACQUIRE_TEST_THREAD();
-  std::cout << "post_server_count ";
+  std::cout << "post_bot_commands ";
 
-  client.post_server_count([](const auto success) {
+  client.post_bot_commands([](const auto success) {
     if (success) {
       std::cout << "ok" << std::endl;
     } else {
@@ -83,9 +88,23 @@ int main() {
   });
   
   ACQUIRE_TEST_THREAD();
-  std::cout << "get_server_count ";
+  std::cout << "post_bot_server_count ";
 
-  client.get_server_count(TEST_RESULT_CALLBACK());
+  client.post_bot_server_count([](const auto success) {
+    if (success) {
+      std::cout << "ok" << std::endl;
+    } else {
+      g_exit_code = 1;
+      std::cerr << "error" << std::endl;
+    }
+
+    g_sem.release();
+  });
+  
+  ACQUIRE_TEST_THREAD();
+  std::cout << "get_bot_server_count ";
+
+  client.get_bot_server_count(TEST_RESULT_CALLBACK());
   
   ACQUIRE_TEST_THREAD();
   std::cout << "get_voters ";

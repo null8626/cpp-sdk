@@ -22,7 +22,7 @@ static std::unordered_map<std::string, std::string> parse_query_string(const std
   return output;
 }
 
-vote::vote(const json& j) {
+vote_event::vote_event(const json& j) {
 #ifdef __TOPGG_DROGON_WEBHOOKS__
   receiver_id = j["bot"].asString();
 

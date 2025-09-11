@@ -51,7 +51,7 @@ set(TOPGG_CXX_STANDARD 17)
 endif()
 
 if(TESTING)
-target_compile_definitions(topgg PRIVATE __TOPGG_TESTING__)
+target_compile_definitions(topgg PUBLIC __TOPGG_TESTING__)
 endif()
 
 set_target_properties(topgg PROPERTIES
@@ -116,13 +116,15 @@ set(USE_SUBMODULE ON)
 
 add_subdirectory(deps/drogon)
 
-target_compile_definitions(topgg PRIVATE __TOPGG_DROGON_WEBHOOKS__)
+target_compile_definitions(topgg PUBLIC __TOPGG_DROGON_WEBHOOKS__)
 
 if(WIN32)
 target_compile_definitions(topgg PRIVATE _CRT_SECURE_NO_WARNINGS)
 cmake_policy(SET CMP0091 NEW)
 endif()
 endif()
+
+target_compile_definitions(topgg PRIVATE __TOPGG_BUILDING__)
 
 if(MSVC)
 target_compile_options(topgg PRIVATE /nologo $<$<CONFIG:Debug>:/diagnostics:caret /MDd /DDEBUG /D_DEBUG> $<$<CONFIG:Release>:/MD /O2 /Oi /Oy /Gy /DNDEBUG>)

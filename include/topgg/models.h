@@ -4,7 +4,7 @@
  * @brief A simple API wrapper for Top.gg written in C++.
  * @authors Top.gg, null8626
  * @copyright Copyright (c) 2024-2025 Top.gg & null8626
- * @date 2025-07-02
+ * @date 2025-09-12
  * @version 3.0.0
  */
 
@@ -27,8 +27,52 @@
 #undef _XOPEN_SOURCE
 #endif
 
+/**
+ * @brief Generates a widget for Discord bots.
+ *
+ * @see TOPGG_WIDGET_DISCORD_SERVER
+ * @see topgg::widget::large
+ * @see topgg::widget::votes
+ * @see topgg::widget::owner
+ * @see topgg::widget::social
+ * @since 3.0.0
+ */
 #define TOPGG_WIDGET_DISCORD_BOT "discord/bot"
+
+/**
+ * @brief Generates a widget for Discord servers.
+ *
+ * @see TOPGG_WIDGET_DISCORD_BOT
+ * @see topgg::widget::large
+ * @see topgg::widget::votes
+ * @see topgg::widget::owner
+ * @see topgg::widget::social
+ * @since 3.0.0
+ */
 #define TOPGG_WIDGET_DISCORD_SERVER "discord/server"
+
+/**
+ * @brief Use a Discord ID.
+ *
+ * @see TOPGG_USER_SOURCE_TOPGG
+ * @see topgg::client::get_vote
+ * @since 3.0.0
+ */
+#define TOPGG_USER_SOURCE_DISCORD "discord"
+
+/**
+ * @brief Use a Top.gg ID.
+ *
+ * @see TOPGG_USER_SOURCE_DISCORD
+ * @see topgg::client::get_vote
+ * @since 3.0.0
+ */
+#define TOPGG_USER_SOURCE_TOPGG "topgg"
+
+#ifdef __TOPGG_BUILDING__
+#define _TOPGG_SNOWFLAKE_FROM_JSON(j, name) \
+  dpp::snowflake{j[#name].template get<std::string>()}
+#endif
 
 #define TOPGG_BOT_QUERY_SORT(lib_name, api_name)               \
   inline bot_query& sort_by_##lib_name() noexcept {            \
@@ -47,10 +91,61 @@ namespace topgg {
   class client;
 
   /**
+   * @brief A Top.gg vote.
+   *
+   * @see topgg::voter
+   * @see topgg::client::get_vote
+   * @see topgg::client::get_voters
+   * @since 3.0.0
+   */
+  class TOPGG_EXPORT vote {
+    vote(const dpp::json& j);
+
+  public:
+    /**
+     * @brief This vote's weight.
+     * 
+     * @since 3.0.0
+     */
+    size_t weight;
+
+    /**
+     * @brief When the vote was cast.
+     * 
+     * @see topgg::vote::expired
+     * @since 3.0.0
+     */
+    time_t voted_at;
+
+    /**
+     * @brief When the vote expires and the user is required to vote again.
+     * 
+     * @see topgg::vote::expired
+     * @since 3.0.0
+     */
+    time_t expires_at;
+
+    /**
+     * @brief Whether this vote is now expired.
+     * 
+     * @return bool Whether this vote is now expired.
+     * @since 3.0.0
+     */
+    bool expired() const noexcept;
+
+    inline operator bool() const noexcept {
+      return expired();
+    }
+
+    friend class client;
+  };
+
+  /**
    * @brief A Top.gg voter.
    *
+   * @see topgg::vote
+   * @see topgg::client::get_vote
    * @see topgg::client::get_voters
-   * @see topgg::client::start_autoposter
    * @since 2.0.0
    */
   class TOPGG_EXPORT voter {
@@ -60,7 +155,7 @@ namespace topgg {
     voter() = delete;
 
     /**
-     * @brief This voter's Discord ID.
+     * @brief This voter's ID.
      *
      * @since 2.0.0
      */
@@ -345,7 +440,7 @@ namespace topgg {
      *   .sort_by_monthly_votes()
      *   .send([](const auto& result) {
      *     try {
-     *       const auto bots = result.get();
+     *       const auto bots{result.get()};
      *
      *       for (const auto& bot: bots) {
      *         std::cout << bot.username << std::endl;
@@ -409,12 +504,12 @@ namespace topgg {
   /**
    * @brief An abstract interface for bots that have a custom way of retrieving their server count.
    *
-   * @see topgg::start_autoposter
+   * @see topgg::start_bot_autoposter
    * @since 3.0.0
    */
-  class autoposter_source {
+  class bot_autoposter_source {
   public:
-    virtual size_t TOPGG_EXPORT get_server_count(dpp::cluster&) = 0;
+    virtual size_t TOPGG_EXPORT get_bot_server_count(dpp::cluster&) = 0;
   };
 
     namespace widget {
@@ -453,7 +548,7 @@ namespace topgg {
       std::string votes(const char* ty, const dpp::snowflake id);
 
       /**
-       * @brief Generates a small widget URL for displaying an entity's owner.
+       * @brief Generates a small widget URL for displaying a project's owner.
        *
        * Example:
        *

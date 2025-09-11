@@ -2,6 +2,26 @@
 
 The community-maintained C++17 library for Top.gg.
 
+## Chapters
+
+- [Building from source](#building-from-source)
+  - [Main API wrapper](#main-api-wrapper)
+  - [Webhooks only](#webhooks-only)
+- [Setting up](#setting-up)
+- [Usage](#usage)
+  - [Getting a bot](#getting-a-bot)
+  - [Getting several bots](#getting-several-bots)
+  - [Getting your project's voters](#getting-your-projects-voters)
+  - [Getting your project's vote information of a user](#getting-your-projects-vote-information-of-a-user)
+  - [Getting your bot's server count](#getting-your-bots-server-count)
+  - [Posting your bot's server count](#posting-your-bots-server-count)
+  - [Posting your bot's application commands list](#posting-your-bots-application-commands-list)
+  - [Automatically posting your bot's server count every few minutes](#automatically-posting-your-bots-server-count-every-few-minutes)
+  - [Checking if the weekend vote multiplier is active](#checking-if-the-weekend-vote-multiplier-is-active)
+  - [Generating widget URLs](#generating-widget-urls)
+  - [Webhooks](#webhooks)
+    - [Being notified whenever someone voted for your project](#being-notified-whenever-someone-voted-for-your-project)
+
 ## Building from source
 
 First, clone the git repository like so:
@@ -323,7 +343,7 @@ try {
 }
 ```
 
-### Getting your bot's voters
+### Getting your project's voters
 
 #### With C++17 callbacks
 
@@ -381,15 +401,43 @@ try {
 }
 ```
 
-### Check if a user has voted for your bot
+### Getting your project's vote information of a user
 
 #### With C++17 callbacks
 
+##### Discord ID
+
 ```cpp
-client.has_voted(661200758510977084, [](const auto& result) {
+client.get_vote(661200758510977084, TOPGG_USER_SOURCE_DISCORD, [](const auto& result) {
   try {
-    if (result.get()) {
-      std::cout << "Checks out." << std::endl;
+    const auto vote{result.get()};
+
+    if (vote.has_value()) {
+      const auto data{vote.value()};
+
+      std::cout << "User has voted with a weight of " << data.weight << '.' << std::endl;
+    } else {
+      std::cout << "User has not voted." << std::endl;
+    }
+  } catch (const std::exception& exc) {
+    std::cerr << "error: " << exc.what() << std::endl;
+  }
+});
+```
+
+##### Top.gg ID
+
+```cpp
+client.get_vote(8226924471638491136, TOPGG_USER_SOURCE_TOPGG, [](const auto& result) {
+  try {
+    const auto vote{result.get()};
+
+    if (vote.has_value()) {
+      const auto data{vote.value()};
+
+      std::cout << "User has voted with a weight of " << data.weight << '.' << std::endl;
+    } else {
+      std::cout << "User has not voted." << std::endl;
     }
   } catch (const std::exception& exc) {
     std::cerr << "error: " << exc.what() << std::endl;
@@ -399,12 +447,36 @@ client.has_voted(661200758510977084, [](const auto& result) {
 
 #### With C++20 coroutines
 
+##### Discord ID
+
 ```cpp
 try {
-  const auto voted = co_await client.co_has_voted(661200758510977084);
+  const auto vote{co_await client.co_get_vote(661200758510977084, TOPGG_USER_SOURCE_DISCORD)};
 
-  if (voted) {
-    std::cout << "Checks out." << std::endl;
+  if (vote.has_value()) {
+    const auto data{vote.value()};
+
+    std::cout << "User has voted with a weight of " << data.weight << '.' << std::endl;
+  } else {
+    std::cout << "User has not voted." << std::endl;
+  }
+} catch (const std::exception& exc) {
+  std::cerr << "error: " << exc.what() << std::endl;
+}
+```
+
+##### Top.gg ID
+
+```cpp
+try {
+  const auto vote{co_await client.co_get_vote(8226924471638491136, TOPGG_USER_SOURCE_TOPGG)};
+
+  if (vote.has_value()) {
+    const auto data{vote.value()};
+
+    std::cout << "User has voted with a weight of " << data.weight << '.' << std::endl;
+  } else {
+    std::cout << "User has not voted." << std::endl;
   }
 } catch (const std::exception& exc) {
   std::cerr << "error: " << exc.what() << std::endl;
@@ -416,7 +488,7 @@ try {
 #### With C++17 callbacks
 
 ```cpp
-client.get_server_count([](const auto& result) {
+client.get_bot_server_count([](const auto& result) {
   try {
     auto server_count = result.get();
 
@@ -431,7 +503,7 @@ client.get_server_count([](const auto& result) {
 
 ```cpp
 try {
-  const auto server_count = co_await client.co_get_server_count();
+  const auto server_count = co_await client.co_get_bot_server_count();
 
   std::cout << server_count.value_or(0) << std::endl;
 } catch (const std::exception& exc) {
@@ -444,7 +516,7 @@ try {
 #### With C++17 callbacks
 
 ```cpp
-client.post_server_count([](const auto success) {
+client.post_bot_server_count([](const auto success) {
   if (success) {
     std::cout << "Stats posted!" << std::endl;
   }
@@ -454,10 +526,32 @@ client.post_server_count([](const auto success) {
 #### With C++20 coroutines
 
 ```cpp
-const auto success = co_await client.co_post_server_count();
+const auto success = co_await client.co_post_bot_server_count();
 
 if (success) {
   std::cout << "Stats posted!" << std::endl;
+}
+```
+
+### Posting your bot's application commands list
+
+#### With C++17 callbacks
+
+```cpp
+client.post_bot_commands([](const auto success) {
+  if (success) {
+    std::cout << "Discord bot commands posted!" << std::endl;
+  }
+});
+```
+
+#### With C++20 coroutines
+
+```cpp
+const auto success{co_await client.co_post_bot_commands()};
+
+if (success) {
+  std::cout << "Discord bot commands posted!" << std::endl;
 }
 ```
 
@@ -466,13 +560,13 @@ if (success) {
 #### Without a callback
 
 ```cpp
-client.start_autoposter();
+client.start_bot_autoposter();
 ```
 
 #### With a callback
 
 ```cpp
-client.start_autoposter([](const auto& result) {
+client.start_bot_autoposter([](const auto& result) {
   if (result) {
     std::cout << "Successfully posted " << *result << " servers to Top.gg!" << std::endl;
   }
@@ -482,14 +576,14 @@ client.start_autoposter([](const auto& result) {
 #### From a custom source
 
 ```cpp
-class my_autoposter_source: private topgg::autoposter_source {
+class my_bot_autoposter_source: private topgg::bot_autoposter_source {
 public:
-  virtual size_t get_server_count(dpp::cluster& bot) {
+  virtual size_t get_bot_server_count(dpp::cluster& bot) {
     return ...;
   }
 };
 
-client.start_autoposter(reinterpret_cast<topgg::autoposter_source*>(new my_autoposter_source), [](const auto& result) {
+client.start_bot_autoposter(reinterpret_cast<topgg::bot_autoposter_source*>(new my_bot_autoposter_source), [](const auto& result) {
   if (result) {
     std::cout << "Successfully posted " << *result << " servers to Top.gg!" << std::endl;
   }
@@ -554,7 +648,7 @@ const auto widget_url{topgg::widget::social(TOPGG_WIDGET_DISCORD_BOT, 2648116137
 
 ### Webhooks
 
-#### Being notified whenever someone voted for your bot
+#### Being notified whenever someone voted for your project
 
 ##### cpp-httplib
 
@@ -572,13 +666,13 @@ const auto widget_url{topgg::widget::social(TOPGG_WIDGET_DISCORD_BOT, 2648116137
 
 template<class T>
 using cpp_httplib_webhook = topgg::webhook::cpp_httplib<T>;
-using topgg::webhook::vote;
+using topgg::webhook::vote_event;
 
-class my_vote_listener: public cpp_httplib_webhook<vote> {
+class my_vote_listener: public cpp_httplib_webhook<vote_event> {
 public:
-  inline my_vote_listener(const std::string& authorization): cpp_httplib_webhook<vote>(authorization) {}
+  inline my_vote_listener(const std::string& authorization): cpp_httplib_webhook<vote_event>(authorization) {}
 
-  void callback(const vote& v) override {
+  void callback(const vote_event& v) override {
     std::cout << "A user with the ID of " << v.voter_id << " has voted us on Top.gg!" << std::endl;
   }
 };
@@ -617,11 +711,11 @@ int main() {
 
 template<class T>
 using drogon_webhook = topgg::webhook::drogon<T>;
-using topgg::webhook::vote;
+using topgg::webhook::vote_event;
 
-class my_vote_listener: public ::drogon::HttpSimpleController<my_vote_listener, false>, public drogon_webhook<vote> {
+class my_vote_listener: public ::drogon::HttpSimpleController<my_vote_listener, false>, public drogon_webhook<vote_event> {
 public:
-  inline my_vote_listener(const std::string& authorization): drogon_webhook<vote>(authorization) {}
+  inline my_vote_listener(const std::string& authorization): drogon_webhook<vote_event>(authorization) {}
 
   TOPGG_DROGON_WEBHOOK();
 
@@ -629,7 +723,7 @@ public:
   PATH_ADD("/votes", ::drogon::Post);
   PATH_LIST_END
 
-  void callback(const vote& v) override {
+  void callback(const vote_event& v) override {
     std::cout << "A user with the ID of " << v.voter_id << " has voted us on Top.gg!" << std::endl;
   }
 };

@@ -29,7 +29,7 @@ int main() {
 
   std::cout << "ok\n";
 
-  client.start_autoposter([](const auto& result) {
+  client.start_bot_autoposter([](const auto& result) {
     if (result) {
       std::cout << "Successfully posted " << *result << " servers to the API!" << std::endl;
       

@@ -4,7 +4,7 @@
  * @brief A simple API wrapper for Top.gg written in C++.
  * @authors Top.gg, null8626
  * @copyright Copyright (c) 2024-2025 Top.gg & null8626
- * @date 2025-07-02
+ * @date 2025-09-12
  * @version 3.0.0
  */
 
@@ -40,7 +40,7 @@ namespace topgg {
     /**
      * @brief An abstract class that receives a Top.gg webhook event. Designed for use in cpp-httplib.
      *
-     * @see topgg::webhook::vote
+     * @see topgg::webhook::vote_event
      * @since 3.0.0
      */
     template<class T>

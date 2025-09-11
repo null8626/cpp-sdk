@@ -4,7 +4,7 @@
  * @brief A simple API wrapper for Top.gg written in C++.
  * @authors Top.gg, null8626
  * @copyright Copyright (c) 2024-2025 Top.gg & null8626
- * @date 2025-07-02
+ * @date 2025-09-12
  * @version 3.0.0
  */
 
@@ -34,14 +34,14 @@ namespace topgg {
      *
      * @since 3.0.0
      */
-    class vote {
+    class vote_event {
     public:
-      TOPGG_EXPORT vote(const json& j);
+      TOPGG_EXPORT vote_event(const json& j);
 
-      vote() = delete;
+      vote_event() = delete;
   
       /**
-       * @brief The ID of the Discord bot/server that received a vote.
+       * @brief The ID of the project that received a vote.
        *
        * @since 3.0.0
        */
