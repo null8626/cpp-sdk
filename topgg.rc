@@ -16,7 +16,7 @@ BEGIN
     BLOCK "040904B0"
     BEGIN
       VALUE "CompanyName", "Top.gg"
-      VALUE "FileDescription", "A simple API wrapper for Top.gg written in C++."
+      VALUE "FileDescription", "A community-maintained C++ API Client for the Top.gg API."
       VALUE "FileVersion", "3.0.0"
       VALUE "ProductVersion", "3.0.0"
       VALUE "ProductName", "Top.gg C++ SDK"
