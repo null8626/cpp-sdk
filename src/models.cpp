@@ -6,16 +6,15 @@
 #include <sstream>
 #include <iomanip>
 
-static void strptime(const char* s, const char* f, tm* t) {
-  std::istringstream input{s};
-  input.imbue(std::locale{setlocale(LC_ALL, nullptr)});
-  input >> std::get_time(t, f);
-}
-
 #ifdef _MSC_VER
 #pragma warning(disable: 4101)
 #endif
 #endif
+
+#define _TOPGG_SERIALIZE_PRIVATE_OPTIONAL(j, name) \
+  if (m_##name.has_value()) {                      \
+    j[#name] = m_##name.value();                   \
+  }
 
 #define _TOPGG_DESERIALIZE(j, name, type) \
   name = j[#name].template get<type>()
@@ -69,16 +68,74 @@ static void strptime(const char* s, const char* f, tm* t) {
     }                                                             \
   })
 
+using topgg::account;
 using topgg::bot;
 using topgg::bot_query;
-using topgg::voter;
+using topgg::stats;
+using topgg::user;
+using topgg::user_socials;
+
+static void strptime(const char* s, const char* f, tm* t) {
+  std::istringstream input{s};
+  input.imbue(std::locale{setlocale(LC_ALL, nullptr)});
+  input >> std::get_time(t, f);
+}
+
+static time_t parse_vote_time(const dpp::json& j, const char* key) {
+  auto j_text{j[key].template get<std::string>()};
+  tm text_tm{};
+
+  const auto dot_pos{j_text.find('.')};
+  
+  if (dot_pos != std::string::npos) {
+    j_text = j_text.substr(0, dot_pos);
+  }
+
+  strptime(j_text.data(), "%Y-%m-%dT%H:%M:%S", &text_tm);
+
+  return mktime(&text_tm);
+}
 
 static time_t timestamp_from_id(const dpp::snowflake& id) {
   return static_cast<time_t>(((id >> 22) / 1000) + 1420070400);
 }
 
-bot::bot(const dpp::json& j) {
-  id = _TOPGG_SNOWFLAKE_FROM_JSON(j, clientid);
+static std::string querystring(const std::string& value) {
+  static constexpr char hex[] = "0123456789abcdef";
+  std::string output{};
+
+  output.reserve(value.length());
+
+  for (size_t i{}; i < value.length(); i++) {
+    const auto c{value[i]};
+
+    if (('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || ('0' <= c && c <= '9')) {
+      output.push_back(c);
+    } else {
+      output.push_back('%');
+      output.push_back(hex[(c >> 4) & 0x0f]);
+      output.push_back(hex[c & 0x0f]);
+    }
+  }
+
+  return output;
+}
+
+account::account(const dpp::json& j, const char* id_key) {
+  id = dpp::snowflake{j[id_key].template get<std::string>()};
+
+  _TOPGG_DESERIALIZE(j, username, std::string);
+
+  try {
+    _TOPGG_DESERIALIZE(j, avatar, std::string);
+  } catch (TOPGG_UNUSED const std::exception&) {
+    avatar = "https://cdn.discordapp.com/embed/avatars/" + std::to_string((id >> 22) % 5) + ".png";
+  }
+
+  created_at = static_cast<time_t>(((id >> 22) / 1000) + 1420070400);
+}
+
+bot::bot(const dpp::json& j) : account(j, "clientid") {
   topgg_id = _TOPGG_SNOWFLAKE_FROM_JSON(j, id);
 
   _TOPGG_DESERIALIZE(j, username, std::string);
@@ -122,32 +179,11 @@ bot::bot(const dpp::json& j) {
   _TOPGG_DESERIALIZE_ALIAS(reviews, count, review_count, size_t);
 }
 
-static std::string querystring(const std::string& value) {
-  static constexpr char hex[] = "0123456789abcdef";
-  std::string output{};
-
-  output.reserve(value.length());
-
-  for (size_t i{}; i < value.length(); i++) {
-    const auto c{value[i]};
-
-    if (('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || ('0' <= c && c <= '9')) {
-      output.push_back(c);
-    } else {
-      output.push_back('%');
-      output.push_back(hex[(c >> 4) & 0x0f]);
-      output.push_back(hex[c & 0x0f]);
-    }
-  }
-
-  return output;
-}
-
 void bot_query::add_query(const char* key, const uint16_t value, const uint16_t max) {
   m_query.insert_or_assign(key, std::to_string(std::min(value, max)));
 }
 
-void bot_query::send(const topgg::get_bots_completion_event& callback) {
+void bot_query::send(const topgg::get_bots_completion_t& callback) {
   std::string path{"/bots?"};
 
   if (m_sort != nullptr) {
@@ -184,26 +220,96 @@ dpp::async<std::vector<topgg::bot>> bot_query::co_send() {
 }
 #endif
 
-static time_t parse_vote_time(const dpp::json& j, const char* key) {
-  auto j_text{j[key].template get<std::string>()};
-  tm text_tm{};
-
-  const auto dot_pos{j_text.find('.')};
-  
-  if (dot_pos != std::string::npos) {
-    j_text = j_text.substr(0, dot_pos);
-  }
-                               
-  strptime(j_text.data(), "%Y-%m-%dT%H:%M:%S", &text_tm);
-
-  return mktime(&text_tm);
+stats::stats(const dpp::json& j) {
+  _TOPGG_DESERIALIZE_PRIVATE_OPTIONAL(j, shard_count, size_t);
+  _TOPGG_DESERIALIZE_PRIVATE_OPTIONAL(j, server_count, size_t);
+  _TOPGG_DESERIALIZE_PRIVATE_OPTIONAL(j, shards, std::vector<size_t>);
+  _TOPGG_DESERIALIZE_PRIVATE_OPTIONAL(j, shard_id, size_t);
 }
 
-voter::voter(const dpp::json& j) {
-  id = _TOPGG_SNOWFLAKE_FROM_JSON(j, id);
+stats::stats(dpp::cluster& bot) {
+  std::vector<size_t> shards_server_count{};
+  size_t servers{};
+  
+  shards_server_count.reserve(bot.numshards);
+  
+  for (auto& s: bot.get_shards()) {
+    const auto server_count = s.second->get_guild_count();
+    
+    servers += server_count;
+    shards_server_count.push_back(server_count);
+  }
+  
+  m_server_count = std::optional{servers};
+  m_shards = std::optional{shards_server_count};
+  m_shard_id = std::optional{0};
+  m_shard_count = std::optional{bot.numshards};
+}
 
-  _TOPGG_DESERIALIZE(j, username, std::string);
-  _TOPGG_DESERIALIZE(j, avatar, std::string);
+stats::stats(const std::vector<size_t>& shards, const size_t shard_index)
+  : m_shards(std::optional{shards}), m_server_count(std::optional{std::reduce(shards.begin(), shards.end())}) {
+  if (shard_index >= shards.size()) {
+    throw std::out_of_range{"Shard index out of bounds from the given shards array."};
+  }
 
-  created_at = timestamp_from_id(id);
+  m_shard_id = std::optional{shard_index};
+  m_shard_count = std::optional{shards.size()};
+}
+
+std::string stats::to_json() const {
+  dpp::json j;
+
+  _TOPGG_SERIALIZE_PRIVATE_OPTIONAL(j, shard_count);
+  _TOPGG_SERIALIZE_PRIVATE_OPTIONAL(j, server_count);
+  _TOPGG_SERIALIZE_PRIVATE_OPTIONAL(j, shards);
+  _TOPGG_SERIALIZE_PRIVATE_OPTIONAL(j, shard_id);
+
+  return j.dump();
+}
+
+std::vector<size_t> stats::shards() const noexcept {
+  return m_shards.value_or(std::vector<size_t>{});
+}
+
+size_t stats::shard_count() const noexcept {
+  return m_shard_count.value_or(shards().size());
+}
+
+std::optional<size_t> stats::server_count() const noexcept {
+  if (m_server_count.has_value()) {
+    return m_server_count;
+  } else {
+    _TOPGG_IGNORE_EXCEPTION({
+      const auto& shards = m_shards.value();
+
+      if (shards.size() > 0) {
+        return std::optional{std::reduce(shards.begin(), shards.end())};
+      }
+    });
+
+    return std::nullopt;
+  }
+}
+
+user_socials::user_socials(const dpp::json& j) {
+  _TOPGG_DESERIALIZE_OPTIONAL_STRING(j, github);
+  _TOPGG_DESERIALIZE_OPTIONAL_STRING(j, instagram);
+  _TOPGG_DESERIALIZE_OPTIONAL_STRING(j, reddit);
+  _TOPGG_DESERIALIZE_OPTIONAL_STRING(j, twitter);
+  _TOPGG_DESERIALIZE_OPTIONAL_STRING(j, youtube);
+}
+
+user::user(const dpp::json& j) : account(j) {
+  _TOPGG_DESERIALIZE_OPTIONAL_STRING(j, bio);
+  _TOPGG_DESERIALIZE_OPTIONAL_STRING(j, banner);
+
+  if (j.contains("socials")) {
+    socials = std::optional{user_socials{j["socials"].template get<dpp::json>()}};
+  }
+
+  _TOPGG_DESERIALIZE_ALIAS(j, supporter, is_supporter, bool);
+  _TOPGG_DESERIALIZE_ALIAS(j, certifiedDev, is_certified_dev, bool);
+  _TOPGG_DESERIALIZE_ALIAS(j, mod, is_moderator, bool);
+  _TOPGG_DESERIALIZE_ALIAS(j, webMod, is_web_moderator, bool);
+  _TOPGG_DESERIALIZE_ALIAS(j, admin, is_admin, bool);
 }

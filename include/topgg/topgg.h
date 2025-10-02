@@ -4,7 +4,7 @@
  * @brief A community-maintained C++ API Client for the Top.gg API.
  * @authors Top.gg, null8626
  * @copyright Copyright (c) 2024-2025 Top.gg & null8626
- * @date 2025-09-13
+ * @date 2025-10-02
  * @version 3.0.0
  */
 
@@ -15,9 +15,9 @@
 #undef __TOPGG_API__
 
 #ifdef __TOPGG_TESTING__
-#define TOPGG_BOT_AUTOPOSTER_MIN_INTERVAL 5
+#define TOPGG_AUTOPOSTER_MIN_INTERVAL 2
 #else
-#define TOPGG_BOT_AUTOPOSTER_MIN_INTERVAL 900
+#define TOPGG_AUTOPOSTER_MIN_INTERVAL 900
 #endif
 
 #ifdef __clang__
