@@ -301,7 +301,7 @@ namespace topgg {
   };
 
   /**
-   * @brief Represents a Discord bot’s statistics.
+   * @brief A Discord bot’s statistics.
    *
    * @see topgg::voter
    * @see topgg::client::get_stats
@@ -387,7 +387,7 @@ namespace topgg {
   class user;
 
   /**
-   * @brief Represents a user's social links, if available.
+   * @brief A user's social links, if available.
    *
    * @see topgg::user
    * @since 2.0.0
@@ -437,7 +437,7 @@ namespace topgg {
   };
 
   /**
-   * @brief Represents a user logged into Top.gg.
+   * @brief A user logged into Top.gg.
    *
    * @see topgg::user_socials
    * @see topgg::client::get_user
