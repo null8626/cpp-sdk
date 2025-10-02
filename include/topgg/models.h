@@ -5,7 +5,7 @@
  * @authors Top.gg, null8626
  * @copyright Copyright (c) 2024-2025 Top.gg & null8626
  * @date 2025-10-02
- * @version 3.0.0
+ * @version 2.1.0
  */
 
 #pragma once
@@ -130,7 +130,7 @@ namespace topgg {
     /**
      * @brief This bot's Top.gg ID.
      *
-     * @since 3.0.0
+     * @since 2.1.0
      */
     dpp::snowflake topgg_id;
 
@@ -208,7 +208,7 @@ namespace topgg {
     /**
      * @brief This bot's submission date.
      *
-     * @since 3.0.0
+     * @since 2.1.0
      */
     time_t submitted_at;
 
@@ -271,28 +271,28 @@ namespace topgg {
     /**
      * @brief This bot's Top.gg vanity code.
      *
-     * @since 3.0.0
+     * @since 2.1.0
      */
     std::optional<std::string> vanity;
 
     /**
      * @brief This bot's posted server count.
      *
-     * @since 3.0.0
+     * @since 2.1.0
      */
     std::optional<size_t> server_count;
 
     /**
      * @brief This bot's average review score out of 5.
      *
-     * @since 3.0.0
+     * @since 2.1.0
      */
     double review_score;
 
     /**
      * @brief This bot's review count.
      *
-     * @since 3.0.0
+     * @since 2.1.0
      */
     size_t review_count;
 
@@ -552,7 +552,7 @@ namespace topgg {
      *
      * @return bot_query The current modified object.
      * @see topgg::client::get_bots
-     * @since 3.0.0
+     * @since 2.1.0
      */
     TOPGG_BOT_QUERY_SORT(submission_date, date);
 
@@ -620,7 +620,7 @@ namespace topgg {
    * @brief An abstract interface for bots that have a custom way of retrieving their statistics.
    *
    * @see topgg::start_autoposter
-   * @since 3.0.0
+   * @since 2.1.0
    */
   class autoposter_source {
   public:

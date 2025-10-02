@@ -17,8 +17,8 @@ BEGIN
     BEGIN
       VALUE "CompanyName", "Top.gg"
       VALUE "FileDescription", "A community-maintained C++ API Client for the Top.gg API."
-      VALUE "FileVersion", "3.0.0"
-      VALUE "ProductVersion", "3.0.0"
+      VALUE "FileVersion", "2.1.0"
+      VALUE "ProductVersion", "2.1.0"
       VALUE "ProductName", "Top.gg C++ SDK"
       VALUE "InternalName", "Top.gg C++ SDK"
       VALUE "LegalCopyright", "Copyright (c) 2024-2025 Top.gg & null8626"

@@ -5,7 +5,7 @@
  * @authors Top.gg, null8626
  * @copyright Copyright (c) 2024-2025 Top.gg & null8626
  * @date 2025-10-02
- * @version 3.0.0
+ * @version 2.1.0
  */
 
 #pragma once

@@ -5,7 +5,7 @@
  * @authors Top.gg, null8626
  * @copyright Copyright (c) 2024-2025 Top.gg & null8626
  * @date 2025-10-02
- * @version 3.0.0
+ * @version 2.1.0
  */
 
 #pragma once
@@ -423,7 +423,7 @@ namespace topgg {
      * @see topgg::client::post_stats
      * @see topgg::client::stop_autoposter
      * @see topgg::custom_autopost_callback_t
-     * @since 3.0.0
+     * @since 2.1.0
      */
     void start_autoposter(const custom_autopost_callback_t& stats_callback, const post_stats_completion_t& post_callback, time_t interval);
 
