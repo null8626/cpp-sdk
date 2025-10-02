@@ -4,8 +4,8 @@
  * @brief A community-maintained C++ API Client for the Top.gg API.
  * @authors Top.gg, null8626
  * @copyright Copyright (c) 2024-2025 Top.gg & null8626
- * @date 2025-09-13
- * @version 3.0.0
+ * @date 2025-10-02
+ * @version 2.1.0
  */
 
 #pragma once
@@ -41,7 +41,7 @@ namespace topgg {
      * @brief An abstract class that receives a Top.gg webhook event. Designed for use in cpp-httplib.
      *
      * @see topgg::webhook::vote_event
-     * @since 3.0.0
+     * @since 2.1.0
      */
     template<class T>
     class cpp_httplib: private internal_cpp_httplib {
@@ -56,7 +56,7 @@ namespace topgg {
        * @brief Returns the endpoint callback to be used in a cpp-httplib server route.
        *
        * @return cpp_httplib_endpoint The endpoint callback.
-       * @since 3.0.0
+       * @since 2.1.0
        */
       inline cpp_httplib_endpoint endpoint() noexcept {
         return [this](const httplib::Request& request, httplib::Response& response) {
@@ -74,7 +74,7 @@ namespace topgg {
        * @brief The virtual callback that will be called whenever an incoming webhook request to the endpoint has been authenticated.
        *
        * @param T data The webhook event data.
-       * @since 3.0.0
+       * @since 2.1.0
        */
       virtual void callback(const T& data) = 0;
     };
