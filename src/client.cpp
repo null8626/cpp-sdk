@@ -99,7 +99,7 @@ client::client(dpp::cluster& cluster, const std::string& token)
 
   m_id = _TOPGG_SNOWFLAKE_FROM_JSON(token_data, id);
   
-  m_headers.insert(std::pair("Authorization", token));
+  m_headers.insert(std::pair("Authorization", "Bearer " + token));
   m_headers.insert(std::pair("Content-Type", "application/json"));
   m_headers.insert(std::pair("User-Agent", "topgg (https://github.com/top-gg-community/cpp-sdk) D++"));
 }
