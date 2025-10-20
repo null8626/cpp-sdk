@@ -4,7 +4,7 @@
  * @brief A community-maintained C++ API Client for the Top.gg API.
  * @authors Top.gg, null8626
  * @copyright Copyright (c) 2024-2025 Top.gg & null8626
- * @date 2025-10-02
+ * @date 2025-10-20
  * @version 2.1.0
  */
 
@@ -73,6 +73,22 @@ namespace topgg {
    * @since 2.0.0
    */
   using post_stats_completion_t = std::function<void(const bool)>;
+  
+  /**
+   * @brief The callback function to call when post_commands completes.
+   *
+   * @see topgg::v1client::post_commands
+   * @since 2.1.0
+   */
+  using post_commands_completion_event = std::function<void(const bool)>;
+
+  /**
+   * @brief The callback function to call when get_vote completes.
+   *
+   * @see topgg::v1client::get_vote
+   * @since 2.1.0
+   */
+  using get_vote_completion_event = std::function<void(const result<std::optional<topgg::vote>>&)>;
 
   /**
    * @brief The callback function to call after every autopost request to the API, successful or not.
@@ -84,20 +100,15 @@ namespace topgg {
   using custom_autopost_callback_t = std::function<::topgg::stats(dpp::cluster&)>;
 
   /**
-   * @brief Interact with the API's endpoints.
+   * @brief Interact with API v0's endpoints.
    *
    * @since 2.0.0
    */
   class TOPGG_EXPORT client {
     dpp::http_headers m_headers;
     dpp::snowflake m_id;
-    dpp::cluster& m_cluster;
     dpp::timer m_autoposter_timer;
 
-    void request(const dpp::http_method method, const std::string& url, const dpp::http_completion_event callback, const std::string& body = "") {
-      m_cluster.request(TOPGG_BASE_URL + url, method, callback, body, "application/json", m_headers);
-    }
-    
     template<typename T>
     void basic_request(const dpp::http_method method, const std::string& url, const std::function<void(const result<T>&)>& callback, std::function<T(const dpp::json&)>&& conversion_fn, const std::string& body = "") {
       request(method, url, [callback, conversion_fn_in = std::move(conversion_fn)](const dpp::http_request_completion_t& response) { callback(result<T>{response, conversion_fn_in}); }, body);
@@ -105,6 +116,13 @@ namespace topgg {
 
     stats get_stats();
     void post_stats_inner(const size_t server_count, const dpp::http_completion_event callback);
+
+  protected:
+    dpp::cluster& m_cluster;
+
+    void request(const dpp::http_method method, const std::string& url, const dpp::http_completion_event callback, const std::string& body = "") {
+      m_cluster.request(TOPGG_BASE_URL + url, method, callback, body, "application/json", m_headers);
+    }
 
   public:
     client() = delete;
@@ -481,5 +499,87 @@ namespace topgg {
     ~client();
 
     friend class bot_query;
+  };
+
+  /**
+   * @brief Interact with API v1's endpoints.
+   *
+   * @since 2.1.0
+   */
+  class TOPGG_EXPORT v1client: public client {
+  public:
+    v1client() = delete;
+
+    /**
+     * @brief Creates a v1 client object.
+     *
+     * @param cluster A pointer to the bot's D++ cluster using this library.
+     * @param token The API token to use.
+     * @since 2.1.0
+     */
+    inline v1client(dpp::cluster& cluster, const std::string& token): client(cluster, token) {}
+
+    /**
+     * @brief Updates the application commands list in your Discord bot's Top.gg page.
+     *
+     * @param callback The callback function to call when post_commands completes.
+     * @note For its C++20 coroutine counterpart, see co_post_commands.
+     * @see topgg::result
+     * @see topgg::client::start_autoposter
+     * @see topgg::v1client::co_post_commands
+     * @since 2.1.0
+     */
+    void post_commands(const post_commands_completion_event& callback);
+
+#ifdef DPP_CORO
+    /**
+     * @brief Updates the application commands list in your Discord bot's Top.gg page through a C++20 coroutine.
+     *
+     * @return co_await to retrieve a bool
+     * @note For its C++17 callback-based counterpart, see post_commands.
+     * @see topgg::client::start_autoposter
+     * @see topgg::v1client::post_commands
+     * @since 2.1.0
+     */
+    dpp::async<bool> co_post_commands();
+#endif
+
+    /**
+     * @brief Fetches the latest vote information of a Top.gg user on your project.
+     *
+     * @param user_id The requested user's ID.
+     * @param user_source The ID type to use.
+     * @param callback The callback function to call when get_vote completes.
+     * @note For its C++20 coroutine counterpart, see co_get_vote.
+     * @see TOPGG_USER_SOURCE_DISCORD
+     * @see TOPGG_USER_SOURCE_TOPGG
+     * @see topgg::result
+     * @see topgg::client::start_autoposter
+     * @since 2.1.0
+     */
+    void get_vote(const dpp::snowflake user_id, const char* user_source, const get_vote_completion_event& callback);
+
+#ifdef DPP_CORO
+    /**
+     * @brief Fetches the latest vote information of a Top.gg user on your project through a C++20 coroutine.
+     *
+     * @param user_id The requested user's ID.
+     * @param user_source The ID type to use.
+     * @throw topgg::internal_server_error Unexpected error from Top.gg's end.
+     * @throw topgg::invalid_token Invalid API token.
+     * @throw topgg::not_found The specified user has not logged in to Top.gg.
+     * @throw topgg::ratelimited Ratelimited from sending more requests.
+     * @throw dpp::http_error An unexpected HTTP exception has occured.
+     * @return co_await to retrieve a bool if successful
+     * @note For its C++17 callback-based counterpart, see get_vote.
+     * @see TOPGG_USER_SOURCE_DISCORD
+     * @see TOPGG_USER_SOURCE_TOPGG
+     * @see topgg::async_result
+     * @see topgg::client::start_autoposter
+     * @see topgg::v1client::get_vote
+     * @since 2.1.0
+     */
+    topgg::async_result<std::optional<topgg::vote>> co_get_vote(const dpp::snowflake user_id, const char* user_source);
+#endif
   };
 }; // namespace topgg

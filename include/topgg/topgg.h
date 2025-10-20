@@ -4,7 +4,7 @@
  * @brief A community-maintained C++ API Client for the Top.gg API.
  * @authors Top.gg, null8626
  * @copyright Copyright (c) 2024-2025 Top.gg & null8626
- * @date 2025-10-02
+ * @date 2025-10-20
  * @version 2.1.0
  */
 

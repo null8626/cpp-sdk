@@ -74,6 +74,7 @@ using topgg::bot_query;
 using topgg::stats;
 using topgg::user;
 using topgg::user_socials;
+using topgg::vote;
 
 static void strptime(const char* s, const char* f, tm* t) {
   std::istringstream input{s};
@@ -312,4 +313,33 @@ user::user(const dpp::json& j) : account(j) {
   _TOPGG_DESERIALIZE_ALIAS(j, mod, is_moderator, bool);
   _TOPGG_DESERIALIZE_ALIAS(j, webMod, is_web_moderator, bool);
   _TOPGG_DESERIALIZE_ALIAS(j, admin, is_admin, bool);
+}
+
+vote::vote(const dpp::json& j) {
+  voted_at = parse_vote_time(j, "created_at");
+  expires_at = parse_vote_time(j, "expires_at");
+
+  _TOPGG_DESERIALIZE(j, weight, size_t);
+}
+
+bool vote::expired() const noexcept {
+  const auto now{std::chrono::system_clock::to_time_t(std::chrono::system_clock::now())};
+
+  return now >= expires_at;
+}
+
+std::string topgg::widget::large(const char* ty, const dpp::snowflake id) {
+  return TOPGG_BASE_URL "/v1/widgets/large/" + std::string{ty} +  "/" + id.str();
+}
+
+std::string topgg::widget::votes(const char* ty, const dpp::snowflake id) {
+  return TOPGG_BASE_URL "/v1/widgets/small/votes/" + std::string{ty} + "/" + id.str();
+}
+
+std::string topgg::widget::owner(const char* ty, const dpp::snowflake id) {
+  return TOPGG_BASE_URL "/v1/widgets/small/owner/" + std::string{ty} + "/" + id.str();
+}
+
+std::string topgg::widget::social(const char* ty, const dpp::snowflake id) {
+  return TOPGG_BASE_URL "/v1/widgets/small/social/" + std::string{ty} + "/" + id.str();
 }

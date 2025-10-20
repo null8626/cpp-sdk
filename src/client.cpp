@@ -1,6 +1,7 @@
 #include <topgg/topgg.h>
 
 using topgg::client;
+using topgg::v1client;
 
 // clang-format off
 static constexpr unsigned char g_base64_decoding_table[] = {
@@ -279,3 +280,45 @@ void client::stop_autoposter() noexcept {
 client::~client() {
   stop_autoposter();
 }
+
+void v1client::post_commands(const topgg::post_commands_completion_event& callback) {
+  m_cluster.global_commands_get([this, callback](const dpp::confirmation_callback_t& discord_response) {
+    if (discord_response.is_error()) {
+      return callback(false);
+    }
+
+    request(dpp::m_post, "/v1/projects/@me/commands", [callback](const auto& topgg_response) {
+      try {
+        internal_result::handle_response(topgg_response);
+
+        callback(true);
+      } catch (TOPGG_UNUSED const std::exception& err) {
+        callback(false);
+      }
+    }, discord_response.http_info.body);
+  });
+}
+
+#ifdef DPP_CORO
+dpp::async<bool> v1client::co_post_commands() {
+  return dpp::async<bool>{[this]<typename C>(C&& cc) { return post_commands(std::forward<C>(cc)); }};
+}
+#endif
+
+void v1client::get_vote(const dpp::snowflake user_id, const char* user_source, const topgg::get_vote_completion_event& callback) {
+  request(dpp::m_get, "/v1/projects/@me/votes/" + user_id.str() + "?source=" + user_source, [callback](const auto& response) {
+    if (response.status == 404) {
+      return callback(result<std::optional<topgg::vote>>{std::nullopt});
+    }
+
+    callback(result<std::optional<topgg::vote>>{response, [](const auto& j) {
+      return std::optional{topgg::vote{j}};
+    }});
+  });
+}
+
+#ifdef DPP_CORO
+topgg::async_result<std::optional<topgg::vote>> v1client::co_get_vote(const dpp::snowflake user_id, const char* user_source) {
+  return topgg::async_result<std::optional<topgg::vote>>{[user_id, user_source, this]<typename C>(C&& cc) { return get_vote(user_id, user_source, std::forward<C>(cc)); }};
+}
+#endif

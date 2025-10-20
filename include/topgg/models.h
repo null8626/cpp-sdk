@@ -4,7 +4,7 @@
  * @brief A community-maintained C++ API Client for the Top.gg API.
  * @authors Top.gg, null8626
  * @copyright Copyright (c) 2024-2025 Top.gg & null8626
- * @date 2025-10-02
+ * @date 2025-10-20
  * @version 2.1.0
  */
 
@@ -27,6 +27,48 @@
 #undef _XOPEN_SOURCE
 #endif
 
+/**
+ * @brief Generates a widget for Discord bots.
+ *
+ * @see TOPGG_WIDGET_DISCORD_SERVER
+ * @see topgg::widget::large
+ * @see topgg::widget::votes
+ * @see topgg::widget::owner
+ * @see topgg::widget::social
+ * @since 2.1.0
+ */
+#define TOPGG_WIDGET_DISCORD_BOT "discord/bot"
+
+/**
+ * @brief Generates a widget for Discord servers.
+ *
+ * @see TOPGG_WIDGET_DISCORD_BOT
+ * @see topgg::widget::large
+ * @see topgg::widget::votes
+ * @see topgg::widget::owner
+ * @see topgg::widget::social
+ * @since 2.1.0
+ */
+#define TOPGG_WIDGET_DISCORD_SERVER "discord/server"
+
+/**
+ * @brief Use a Discord ID.
+ *
+ * @see TOPGG_USER_SOURCE_TOPGG
+ * @see topgg::v1client::get_vote
+ * @since 2.1.0
+ */
+#define TOPGG_USER_SOURCE_DISCORD "discord"
+
+/**
+ * @brief Use a Top.gg ID.
+ *
+ * @see TOPGG_USER_SOURCE_DISCORD
+ * @see topgg::v1client::get_vote
+ * @since 2.1.0
+ */
+#define TOPGG_USER_SOURCE_TOPGG "topgg"
+
 #ifdef __TOPGG_BUILDING__
 #define _TOPGG_SNOWFLAKE_FROM_JSON(j, name) \
   dpp::snowflake{j[#name].template get<std::string>()}
@@ -47,6 +89,58 @@
 namespace topgg {
   class bot_query;
   class client;
+
+  /**
+   * @brief A Top.gg vote.
+   *
+   * @see topgg::voter
+   * @see topgg::v1client::get_vote
+   * @see topgg::client::get_voters
+   * @since 2.1.0
+   */
+  class TOPGG_EXPORT vote {
+    vote(const dpp::json& j);
+
+  public:
+    vote() = delete;
+
+    /**
+     * @brief This vote's weight.
+     * 
+     * @since 2.1.0
+     */
+    size_t weight;
+
+    /**
+     * @brief When the vote was cast.
+     * 
+     * @see topgg::vote::expired
+     * @since 2.1.0
+     */
+    time_t voted_at;
+
+    /**
+     * @brief When the vote expires and the user is required to vote again.
+     * 
+     * @see topgg::vote::expired
+     * @since 2.1.0
+     */
+    time_t expires_at;
+
+    /**
+     * @brief Whether this vote is now expired.
+     * 
+     * @return bool Whether this vote is now expired.
+     * @since 2.1.0
+     */
+    bool expired() const noexcept;
+
+    inline operator bool() const noexcept {
+      return expired();
+    }
+
+    friend class v1client;
+  };
 
   /**
    * @brief A Top.gg account.
@@ -626,6 +720,45 @@ namespace topgg {
   public:
     virtual stats TOPGG_EXPORT get_stats(dpp::cluster&) = 0;
   };
+
+  
+  namespace widget {
+    /**
+     * @brief Generates a large widget URL.
+     *
+     * @param ty The widget type. This can be TOPGG_WIDGET_DISCORD_BOT or TOPGG_WIDGET_DISCORD_SERVER.
+     * @param id The ID.
+     * @since 2.1.0
+     */
+    std::string large(const char* ty, const dpp::snowflake id);
+
+    /**
+     * @brief Generates a small widget URL for displaying votes.
+     *
+     * @param ty The widget type. This can be TOPGG_WIDGET_DISCORD_BOT or TOPGG_WIDGET_DISCORD_SERVER.
+     * @param id The ID.
+     * @since 2.1.0
+     */
+    std::string votes(const char* ty, const dpp::snowflake id);
+
+    /**
+     * @brief Generates a small widget URL for displaying a project's owner.
+     *
+     * @param ty The widget type. This can be TOPGG_WIDGET_DISCORD_BOT or TOPGG_WIDGET_DISCORD_SERVER.
+     * @param id The ID.
+     * @since 2.1.0
+     */
+    std::string owner(const char* ty, const dpp::snowflake id);
+
+    /**
+     * @brief Generates a small widget URL for displaying social stats.
+     *
+     * @param ty The widget type. This can be TOPGG_WIDGET_DISCORD_BOT or TOPGG_WIDGET_DISCORD_SERVER.
+     * @param id The ID.
+     * @since 2.1.0
+     */
+    std::string social(const char* ty, const dpp::snowflake id);
+  }; // namespace widget
 }; // namespace topgg
 
 #undef TOPGG_BOT_QUERY_SEARCH
