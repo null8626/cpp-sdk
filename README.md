@@ -4,6 +4,9 @@ The community-maintained C++17 library for Top.gg.
 
 ## Chapters
 
+- [Building from source](#building-from-source)
+  - [Main API wrapper](#main-api-wrapper)
+  - [Webhooks only](#webhooks-only)
 - [Setting up](#setting-up)
 - [Usage](#usage)
   - [API v1](#api-v1-1)
