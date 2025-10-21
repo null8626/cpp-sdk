@@ -1,0 +1,69 @@
+#include <topgg/webhooks/cpp-httplib.h>
+
+#include <iostream>
+#include <string>
+#include <thread>
+#include <chrono>
+
+#ifdef _MSC_VER
+#include <crtdbg.h>
+#endif
+
+template<class T>
+using cpp_httplib_webhook = topgg::webhook::cpp_httplib<T>;
+using topgg::webhook::vote_event;
+
+class my_vote_listener: public cpp_httplib_webhook<vote_event> {
+public:
+  inline my_vote_listener(const std::string& authorization): cpp_httplib_webhook<vote_event>(authorization) {}
+
+  void callback(const vote_event& v) override {
+    std::cout << "A user with the ID of " << v.voter_id << " has voted us on Top.gg!" << std::endl;
+  }
+};
+
+int main() {
+#ifdef _MSC_VER
+  _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+#endif
+
+  const auto authorization{std::getenv("TOPGG_WEBHOOK_PASSWORD")};
+
+  if (authorization == nullptr) {
+    std::cerr << "error: missing TOPGG_WEBHOOK_PASSWORD environment variable" << std::endl;
+    return 1;
+  }
+
+  httplib::Server server{};
+  my_vote_listener webhook{authorization};
+
+  server.Post("/votes", webhook.endpoint());
+
+  std::thread server_thread{[&server]() {
+    server.listen("localhost", 8080);
+  }};
+
+  std::this_thread::sleep_for(std::chrono::seconds{5});
+
+  httplib::Client client{"http://localhost:8080"};
+
+  const httplib::Headers headers = {
+    { "Authorization", authorization },
+    { "Content-Type", "application/json" }
+  };
+
+  const auto json{R"({"bot":"12345","user":"12345","isWeekend":true,"type":"test"})"};
+
+  const auto response{client.Post("/votes", headers, json, "application/json")};
+
+  if (response && response->status == 204) {
+    std::cout << "ok" << std::endl;
+  } else {
+    std::cerr << "failed" << std::endl;
+  }
+
+  server.stop();
+  server_thread.join();
+
+  return 0;
+}
