@@ -131,7 +131,7 @@ namespace topgg {
      * @brief Creates a client object.
      *
      * @param cluster A pointer to the bot's D++ cluster using this library.
-     * @param token The API token to use.
+     * @param token The legacy API token to use.
      * @since 2.0.0
      */
     client(dpp::cluster& cluster, const std::string& token);
