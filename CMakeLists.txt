@@ -4,7 +4,7 @@ project(
   topgg
   LANGUAGES CXX
   HOMEPAGE_URL "https://docs.top.gg/docs"
-  DESCRIPTION "The official C++ wrapper for the Top.gg API."
+  DESCRIPTION "The community-maintained C++ library for Top.gg."
 )
 
 set(CMAKE_BUILD_TYPE Debug CACHE STRING "Build type")

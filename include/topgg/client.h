@@ -1,11 +1,11 @@
 /**
  * @module topgg
  * @file client.h
- * @brief The official C++ wrapper for the Top.gg API.
+ * @brief The community-maintained C++ library for Top.gg.
  * @authors Top.gg, null8626
- * @copyright Copyright (c) 2024 Top.gg & null8626
- * @date 2024-07-12
- * @version 2.0.0
+ * @copyright Copyright (c) 2024-2026 Top.gg & null8626
+ * @date 2026-03-10
+ * @version 3.0.0
  */
 
 #pragma once
