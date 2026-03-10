@@ -1,5 +1,10 @@
 $build_type = $args[0]
 
+if (($build_type -ne "debug") -and ($build_type -ne "release")) {
+  $host.ui.WriteErrorLine("error: The specified build type is invalid. Expected 'debug' or 'release'.")
+  exit
+}
+
 if ((Test-Path "C:\Program Files\Microsoft Visual Studio\2022") -or (Test-Path "C:\Program Files (x86)\Microsoft Visual Studio\2022")) {
   $vscode_year = "2022"
 } else {
@@ -40,5 +45,5 @@ foreach ($dpp_release in $dpp_release_information) {
 }
 
 if ($failed) {
-  $host.ui.WriteErrorLine("Error: unable to find the matching DPP release for this machine.")
+  $host.ui.WriteErrorLine("error: Unable to find the matching DPP release for this machine.")
 }
