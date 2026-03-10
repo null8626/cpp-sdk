@@ -10,7 +10,7 @@
 
 #pragma once
 
-#ifdef _WIN32
+#if defined(_WIN32) && defined(TOPGG_USE_DPP)
 #if defined(DPP_STATIC) && !defined(TOPGG_STATIC)
 #define TOPGG_STATIC
 #elif defined(TOPGG_STATIC) && !defined(DPP_STATIC)
@@ -20,7 +20,9 @@
 
 #if defined(_WIN32) && !defined(TOPGG_STATIC)
 #ifdef __TOPGG_BUILDING_DLL__
+#ifdef TOPGG_USE_DPP
 #include <dpp/win32_safe_warnings.h>
+#endif
 #define TOPGG_EXPORT __declspec(dllexport)
 #else
 #define TOPGG_EXPORT __declspec(dllimport)
@@ -35,6 +37,7 @@
 #define TOPGG_UNUSED
 #endif
 
+#ifdef TOPGG_USE_DPP
 #ifdef __clang__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunknown-warning-option"
@@ -46,6 +49,7 @@
 
 #ifdef __clang__
 #pragma clang diagnostic pop
+#endif
 #endif
 
 #include <topgg/result.h>
