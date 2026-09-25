@@ -156,7 +156,7 @@ void topgg::http_backend::flush() {
       &uv_buf,
       1,
       [](uv_write_t* request, int status) {
-        delete static_cast<std::vector<unsigned char>*>(request->data);
+        delete reinterpret_cast<std::vector<unsigned char>*>(request->data);
         delete request;
       }
     )};
