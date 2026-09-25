@@ -88,8 +88,6 @@ namespace topgg {
 
     ~http_backend();
 
-    friend void http_backend::on_read(uv_stream_t* stream, ssize_t read_length, const uv_buf_t* buf);
-    friend void http_backend::on_connect(uv_connect_t* connection, int status);
     friend class http_frontend;
   };
 
