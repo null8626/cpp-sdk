@@ -127,8 +127,8 @@ void topgg::http_backend::on_connect(uv_connect_t* connection, int status) {
   SSL_set_bio(self->m_ssl, self->m_ssl_read_bio, self->m_ssl_write_bio);
   SSL_set_connect_state(self->m_ssl);
 
-  BIO_set_conn_hostname(self->m_ssl_read_bio, "top.gg" ":443");
-  BIO_set_conn_hostname(self->m_ssl_write_bio, "top.gg" ":443");
+  BIO_set_conn_hostname(self->m_ssl_read_bio, "top.gg:443");
+  BIO_set_conn_hostname(self->m_ssl_write_bio, "top.gg:443");
 
   if ((status = uv_read_start(reinterpret_cast<uv_stream_t*>(&self->m_socket), [](uv_handle_t* handle, size_t length, uv_buf_t* buf) {
     buf->base = new char[length];
