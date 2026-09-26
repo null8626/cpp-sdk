@@ -11,6 +11,7 @@
 #include <topgg/util.h>
 #include <functional>
 #include <optional>
+#include <variant>
 #include <atomic>
 #include <thread>
 #include <deque>
@@ -46,18 +47,20 @@ namespace topgg {
     nghttp2_session* m_nghttp2{nullptr};
     std::deque<struct http_backend_pending_write> m_pending_writes{};
     std::vector<http_request*> m_ongoing_requests{};
+    size_t m_open_requests{static_cast<size_t>(-1)};
+    uv_async_t m_async_close{};
     std::optional<exception> m_error{std::nullopt};
 
     inline http_backend(http_frontend* frontend): m_frontend(frontend) {};
 
     http_backend() = delete;
 
-    inline void socket_throw(const topgg::exception& error) {
+    inline void socket_throw(const exception& error) {
       m_error = error;
 
       shutdown();
     }
-    
+
     void init();
 
     void connect();
@@ -76,9 +79,11 @@ namespace topgg {
 
     static int on_data_chunk(nghttp2_session* http2, uint8_t flags, int32_t stream_id, const uint8_t* data, size_t length, void* ptr);
 
-    void dispatch(topgg::http_request* request, uv_work_cb work_callback);
+    void dispatch(http_request* request, uv_work_cb work_callback);
 
     static int on_stream_close(nghttp2_session* http2, int32_t stream_id, uint32_t error, void* ptr);
+
+    static void on_async_close(uv_async_t* handle);
 
     static void on_close(uv_handle_t* handle);
 
@@ -91,25 +96,31 @@ namespace topgg {
     friend class http_frontend;
   };
 
+  using http_response = std::variant<exception, std::pair<uint16_t, std::string_view>>;
+  using http_request_callback = std::function<void(const http_response&)>;
+
   class http_request {
     nghttp2_nv m_headers[9];
     std::string m_path{};
     std::string m_content_length{};
     std::string m_body{};
     size_t m_body_remaining{};
-    std::function<void(const uint16_t, const std::string_view&)> m_callback{};
-    std::function<void(const exception&)> m_error_callback{};
-    uint16_t m_status_code{};
+    http_request_callback m_callback{};
+    uint16_t m_status{};
     std::string m_response{};
 
-    http_request(const std::string_view& authorization, const std::string_view& method, const std::string& path, const std::string& body, const std::function<void(const uint16_t, const std::string_view&)>& callback, const std::function<void(const exception&)> error_callback);
+    http_request(const std::string_view& authorization, const std::string_view& method, const std::string& path, const http_request_callback& callback, const std::string& body);
 
     void set_header(const size_t index, const std::string_view& name, const std::string_view& value);
 
     static ssize_t on_body_read(nghttp2_session* session, int32_t stream_id, uint8_t* data, size_t length, uint32_t* flags, nghttp2_data_source* source, void* ptr);
 
-    inline void dispatch() {
-      m_callback(m_status_code, m_response);
+    inline void dispatch_body() {
+      m_callback(std::make_pair(m_status, std::string_view{m_response}));
+    }
+
+    inline void dispatch_exception(const exception& error) {
+      m_callback(error);
     }
 
 #if defined(DEBUG) || defined(_DEBUG) || !defined(NDEBUG)
@@ -123,13 +134,17 @@ namespace topgg {
     friend class http_frontend;
   };
 
+  class client;
+
   class http_frontend {
     http_backend* m_backend{nullptr};
     std::thread m_backend_thread{};
     std::vector<http_request*> m_requests{};
     std::mutex m_requests_mutex{};
     std::string m_authorization{};
-  
+
+    void fetch(const std::string_view& method, const std::string& path, const http_request_callback& callback, const bool defer = false,  const std::string& body = "");
+
   public:
     http_frontend(const std::string& token);
 
@@ -137,8 +152,9 @@ namespace topgg {
 
     ~http_frontend();
 
-    void fetch(const std::string_view& method, const std::string& path, const std::string& body, const std::function<void(const uint16_t, const std::string_view&)>& callback, const std::function<void(const exception&)> error_callback, const bool defer = false);
+    void set_token(const std::string& token);
 
+    friend class client;
     friend class http_backend;
   };
 };

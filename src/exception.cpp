@@ -16,7 +16,12 @@
 topgg::exception topgg::exception::ssl(const char* message) {
   topgg::exception exc{message};
 
-  exc.m_cause = ERR_error_string(ERR_get_error(), nullptr);
+  unsigned long error{};
+
+  while ((error = ERR_get_error()) != 0) {
+    exc.cause += ERR_error_string(error, nullptr);
+    exc.cause += "\n";
+  }
 
   return exc;
 }
@@ -24,7 +29,7 @@ topgg::exception topgg::exception::ssl(const char* message) {
 topgg::exception topgg::exception::uv(const char* message, const int status) {
   topgg::exception exc{message};
 
-  exc.m_cause = const_cast<char*>(uv_err_name(status));
+  exc.cause = const_cast<char*>(uv_err_name(status));
 
   return exc;
 }
@@ -49,7 +54,7 @@ topgg::exception topgg::exception::system(const char* message) {
     const auto size{FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, nullptr, error, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), reinterpret_cast<LPSTR>(&cause_buf), 0, nullptr)};
 
     if (size > 0) {
-      exc.m_cause = std::string{cause_buf, size};
+      exc.cause = std::string{cause_buf, size};
 
       LocalFree(cause_buf);
     }
@@ -61,8 +66,18 @@ topgg::exception topgg::exception::system(const char* message) {
 
 topgg::exception topgg::exception::nghttp2(const char* message, const int status) {
   topgg::exception exc{message};
-  
-  exc.m_cause = const_cast<char*>(nghttp2_strerror(status));
+
+  exc.cause = const_cast<char*>(nghttp2_strerror(status));
 
   return exc;
+}
+
+topgg::http_exception::http_exception(const std::pair<uint16_t, std::string_view>& response_pair): topgg::exception("Got an invalid HTTP status code from Top.gg"), status(response_pair.first) {
+  try {
+    const auto j{nlohmann::json::parse(response_pair.second)};
+
+    cause = j["title"].template get<std::string>();
+    type = j["type"].template get<std::string>();
+    detail = j["detail"].template get<std::string>();
+  } catch (const nlohmann::json::parse_error&) {}
 }

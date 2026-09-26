@@ -13,6 +13,8 @@
 
 
 void topgg::http_backend::init() {
+  m_async_close.data = nullptr;
+
   if ((m_loop = uv_default_loop()) == nullptr) {
     throw topgg::exception{"Unable to retrieve default backend loop"};
   }
@@ -54,7 +56,7 @@ void topgg::http_backend::init() {
 
   if (SSL_CTX_set_default_verify_paths(m_ssl_context) == 0) {
     throw topgg::exception::ssl("Unable to configure SSL context to perform certificate verification");
-  } else if ((m_ssl = SSL_new(m_ssl_context)) == nullptr || SSL_set1_dnsname(m_ssl, "top.gg") == 0) {
+  } else if ((m_ssl = SSL_new(m_ssl_context)) == nullptr || SSL_set_tlsext_host_name(m_ssl, "top.gg") == 0 || SSL_set1_dnsname(m_ssl, "top.gg") == 0) {
     throw topgg::exception::ssl("Unable to create and configure SSL instance");
   }
 
@@ -66,14 +68,19 @@ void topgg::http_backend::init() {
   hints.ai_socktype = SOCK_STREAM;
   hints.ai_protocol = IPPROTO_TCP;
 
+  int status{};
+
   if (getaddrinfo("top.gg", "443", &hints, &m_addrs) < 0 || m_addrs == nullptr) {
     throw topgg::exception{"Unable to retrieve top.gg's IP address"};
-  } else if (const auto status{uv_tcp_init(m_loop, &m_socket)}; status < 0) {
+  } else if ((status = uv_tcp_init(m_loop, &m_socket)) < 0) {
     throw topgg::exception::uv("Unable to create TCP socket", status);
+  } else if ((status = uv_async_init(m_loop, &m_async_close, topgg::http_backend::on_async_close)) < 0) {
+    throw topgg::exception::uv("Unable to create UV async close", status);
   }
 
   m_socket.data = this;
   m_socket_connection.data = this;
+  m_async_close.data = this;
 }
 
 void topgg::http_backend::connect() {
@@ -109,6 +116,8 @@ void topgg::http_backend::on_connect(uv_connect_t* connection, int status) {
 
   const auto self{reinterpret_cast<topgg::http_backend*>(connection->data)};
 
+  self->m_open_requests = static_cast<size_t>(-1);
+
   if (status < 0) {
     return self->socket_throw(topgg::exception::uv("Unable to perform TCP handshake with Top.gg", status));
   } else if ((self->m_ssl_read_bio = BIO_new(BIO_s_mem())) == nullptr || (self->m_ssl_write_bio = BIO_new(BIO_s_mem())) == nullptr) {
@@ -117,6 +126,9 @@ void topgg::http_backend::on_connect(uv_connect_t* connection, int status) {
 
   SSL_set_bio(self->m_ssl, self->m_ssl_read_bio, self->m_ssl_write_bio);
   SSL_set_connect_state(self->m_ssl);
+
+  BIO_set_conn_hostname(self->m_ssl_read_bio, "top.gg" ":443");
+  BIO_set_conn_hostname(self->m_ssl_write_bio, "top.gg" ":443");
 
   if ((status = uv_read_start(reinterpret_cast<uv_stream_t*>(&self->m_socket), [](uv_handle_t* handle, size_t length, uv_buf_t* buf) {
     buf->base = new char[length];
@@ -177,7 +189,7 @@ void topgg::http_backend::flush_requests() {
       auto status{SSL_get_verify_result(m_ssl)};
 
       if (status != X509_V_OK) {
-        return socket_throw(topgg::exception{"Unable to verify certificate"});
+        return socket_throw("Unable to verify certificate");
       }
 
       const unsigned char* alpn{nullptr};
@@ -186,7 +198,7 @@ void topgg::http_backend::flush_requests() {
       SSL_get0_alpn_selected(m_ssl, &alpn, &alpn_length);
 
       if (alpn == nullptr || alpn_length != 2 || memcmp("h2", alpn, 2) != 0) {
-        return socket_throw(topgg::exception{"Unable to negotiate HTTP/2"});
+        return socket_throw("Unable to negotiate HTTP/2");
       } else if ((status = uv_tcp_nodelay(&m_socket, 1)) < 0) {
         return socket_throw(topgg::exception::uv("Unable to configure TCP file descriptor to no delay", status));
       }
@@ -194,7 +206,7 @@ void topgg::http_backend::flush_requests() {
       nghttp2_session_callbacks* callbacks{nullptr};
 
       if (nghttp2_session_callbacks_new(&callbacks) < 0) {
-        return socket_throw(topgg::exception{"Out of memory"});
+        return socket_throw("Out of memory");
       }
 
       nghttp2_session_callbacks_set_send_callback2(callbacks, topgg::http_backend::on_send);
@@ -206,18 +218,19 @@ void topgg::http_backend::flush_requests() {
       nghttp2_session_callbacks_del(callbacks);
 
       if (status < 0) {
-        return socket_throw(topgg::exception{"Out of memory"});
+        return socket_throw("Out of memory");
       }
-      
+
       nghttp2_settings_entry settings[] = {
         {NGHTTP2_SETTINGS_MAX_CONCURRENT_STREAMS, 100}
       };
-  
+
       if ((status = nghttp2_submit_settings(m_nghttp2, NGHTTP2_FLAG_NONE, settings, 1)) < 0) {
         return socket_throw(topgg::exception::nghttp2("Unable to submit HTTP request settings", status));
       }
 
       m_shook_hand = true;
+      m_open_requests = 0;
     } else {
       if (const auto handshake_error{SSL_get_error(m_ssl, handshake_status)}; handshake_error != SSL_ERROR_WANT_READ && handshake_error != SSL_ERROR_WANT_WRITE) {
         return socket_throw(topgg::exception::ssl("Unable to perform SSL handshake with Top.gg"));
@@ -238,8 +251,9 @@ void topgg::http_backend::flush_requests() {
 
     while (!m_frontend->m_requests.empty()) {
       const auto request{m_frontend->m_requests[m_frontend->m_requests.size() - 1]};
-  
+
       m_frontend->m_requests.pop_back();
+      m_open_requests++;
 
       nghttp2_data_provider2 body_provider{};
 
@@ -250,7 +264,7 @@ void topgg::http_backend::flush_requests() {
         m_nghttp2,
         nullptr,
         request->m_headers,
-        sizeof(request->m_headers) / sizeof(request->m_headers[0]),
+        9,
         request->m_body.empty() ? nullptr : &body_provider,
         request
       )) < 0) {
@@ -292,7 +306,7 @@ void topgg::http_backend::flush_requests() {
 
 nghttp2_ssize topgg::http_backend::on_send(nghttp2_session* http2, const uint8_t* data, size_t length, int flags, void* ptr) {
   TOPGG_LOGF("[EVENT: NGHTTP2 SEND] %d bytes", length);
-  
+
   auto self{reinterpret_cast<topgg::http_backend*>(ptr)};
 
   self->m_pending_writes.push_back({std::vector<uint8_t>{data, data + length}, 0});
@@ -338,7 +352,7 @@ int topgg::http_backend::on_header(nghttp2_session* http2, const nghttp2_frame* 
     if (name_length == 7 && memcmp(name, ":status", 7) == 0 && value_length >= 3) {
       auto request{reinterpret_cast<topgg::http_request*>(nghttp2_session_get_stream_user_data(reinterpret_cast<topgg::http_backend*>(ptr)->m_nghttp2, frame->hd.stream_id))};
 
-      request->m_status_code = (static_cast<uint16_t>(value[0] - '0') * 100) + (static_cast<uint16_t>(value[1] - '0') * 10) + static_cast<uint16_t>(value[2] - '0');
+      request->m_status = (static_cast<uint16_t>(value[0] - '0') * 100) + (static_cast<uint16_t>(value[1] - '0') * 10) + static_cast<uint16_t>(value[2] - '0');
     }
   }
 
@@ -376,15 +390,35 @@ int topgg::http_backend::on_stream_close(nghttp2_session* http2, int32_t stream_
 
   if (error == 0) {
     self->dispatch(request, [](uv_work_t* work) {
-      reinterpret_cast<topgg::http_request*>(work->data)->dispatch();
+      reinterpret_cast<topgg::http_request*>(work->data)->dispatch_body();
     });
   } else {
     self->dispatch(request, [](uv_work_t* work) {
-      reinterpret_cast<topgg::http_request*>(work->data)->m_error_callback(topgg::exception{"nghttp2 stream closed with non-zero error code"});
+      reinterpret_cast<topgg::http_request*>(work->data)->dispatch_exception("nghttp2 stream closed with non-zero error code");
     });
   }
 
+  if (self->m_open_requests > 0) {
+    self->m_open_requests--;
+  }
+
+  if (self->m_open_requests == 0 && self->m_shutdown.load(std::memory_order::memory_order_relaxed)) {
+    self->shutdown();
+  }
+
   return 0;
+}
+
+void topgg::http_backend::on_async_close(uv_async_t* handle) {
+  TOPGG_LOG("[EVENT: ASYNC CLOSE]");
+
+  auto request{reinterpret_cast<topgg::http_backend*>(handle->data)};
+
+  if (request->m_open_requests == 0) {
+    request->shutdown();
+  }
+
+  uv_close(reinterpret_cast<uv_handle_t*>(handle), nullptr);
 }
 
 void topgg::http_backend::on_close(uv_handle_t* handle) {
@@ -434,7 +468,7 @@ void topgg::http_backend::shutdown(const bool blocking) {
         m_frontend->m_requests.pop_back();
 
         if (m_error.has_value()) {
-          request->m_error_callback(m_error.value());
+          request->dispatch_exception(m_error.value());
         }
 
         delete request;
@@ -447,7 +481,7 @@ void topgg::http_backend::shutdown(const bool blocking) {
       m_ongoing_requests.pop_back();
 
       if (m_error.has_value()) {
-        request->m_error_callback(m_error.value());
+        request->dispatch_exception(m_error.value());
       }
 
       delete request;
@@ -455,6 +489,7 @@ void topgg::http_backend::shutdown(const bool blocking) {
 
     if (m_nghttp2 != nullptr) {
       nghttp2_session_terminate_session(m_nghttp2, NGHTTP2_NO_ERROR);
+      nghttp2_session_send(m_nghttp2);
     }
 
     uv_close(reinterpret_cast<uv_handle_t*>(&m_socket), http_backend::on_close);
@@ -486,7 +521,7 @@ topgg::http_backend::~http_backend() {
   }
 }
 
-topgg::http_request::http_request(const std::string_view& authorization, const std::string_view& method, const std::string& path, const std::string& body, const std::function<void(const uint16_t, const std::string_view&)>& callback, const std::function<void(const topgg::exception&)> error_callback): m_path(path), m_content_length(std::to_string(body.size())), m_body(body), m_body_remaining(body.size()), m_callback(callback), m_error_callback(error_callback) {  
+topgg::http_request::http_request(const std::string_view& authorization, const std::string_view& method, const std::string& path, const topgg::http_request_callback& callback, const std::string& body): m_path("/api/v1" + path), m_content_length(std::to_string(body.size())), m_body(body), m_body_remaining(body.size()), m_callback(callback) {  
   set_header(0, ":method", method);
   set_header(1, ":scheme", "https");
   set_header(2, ":authority", "top.gg");
@@ -528,7 +563,7 @@ ssize_t topgg::http_request::on_body_read(nghttp2_session* session, int32_t stre
 
 #if defined(DEBUG) || defined(_DEBUG) || !defined(NDEBUG)
 topgg::http_request::~http_request() {
-  TOPGG_LOG("Freeing request");
+  TOPGG_LOG("Freeing up request");
 }
 #endif
 
@@ -574,8 +609,12 @@ topgg::http_frontend::http_frontend(const std::string& token): m_authorization("
   }
 }
 
-void topgg::http_frontend::fetch(const std::string_view& method, const std::string& path, const std::string& body, const std::function<void(const uint16_t, const std::string_view&)>& callback, const std::function<void(const topgg::exception&)> error_callback, const bool defer) {
-  auto request{new topgg::http_request{m_authorization, method, path, body, callback, error_callback}};
+void topgg::http_frontend::set_token(const std::string& token) {
+  m_authorization = "Bearer " + token;
+}
+
+void topgg::http_frontend::fetch(const std::string_view& method, const std::string& path, const topgg::http_request_callback& callback, const bool defer, const std::string& body) {
+  auto request{new topgg::http_request{m_authorization, method, path, callback, body}};
 
   {
     std::lock_guard _guard{m_requests_mutex};
@@ -592,6 +631,11 @@ topgg::http_frontend::~http_frontend() {
   TOPGG_LOG("Freeing up frontend");
 
   m_backend->m_shutdown.store(true, std::memory_order::memory_order_relaxed);
+
+  if (m_backend->m_async_close.data != nullptr) {
+    uv_async_send(&m_backend->m_async_close);
+  }
+
   m_backend->m_waker.notify();
   m_backend_thread.join();
 }
