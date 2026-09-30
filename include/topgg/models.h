@@ -268,6 +268,55 @@ namespace topgg {
     friend class paginated_result<vote>;
   };
 
+  class integration {
+    integration(const nlohmann::json& j);
+
+  public:
+    integration() = delete;
+
+    std::string id{};
+    std::string name{};
+    std::string description{};
+    std::string icon_url{};
+    bool connected{};
+
+    friend class base_client;
+#ifndef TOPGG_PROJECT_TOKENS_ONLY
+    friend class oauth2_client;
+#endif
+  };
+
+  class webhook;
+
+  struct base_webhook {
+    std::string label{};
+    std::string url{};
+
+  private:
+    base_webhook(const nlohmann::json& j);
+
+    friend class base_client;
+#ifndef TOPGG_PROJECT_TOKENS_ONLY
+    friend class oauth2_client;
+#endif
+    friend class webhook;
+  };
+
+  class webhook: public base_webhook {
+    webhook(const nlohmann::json& j);
+
+  public:
+    webhook() = delete;
+
+    std::string id{};
+
+    friend class base_client;
+#ifndef TOPGG_PROJECT_TOKENS_ONLY
+    friend class oauth2_client;
+#endif
+  };
+
+#ifndef TOPGG_PROJECT_TOKENS_ONLY
   struct user_connection {
     platform platform{};
     std::string id{};
@@ -285,9 +334,7 @@ namespace topgg {
     std::vector<user_connection> connections{};
 
     friend class base_client;
-#ifndef TOPGG_PROJECT_TOKENS_ONLY
     friend class oauth2_client;
-#endif
   };
 
   enum review_status {
@@ -306,9 +353,7 @@ namespace topgg {
     review_status review_status{};
 
     friend class base_client;
-#ifndef TOPGG_PROJECT_TOKENS_ONLY
     friend class oauth2_client;
-#endif
   };
 
   struct project_submission {
@@ -322,4 +367,5 @@ namespace topgg {
     std::string headline{};
     std::string page_content{};
   };
+#endif
 };

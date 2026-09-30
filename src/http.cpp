@@ -699,6 +699,10 @@ topgg::http_request::http_request(const std::string& token, const std::string_vi
 
     add_header("authorization", m_authorization);
   }
+
+#ifdef TOPGG_TEST_CF_AUTHORIZATION
+  add_header("cookie", "CF_Authorization=" TOPGG_TEST_CF_AUTHORIZATION);
+#endif
 }
 
 void topgg::http_request::add_header(const std::string_view& name, const std::string_view& value) {

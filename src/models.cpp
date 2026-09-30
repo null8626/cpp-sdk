@@ -113,6 +113,24 @@ topgg::vote::vote(const nlohmann::json& j): topgg::partial_vote(j) {
   platform_id = j["platform_id"].template get<std::string>();
 }
 
+topgg::integration::integration(const nlohmann::json& j) {
+  id = j["id"].template get<std::string>();
+  name = j["name"].template get<std::string>();
+  description = j["description"].template get<std::string>();
+  icon_url = j["icon_url"].template get<std::string>();
+  connected = j["connected"].template get<bool>();
+}
+
+topgg::base_webhook::base_webhook(const nlohmann::json& j) {
+  label = j["label"].template get<std::string>();
+  url = j["url"].template get<std::string>();
+}
+
+topgg::webhook::webhook(const nlohmann::json& j): topgg::base_webhook(j) {
+  id = j["id"].template get<std::string>();
+}
+
+#ifndef TOPGG_PROJECT_TOKENS_ONLY
 topgg::user::user(const nlohmann::json& j) {
   id = j["id"].template get<std::string>();
   username = j["username"].template get<std::string>();
@@ -139,3 +157,4 @@ topgg::user_project::user_project(const nlohmann::json& j): topgg::partial_proje
     review_status = topgg::review_status::rs_approved;
   }
 }
+#endif

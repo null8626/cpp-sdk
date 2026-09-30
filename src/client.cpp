@@ -29,12 +29,11 @@ void topgg::base_client::fetch_empty(const std::string_view& method, const std::
   }, body}, defer);
 }
 
-#ifndef TOPGG_OAUTH2_ACCESS_TOKENS_ONLY
-void topgg::client::get_own_project(const topgg::callback<topgg::project>& callback, const bool defer) {
-  fetch_simple("GET", "/projects/@me", callback, defer);
+void topgg::base_client::get_project(const std::string& id, const topgg::callback<topgg::project>& callback, const bool defer) {
+  fetch_simple("GET", "/projects/" + id, callback, defer);
 }
 
-void topgg::client::edit_own_project(const topgg::localized_string& headline, const topgg::localized_string& page_content, const topgg::empty_callback& callback, const bool defer) {
+void topgg::base_client::edit_project(const std::string& id, const topgg::localized_string& headline, const topgg::localized_string& page_content, const topgg::empty_callback& callback, const bool defer) {
   if (headline.m_json.empty() && page_content.m_json.empty()) {
     throw topgg::exception{"Either headline or page_content must be specified"};
   }
@@ -47,10 +46,10 @@ void topgg::client::edit_own_project(const topgg::localized_string& headline, co
   body["headline"] = headline.m_json;
   body["page_content"] = page_content.m_json;
 
-  fetch_empty("PATCH", "/projects/@me", callback, defer, body.dump());
+  fetch_empty("PATCH", "/projects/" + id, callback, defer, body.dump());
 }
 
-void topgg::client::post_own_announcement(const std::string& title, const std::string& content, const topgg::announcement_category category, const topgg::empty_callback& callback, const bool defer) {
+void topgg::base_client::post_announcement(const std::string& id, const std::string& title, const std::string& content, const topgg::announcement_category category, const topgg::empty_callback& callback, const bool defer) {
   if (title.length() < 3 || title.length() > 100) {
     throw topgg::exception{"Title length is outside of the accepted threshold"};
   } else if (content.length() < 10 || content.length() > 2000) {
@@ -72,32 +71,32 @@ void topgg::client::post_own_announcement(const std::string& title, const std::s
 
   body["category"] = category_string;
 
-  fetch_empty("POST", "/projects/@me/announcements", callback, defer, body.dump());
+  fetch_empty("POST", "/projects/" + id + "/announcements", callback, defer, body.dump());
 }
 
-void topgg::client::post_own_metrics(const topgg::metrics& metrics, const topgg::empty_callback& callback, const bool defer) {
-  fetch_empty("PATCH", "/projects/@me/metrics", callback, defer, metrics.to_json().dump());
+void topgg::base_client::post_metrics(const std::string& id, const topgg::metrics& metrics, const topgg::empty_callback& callback, const bool defer) {
+  fetch_empty("PATCH", "/projects/" + id + "/metrics", callback, defer, metrics.to_json().dump());
 }
 
-void topgg::client::post_own_commands(const std::string& commands, const topgg::empty_callback& callback, const bool defer) {
-  fetch_empty("PUT", "/projects/@me/commands", callback, defer, commands);
+void topgg::base_client::post_commands(const std::string& id, const std::string& commands, const topgg::empty_callback& callback, const bool defer) {
+  fetch_empty("PUT", "/projects/" + id + "/commands", callback, defer, commands);
 }
 
-void topgg::client::get_own_votes(const time_t since, const topgg::paginated_callback<topgg::vote>& callback, const bool defer) {
+void topgg::base_client::get_votes(const std::string& id, const time_t since, const topgg::paginated_callback<topgg::vote>& callback, const bool defer) {
   const auto now{time(nullptr)};
 
   if (now < since || (now - since) > 31536000) {
     throw topgg::exception{"Invalid since timestamp"};
   }
 
-  fetch_paginated("data", "GET", "/projects/@me/votes?startDate=" + topgg::_url_encode(topgg::_to_time_string(since)), callback, defer);
+  fetch_paginated("data", "GET", "/projects/" + id + "/votes?startDate=" + topgg::_url_encode(topgg::_to_time_string(since)), callback, defer);
 }
 
-void topgg::client::get_own_votes(const topgg::paginated_result<topgg::vote>& cursor, const topgg::paginated_callback<topgg::vote>& callback, const bool defer) {
-  fetch_paginated(cursor, "data", "GET", "/projects/@me/votes", callback, defer);
+void topgg::base_client::get_votes(const std::string& id, const topgg::paginated_result<topgg::vote>& cursor, const topgg::paginated_callback<topgg::vote>& callback, const bool defer) {
+  fetch_paginated(cursor, "data", "GET", "/projects/" + id + "/votes", callback, defer);
 }
 
-void topgg::client::get_own_votes(const std::string& user_id, const topgg::user_source& source, const topgg::callback<topgg::partial_vote>& callback, const bool defer) {
+void topgg::base_client::get_votes(const std::string& id, const std::string& user_id, const topgg::user_source& source, const topgg::callback<topgg::partial_vote>& callback, const bool defer) {
   std::string source_string{};
 
   switch (source) {
@@ -105,9 +104,63 @@ void topgg::client::get_own_votes(const std::string& user_id, const topgg::user_
     case topgg::user_source::us_discord: source_string = "discord"; break;
   }
 
-  fetch_simple("GET", "/projects/@me/votes/" + user_id + "?source=" + source_string, callback, defer);
+  fetch_simple("GET", "/projects/" + id + "/votes/" + user_id + "?source=" + source_string, callback, defer);
 }
-#endif
+
+void topgg::base_client::get_integrations(const std::string& id, const topgg::callback<std::vector<topgg::integration>>& callback, const bool defer) {
+  fetch_vector("GET", "/projects/" + id + "/integrations", callback, defer);
+}
+
+void topgg::base_client::connect_integration(const std::string& project_id, const std::string& integration_id, const topgg::empty_callback& callback, const bool defer) {
+  fetch_empty("PUT", "/projects/" + project_id + "/integrations/" + integration_id, callback, defer);
+}
+
+void topgg::base_client::disconnect_integration(const std::string& project_id, const std::string& integration_id, const topgg::empty_callback& callback, const bool defer) {
+  fetch_empty("DELETE", "/projects/" + project_id + "/integrations/" + integration_id, callback, defer);
+}
+
+void topgg::base_client::get_webhooks(const std::string& id, const topgg::callback<std::vector<topgg::webhook>>& callback, const bool defer) {
+  fetch_vector("GET", "/projects/" + id + "/webhooks", callback, defer);
+}
+
+void topgg::base_client::create_webhook(const std::string& id, const topgg::base_webhook& webhook, const topgg::empty_callback& callback, const bool defer) {
+  nlohmann::json body{};
+
+  body["label"] = webhook.label;
+  body["url"] = webhook.url;
+
+  fetch_empty("POST", "/projects/" + id + "/webhooks", callback, defer, body.dump());
+}
+
+void topgg::base_client::delete_webhook(const std::string& project_id, const std::string& webhook_id, const topgg::empty_callback& callback, const bool defer) {
+  fetch_empty("DELETE", "/projects/" + project_id + "/webhooks/" + webhook_id, callback, defer);
+}
+
+void topgg::base_client::rotate_webhook_secret(const std::string& project_id, const std::string& webhook_id, const topgg::callback<std::string>& callback, const bool defer) {
+  get_http()->fetch(new http_request{get_token(), "POST", "/projects/" + project_id + "/webhooks/" + webhook_id + "/rotate", [callback](const topgg::http_response& response) {
+    if (std::holds_alternative<exception>(response)) {
+      callback(std::get<exception>(response));
+    } else {
+      try {
+        const auto& response_pair{std::get<std::pair<uint16_t, std::string_view>>(response)};
+
+        if (response_pair.first >= 400) {
+          callback(http_exception{response_pair});
+        } else {
+          const auto json{nlohmann::json::parse(response_pair.second)};
+
+          callback(json["secret"].template get<std::string>());
+        }
+      } catch (const nlohmann::json::exception& error) {
+        callback(error);
+      }
+    }
+  }}, defer);
+}
+
+void topgg::base_client::test_webhook(const std::string& project_id, const std::string& webhook_id, const topgg::empty_callback& callback, const bool defer) {
+  fetch_empty("POST", "/projects/" + project_id + "/webhooks/" + webhook_id + "/test", callback, defer);
+}
 
 #ifndef TOPGG_PROJECT_TOKENS_ONLY
 topgg::oauth2_session topgg::oauth2_client::get_session() {
@@ -172,113 +225,12 @@ void topgg::oauth2_client::get_projects(const topgg::paginated_result<topgg::par
   fetch_paginated(cursor, "projects", "GET", "/projects", callback, defer);
 }
 
-void topgg::oauth2_client::get_project(const std::string& id, const topgg::callback<topgg::project>& callback, const bool defer) {
-  fetch_simple("GET", "/projects/" + id, callback, defer);
-}
-
-void topgg::oauth2_client::edit_project(const std::string& id, const topgg::localized_string& headline, const topgg::localized_string& page_content, const topgg::empty_callback& callback, const bool defer) {
-  if (headline.m_json.empty() && page_content.m_json.empty()) {
-    throw topgg::exception{"Either headline or page_content must be specified"};
-  }
-
-  headline.enforce_constraints(3, 140);
-  page_content.enforce_constraints(300, 50000);
-
-  nlohmann::json body{};
-
-  body["headline"] = headline.m_json;
-  body["page_content"] = page_content.m_json;
-
-  fetch_empty("PATCH", "/projects/" + id, callback, defer, body.dump());
-}
-
-void topgg::oauth2_client::post_announcement(const std::string& id, const std::string& title, const std::string& content, const topgg::announcement_category category, const topgg::empty_callback& callback, const bool defer) {
-  if (title.length() < 3 || title.length() > 100) {
-    throw topgg::exception{"Title length is outside of the accepted threshold"};
-  } else if (content.length() < 10 || content.length() > 2000) {
-    throw topgg::exception{"Content length is outside of the accepted threshold"};
-  }
-
-  nlohmann::json body{};
-
-  body["title"] = title;
-  body["content"] = content;
-
-  std::string category_string{};
-
-  switch (category) {
-    case topgg::announcement_category::ac_announcement: category_string = "announcement"; break;
-    case topgg::announcement_category::ac_event: category_string = "event"; break;
-    case topgg::announcement_category::ac_new_feature: category_string = "new_feature"; break;
-  }
-
-  body["category"] = category_string;
-
-  fetch_empty("POST", "/projects/" + id + "/announcements", callback, defer, body.dump());
-}
-
-void topgg::oauth2_client::post_metrics(const std::string& id, const topgg::metrics& metrics, const topgg::empty_callback& callback, const bool defer) {
-  fetch_empty("PATCH", "/projects/" + id + "/metrics", callback, defer, metrics.to_json().dump());
-}
-
-void topgg::oauth2_client::post_commands(const std::string& id, const std::string& commands, const topgg::empty_callback& callback, const bool defer) {
-  fetch_empty("PUT", "/projects/" + id + "/commands", callback, defer, commands);
-}
-
-void topgg::oauth2_client::get_votes(const std::string& id, const time_t since, const topgg::paginated_callback<topgg::vote>& callback, const bool defer) {
-  const auto now{time(nullptr)};
-
-  if (now < since || (now - since) > 31536000) {
-    throw topgg::exception{"Invalid since timestamp"};
-  }
-
-  fetch_paginated("data", "GET", "/projects/" + id + "/votes?startDate=" + topgg::_url_encode(topgg::_to_time_string(since)), callback, defer);
-}
-
-void topgg::oauth2_client::get_votes(const std::string& id, const topgg::paginated_result<topgg::vote>& cursor, const topgg::paginated_callback<topgg::vote>& callback, const bool defer) {
-  fetch_paginated(cursor, "data", "GET", "/projects/" + id + "/votes", callback, defer);
-}
-
-void topgg::oauth2_client::get_votes(const std::string& id, const std::string& user_id, const topgg::user_source& source, const topgg::callback<topgg::partial_vote>& callback, const bool defer) {
-  std::string source_string{};
-
-  switch (source) {
-    case topgg::user_source::us_topgg: source_string = "topgg"; break;
-    case topgg::user_source::us_discord: source_string = "discord"; break;
-  }
-
-  fetch_simple("GET", "/projects/" + id + "/votes/" + user_id + "?source=" + source_string, callback, defer);
-}
-
 void topgg::oauth2_client::get_authorized_user(const topgg::callback<topgg::user>& callback, const bool defer) {
   fetch_simple("GET", "/users/@me", callback, defer);
 }
 
 void topgg::oauth2_client::get_authorized_user_project(const topgg::callback<std::vector<topgg::user_project>>& callback, const bool defer) {
-  get_http()->fetch(new topgg::http_request{get_token(), "GET", "/users/@me/projects", [callback](const topgg::http_response& response) {
-    if (std::holds_alternative<exception>(response)) {
-      callback(std::get<exception>(response));
-    } else {
-      try {
-        const auto& response_pair{std::get<std::pair<uint16_t, std::string_view>>(response)};
-
-        if (response_pair.first >= 400) {
-          callback(http_exception{response_pair});
-        } else {
-          const auto json{nlohmann::json::parse(response_pair.second)};
-          std::vector<topgg::user_project> output{};
-
-          for (const auto& project: json) {
-            output.push_back(topgg::user_project{project});
-          }
-
-          callback(output);
-        }
-      } catch (const nlohmann::json::exception& error) {
-        callback(error);
-      }
-    }
-  }}, defer);
+  fetch_vector("GET", "/users/@me/projects", callback, defer);
 }
 
 void topgg::oauth2_client::submit_project(const topgg::project_submission& submission, const topgg::empty_callback& callback, const bool defer) {

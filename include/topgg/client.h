@@ -23,7 +23,7 @@ namespace topgg {
 
 #ifndef TOPGG_OAUTH2_ACCESS_TOKENS_ONLY
   class client;
-#endif=
+#endif
 #ifndef TOPGG_PROJECT_TOKENS_ONLY
   class oauth2_client;
 #endif
@@ -88,6 +88,80 @@ namespace topgg {
 
     void fetch_empty(const std::string_view& method, const std::string& path, const empty_callback& callback, const bool defer, const std::string& body = "");
 
+    template<class T>
+    void fetch_vector(const std::string_view& method, const std::string& path, const callback<std::vector<T>>& callback, const bool defer, const std::string& body = "") {
+      get_http()->fetch(new http_request{get_token(), method, path, [callback](const http_response& response) {
+        if (std::holds_alternative<exception>(response)) {
+          callback(std::get<exception>(response));
+        } else {
+          try {
+            const auto& response_pair{std::get<std::pair<uint16_t, std::string_view>>(response)};
+
+            if (response_pair.first >= 400) {
+              callback(http_exception{response_pair});
+            } else {
+              const auto json{nlohmann::json::parse(response_pair.second)};
+              std::vector<T> output{};
+
+              for (const auto& project: json) {
+                output.push_back(T{project});
+              }
+
+              callback(output);
+            }
+          } catch (const nlohmann::json::exception& error) {
+            callback(error);
+          }
+        }
+      }, body}, defer);
+    }
+
+  public:
+    void get_project(const std::string& id, const callback<project>& callback, const bool defer = false);
+
+    void edit_project(const std::string& id, const localized_string& headline, const localized_string& page_content, const empty_callback& callback, const bool defer = false);
+
+    void post_announcement(const std::string& id, const std::string& title, const std::string& content, const announcement_category category, const empty_callback& callback, const bool defer = false);
+
+    void post_metrics(const std::string& id, const metrics& metrics, const empty_callback& callback, const bool defer = false);
+
+    template<class T>
+    void post_metrics(const std::string& id, const timestamped_metrics<T>& metrics_, const empty_callback& callback, const bool defer = false) {
+      if (metrics_.m_json.size() < 1 || metrics_.m_json.size() > 100) {
+        return callback(exception{"Batch length is outside of the accepted threshold"});
+      }
+
+      nlohmann::json body{};
+
+      body["data"] = metrics_.m_json;
+
+      fetch_empty("POST", "/projects/" + id + "/metrics/batch", callback, defer, body.dump());
+    }
+
+    void post_commands(const std::string& id, const std::string& commands, const empty_callback& callback, const bool defer = false);
+
+    void get_votes(const std::string& id, const time_t since, const paginated_callback<vote>& callback, const bool defer = false);
+
+    void get_votes(const std::string& id, const paginated_result<vote>& cursor, const paginated_callback<vote>& callback, const bool defer = false);
+
+    void get_votes(const std::string& id, const std::string& user_id, const user_source& source, const callback<partial_vote>& callback, const bool defer = false);
+
+    void get_integrations(const std::string& id, const callback<std::vector<integration>>& callback, const bool defer = false);
+
+    void connect_integration(const std::string& project_id, const std::string& integration_id, const empty_callback& callback, const bool defer = false);
+
+    void disconnect_integration(const std::string& project_id, const std::string& integration_id, const empty_callback& callback, const bool defer = false);
+
+    void get_webhooks(const std::string& id, const callback<std::vector<webhook>>& callback, const bool defer = false);
+
+    void create_webhook(const std::string& id, const base_webhook& webhook, const empty_callback& callback, const bool defer = false);
+
+    void delete_webhook(const std::string& project_id, const std::string& webhook_id, const empty_callback& callback, const bool defer = false);
+
+    void rotate_webhook_secret(const std::string& project_id, const std::string& webhook_id, const callback<std::string>& callback, const bool defer = false);
+
+    void test_webhook(const std::string& project_id, const std::string& webhook_id, const empty_callback& callback, const bool defer = false);
+
 #ifndef TOPGG_OAUTH2_ACCESS_TOKENS_ONLY
     friend class client;
 #endif
@@ -114,34 +188,74 @@ namespace topgg {
 
     inline client(const std::string& token): m_token(token) {}
 
-    void get_own_project(const callback<project>& callback, const bool defer = false);
-
-    void edit_own_project(const localized_string& headline, const localized_string& page_content, const empty_callback& callback, const bool defer = false);
-
-    void post_own_announcement(const std::string& title, const std::string& content, const announcement_category category, const empty_callback& callback, const bool defer = false);
-
-    void post_own_metrics(const metrics& metrics, const empty_callback& callback, const bool defer = false);
-
-    template<class T>
-    void post_own_metrics(const timestamped_metrics<T>& metrics_, const empty_callback& callback, const bool defer = false) {
-      if (metrics_.m_json.size() < 1 || metrics_.m_json.size() > 100) {
-        return callback(exception{"Batch length is outside of the accepted threshold"});
-      }
-
-      nlohmann::json body{};
-
-      body["data"] = metrics_.m_json;
-
-      fetch_empty("POST", "/projects/@me/metrics/batch", callback, defer, body.dump());
+    inline void get_project(const callback<project>& callback, const bool defer = false) {
+      base_client::get_project("@me", callback, defer);
     }
 
-    void post_own_commands(const std::string& commands, const empty_callback& callback, const bool defer = false);
+    inline void edit_project(const localized_string& headline, const localized_string& page_content, const empty_callback& callback, const bool defer = false) {
+      base_client::edit_project("@me", headline, page_content, callback, defer);
+    }
 
-    void get_own_votes(const time_t since, const paginated_callback<vote>& callback, const bool defer = false);
+    inline void post_announcement(const std::string& title, const std::string& content, const announcement_category category, const empty_callback& callback, const bool defer = false) {
+      base_client::post_announcement("@me", title, content, category, callback, defer);
+    }
 
-    void get_own_votes(const paginated_result<vote>& cursor, const paginated_callback<vote>& callback, const bool defer = false);
+    inline void post_metrics(const metrics& metrics, const empty_callback& callback, const bool defer = false) {
+      base_client::post_metrics("@me", metrics, callback, defer);
+    }
 
-    void get_own_votes(const std::string& user_id, const user_source& source, const callback<partial_vote>& callback, const bool defer = false);
+    template<class T>
+    inline void post_metrics(const timestamped_metrics<T>& metrics_, const empty_callback& callback, const bool defer = false) {
+      base_client::post_metrics("@me", metrics, callback, defer);
+    }
+
+    inline void post_commands(const std::string& commands, const empty_callback& callback, const bool defer = false) {
+      base_client::post_commands("@me", commands, callback, defer);
+    }
+
+    inline void get_votes(const time_t since, const paginated_callback<vote>& callback, const bool defer = false) {
+      base_client::get_votes("@me", since, callback, defer);
+    }
+
+    inline void get_votes(const paginated_result<vote>& cursor, const paginated_callback<vote>& callback, const bool defer = false) {
+      base_client::get_votes("@me", cursor, callback, defer);
+    }
+
+    inline void get_votes(const std::string& user_id, const user_source& source, const callback<partial_vote>& callback, const bool defer = false) {
+      base_client::get_votes("@me", user_id, source, callback, defer);
+    }
+
+    inline void get_integrations(const callback<std::vector<integration>>& callback, const bool defer = false) {
+      base_client::get_integrations("@me", callback, defer);
+    }
+
+    inline void connect_integration(const std::string& integration_id, const empty_callback& callback, const bool defer = false) {
+      base_client::connect_integration("@me", integration_id, callback, defer);
+    }
+
+    inline void disconnect_integration(const std::string& integration_id, const empty_callback& callback, const bool defer = false) {
+      base_client::disconnect_integration("@me", integration_id, callback, defer);
+    }
+
+    inline void get_webhooks(const callback<std::vector<webhook>>& callback, const bool defer = false) {
+      base_client::get_webhooks("@me", callback, defer);
+    }
+
+    inline void create_webhook(const base_webhook& webhook, const empty_callback& callback, const bool defer = false) {
+      base_client::create_webhook("@me", webhook, callback, defer);
+    }
+
+    inline void delete_webhook(const std::string& webhook_id, const empty_callback& callback, const bool defer = false) {
+      base_client::delete_webhook("@me", webhook_id, callback, defer);
+    }
+
+    inline void rotate_webhook_secret(const std::string& webhook_id, const callback<std::string>& callback, const bool defer = false) {
+      base_client::rotate_webhook_secret("@me", webhook_id, callback, defer);
+    }
+
+    inline void test_webhook(const std::string& webhook_id, const empty_callback& callback, const bool defer = false) {
+      base_client::test_webhook("@me", webhook_id, callback, defer);
+    }
   };
 #endif
 
@@ -185,7 +299,7 @@ namespace topgg {
     friend class oauth2_client;
   };
 
-  class oauth2_client: private base_client, private std::enable_shared_from_this<oauth2_client> {
+  class oauth2_client: public base_client, private std::enable_shared_from_this<oauth2_client> {
     oauth2* m_oauth2{nullptr};
     oauth2_session m_session{};
     std::mutex m_token_mutex{};
@@ -213,35 +327,6 @@ namespace topgg {
     void get_projects(const paginated_callback<partial_project>& callback, const bool defer = false);
 
     void get_projects(const paginated_result<partial_project>& cursor, const paginated_callback<partial_project>& callback, const bool defer = false);
-
-    void get_project(const std::string& id, const callback<project>& callback, const bool defer = false);
-
-    void edit_project(const std::string& id, const localized_string& headline, const localized_string& page_content, const empty_callback& callback, const bool defer = false);
-
-    void post_announcement(const std::string& id, const std::string& title, const std::string& content, const announcement_category category, const empty_callback& callback, const bool defer = false);
-
-    void post_metrics(const std::string& id, const metrics& metrics, const empty_callback& callback, const bool defer = false);
-
-    template<class T>
-    void post_metrics(const std::string& id, const timestamped_metrics<T>& metrics_, const empty_callback& callback, const bool defer = false) {
-      if (metrics_.m_json.size() < 1 || metrics_.m_json.size() > 100) {
-        return callback(exception{"Batch length is outside of the accepted threshold"});
-      }
-
-      nlohmann::json body{};
-
-      body["data"] = metrics_.m_json;
-
-      fetch_empty("POST", "/projects/" + id + "/metrics/batch", callback, defer, body.dump());
-    }
-
-    void post_commands(const std::string& id, const std::string& commands, const empty_callback& callback, const bool defer = false);
-
-    void get_votes(const std::string& id, const time_t since, const paginated_callback<vote>& callback, const bool defer = false);
-
-    void get_votes(const std::string& id, const paginated_result<vote>& cursor, const paginated_callback<vote>& callback, const bool defer = false);
-
-    void get_votes(const std::string& id, const std::string& user_id, const user_source& source, const callback<partial_vote>& callback, const bool defer = false);
 
     void get_authorized_user(const callback<user>& callback, const bool defer = false);
 

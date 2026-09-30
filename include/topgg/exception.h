@@ -41,6 +41,7 @@ namespace topgg {
 #ifndef TOPGG_PROJECT_TOKENS_ONLY
     friend std::string _random_string();
 #endif
+    friend class base_client;
 #ifndef TOPGG_OAUTH2_ACCESS_TOKENS_ONLY
     friend class client;
 #endif
