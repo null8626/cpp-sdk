@@ -68,9 +68,6 @@ namespace topgg {
     http_exception() = delete;
 
     friend class base_client;
-#ifndef TOPGG_OAUTH2_ACCESS_TOKENS_ONLY
-    friend class client;
-#endif
     friend class http_backend;
 #ifndef TOPGG_PROJECT_TOKENS_ONLY
     friend class oauth2_client;

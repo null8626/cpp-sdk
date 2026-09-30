@@ -482,7 +482,7 @@ void topgg::http_backend::flush_oauth2_requests() {
     m_oauth2_mutex.unlock();
 
     uv_timer_init(m_loop, &client->m_oauth2_refresh_timer);
-    client->m_oauth2_refresh_timer.data = new std::shared_ptr(client);
+    client->m_oauth2_refresh_timer.data = new std::shared_ptr{client};
 
     const auto now{time(nullptr)};
 

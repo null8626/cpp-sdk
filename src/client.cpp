@@ -1,7 +1,9 @@
 #include <topgg/client.h>
-#include <topgg/debug.h>
 #include <algorithm>
-#include <iostream>
+
+#if defined(DEBUG) || defined(_DEBUG) || !defined(NDEBUG)
+#include <topgg/debug.h>
+#endif
 
 #ifndef TOPGG_PROJECT_TOKENS_ONLY
 #define TOPGG_NEW_TOKEN_EXPIRY_TIMESTAMP() (time(nullptr) + TOPGG_TOKEN_EXPIRY_INTERVAL)

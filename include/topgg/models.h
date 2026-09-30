@@ -43,9 +43,6 @@ namespace topgg {
     project_type type{};
 
     friend class base_client;
-#ifndef TOPGG_OAUTH2_ACCESS_TOKENS_ONLY
-    friend class client;
-#endif
 #ifndef TOPGG_PROJECT_TOKENS_ONLY
     friend class oauth2_client;
 #endif
@@ -71,9 +68,6 @@ namespace topgg {
     uint64_t review_count{};
 
     friend class base_client;
-#ifndef TOPGG_OAUTH2_ACCESS_TOKENS_ONLY
-    friend class client;
-#endif
 #ifndef TOPGG_PROJECT_TOKENS_ONLY
     friend class oauth2_client;
 #endif
@@ -225,9 +219,6 @@ namespace topgg {
     }
 
     friend class base_client;
-#ifndef TOPGG_OAUTH2_ACCESS_TOKENS_ONLY
-    friend class client;
-#endif
 #ifndef TOPGG_PROJECT_TOKENS_ONLY
     friend class oauth2_client;
 #endif
@@ -250,9 +241,6 @@ namespace topgg {
     }
 
     friend class base_client;
-#ifndef TOPGG_OAUTH2_ACCESS_TOKENS_ONLY
-    friend class client;
-#endif
 #ifndef TOPGG_PROJECT_TOKENS_ONLY
     friend class oauth2_client;
 #endif
@@ -274,9 +262,6 @@ namespace topgg {
     std::string platform_id{};
 
     friend class base_client;
-#ifndef TOPGG_OAUTH2_ACCESS_TOKENS_ONLY
-    friend class client;
-#endif
 #ifndef TOPGG_PROJECT_TOKENS_ONLY
     friend class oauth2_client;
 #endif
@@ -300,9 +285,6 @@ namespace topgg {
     std::vector<user_connection> connections{};
 
     friend class base_client;
-#ifndef TOPGG_OAUTH2_ACCESS_TOKENS_ONLY
-    friend class client;
-#endif
 #ifndef TOPGG_PROJECT_TOKENS_ONLY
     friend class oauth2_client;
 #endif
@@ -324,9 +306,6 @@ namespace topgg {
     review_status review_status{};
 
     friend class base_client;
-#ifndef TOPGG_OAUTH2_ACCESS_TOKENS_ONLY
-    friend class client;
-#endif
 #ifndef TOPGG_PROJECT_TOKENS_ONLY
     friend class oauth2_client;
 #endif

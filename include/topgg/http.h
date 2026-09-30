@@ -6,7 +6,6 @@
 
 #include <nghttp2/nghttp2.h>
 #include <nlohmann/json.hpp>
-#include <topgg/debug.h>
 #include <openssl/ssl.h>
 #include <openssl/bio.h>
 #include <topgg/util.h>
@@ -166,9 +165,6 @@ namespace topgg {
 #endif
 
     friend class base_client;
-#ifndef TOPGG_OAUTH2_ACCESS_TOKENS_ONLY
-    friend class client;
-#endif
     friend class http_backend;
 #ifndef TOPGG_PROJECT_TOKENS_ONLY
     friend class oauth2_client;
@@ -190,9 +186,6 @@ namespace topgg {
     ~http_frontend();
 
     friend class base_client;
-#ifndef TOPGG_OAUTH2_ACCESS_TOKENS_ONLY
-    friend class client;
-#endif
     friend class http_backend;
 #ifndef TOPGG_PROJECT_TOKENS_ONLY
     friend class oauth2;

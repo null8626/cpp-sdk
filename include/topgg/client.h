@@ -90,7 +90,7 @@ namespace topgg {
 
 #ifndef TOPGG_OAUTH2_ACCESS_TOKENS_ONLY
     friend class client;
-#endif=
+#endif
 #ifndef TOPGG_PROJECT_TOKENS_ONLY
     friend class oauth2_client;
 #endif
