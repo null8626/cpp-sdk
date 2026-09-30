@@ -5,6 +5,7 @@
 #include <topgg/exception.h>
 #include <nghttp2/nghttp2.h>
 #include <openssl/err.h>
+#include <topgg/debug.h>
 #include <uv.h>
 
 #ifdef _WIN32
@@ -23,6 +24,8 @@ topgg::exception topgg::exception::ssl(const char* message) {
     exc.cause += "\n";
   }
 
+  TOPGG_LOGF("SSL ERROR: %s - %s", exc.what(), exc.cause.c_str());
+
   return exc;
 }
 
@@ -30,6 +33,8 @@ topgg::exception topgg::exception::uv(const char* message, const int status) {
   topgg::exception exc{message};
 
   exc.cause = const_cast<char*>(uv_err_name(status));
+
+  TOPGG_LOGF("UV ERROR: %s - %s", exc.what(), exc.cause.c_str());
 
   return exc;
 }
@@ -61,6 +66,8 @@ topgg::exception topgg::exception::system(const char* message) {
   }
 #endif
 
+  TOPGG_LOGF("SYSTEM ERROR: %s - %s", exc.what(), exc.cause.c_str());
+
   return exc;
 }
 
@@ -69,6 +76,8 @@ topgg::exception topgg::exception::nghttp2(const char* message, const int status
 
   exc.cause = const_cast<char*>(nghttp2_strerror(status));
 
+  TOPGG_LOGF("NGHTTP2 ERROR: %s - %s", exc.what(), exc.cause.c_str());
+
   return exc;
 }
 
@@ -76,8 +85,9 @@ topgg::http_exception::http_exception(const std::pair<uint16_t, std::string_view
   try {
     const auto j{nlohmann::json::parse(response_pair.second)};
 
-    cause = j["title"].template get<std::string>();
-    type = j["type"].template get<std::string>();
-    detail = j["detail"].template get<std::string>();
-  } catch (const nlohmann::json::parse_error&) {}
+    cause = j.value(j.contains("error") ? "error" : "title", "");
+    detail = j.value(j.contains("error_description") ? "error_description" : "detail", cause);
+  } catch (const nlohmann::json::exception&) {}
+
+  TOPGG_LOGF("HTTP ERROR: %d", response_pair.first);
 }

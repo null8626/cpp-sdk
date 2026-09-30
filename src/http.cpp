@@ -1,4 +1,5 @@
 #include <topgg/exception.h>
+#include <topgg/client.h>
 #include <openssl/err.h>
 #include <topgg/debug.h>
 #include <topgg/http.h>
@@ -13,7 +14,13 @@
 
 
 void topgg::http_backend::init() {
+  m_socket.data = nullptr;
+  m_async_flush_requests.data = nullptr;
+#ifndef TOPGG_PROJECT_TOKENS_ONLY
+  m_async_flush_oauth2_requests.data = nullptr;
+#endif
   m_async_close.data = nullptr;
+  m_socket_connection.data = this;
 
   if ((m_loop = uv_default_loop()) == nullptr) {
     throw topgg::exception{"Unable to retrieve default backend loop"};
@@ -32,7 +39,7 @@ void topgg::http_backend::init() {
 
   SSL_CTX_set_options(m_ssl_context, SSL_OP_ALL | SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | SSL_OP_NO_COMPRESSION | SSL_OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION);
 
-  if (SSL_CTX_set_alpn_protos(m_ssl_context, (const unsigned char*)"\x02h2", 3) != 0) {
+  if (SSL_CTX_set_alpn_protos(m_ssl_context, (const uint8_t*)"\x02h2", 3) != 0) {
     throw topgg::exception::ssl("Unable to configure SSL context to use HTTP/2");
   }
 #ifdef _WIN32
@@ -56,8 +63,6 @@ void topgg::http_backend::init() {
 
   if (SSL_CTX_set_default_verify_paths(m_ssl_context) == 0) {
     throw topgg::exception::ssl("Unable to configure SSL context to perform certificate verification");
-  } else if ((m_ssl = SSL_new(m_ssl_context)) == nullptr || SSL_set_tlsext_host_name(m_ssl, "top.gg") == 0 || SSL_set1_dnsname(m_ssl, "top.gg") == 0) {
-    throw topgg::exception::ssl("Unable to create and configure SSL instance");
   }
 
   struct addrinfo hints{};
@@ -72,21 +77,19 @@ void topgg::http_backend::init() {
 
   if (getaddrinfo("top.gg", "443", &hints, &m_addrs) < 0 || m_addrs == nullptr) {
     throw topgg::exception{"Unable to retrieve top.gg's IP address"};
-  } else if ((status = uv_tcp_init(m_loop, &m_socket)) < 0) {
-    throw topgg::exception::uv("Unable to create TCP socket", status);
-  } else if ((status = uv_async_init(m_loop, &m_async_close, topgg::http_backend::on_async_close)) < 0) {
-    throw topgg::exception::uv("Unable to create UV async close", status);
   }
-
-  m_socket.data = this;
-  m_socket_connection.data = this;
-  m_async_close.data = this;
 }
 
 void topgg::http_backend::connect() {
   TOPGG_LOG("Connecting to Top.gg");
 
-  uv_tcp_connect(&m_socket_connection, &m_socket, m_addrs->ai_addr, topgg::http_backend::on_connect);
+  if (const auto status{uv_tcp_init(m_loop, &m_socket)}; status < 0) {
+    socket_throw(topgg::exception::uv("Unable to create UV async oauth2 refresh", status));
+  } else {
+    m_socket.data = this;
+
+    uv_tcp_connect(&m_socket_connection, &m_socket, m_addrs->ai_addr, topgg::http_backend::on_connect);
+  }
 }
 
 void topgg::http_backend::on_read(uv_stream_t* stream, ssize_t read_length, const uv_buf_t* buf) {
@@ -121,8 +124,40 @@ void topgg::http_backend::on_connect(uv_connect_t* connection, int status) {
   if (status < 0) {
     return self->socket_throw(topgg::exception::uv("Unable to perform TCP handshake with Top.gg", status));
   } else if ((self->m_ssl_read_bio = BIO_new(BIO_s_mem())) == nullptr || (self->m_ssl_write_bio = BIO_new(BIO_s_mem())) == nullptr) {
-    return self->socket_throw(topgg::exception::ssl("Unable to create SSL I/O"));
+    return self->socket_throw(topgg::exception::ssl("Unable to create BIO"));
+  } else if ((self->m_ssl = SSL_new(self->m_ssl_context)) == nullptr || SSL_set_tlsext_host_name(self->m_ssl, "top.gg") == 0 || SSL_set1_dnsname(self->m_ssl, "top.gg") == 0) {
+    return self->socket_throw(topgg::exception::ssl("Unable to create and configure SSL instance"));
   }
+
+  self->m_flush_requests_mutex.lock();
+
+  if ((status = uv_async_init(self->m_loop, &self->m_async_flush_requests, topgg::http_backend::on_async_flush_requests)) < 0) {
+    self->m_flush_requests_mutex.unlock();
+
+    return self->socket_throw(topgg::exception::uv("Unable to create UV async flush requests", status));
+  }
+
+  self->m_async_flush_requests.data = self;
+  self->m_flush_requests_mutex.unlock();
+
+#ifndef TOPGG_PROJECT_TOKENS_ONLY
+  self->m_oauth2_mutex.lock();
+
+  if ((status = uv_async_init(self->m_loop, &self->m_async_flush_oauth2_requests, topgg::http_backend::on_async_flush_oauth2_requests)) < 0) {
+    self->m_oauth2_mutex.unlock();
+
+    return self->socket_throw(topgg::exception::uv("Unable to create UV async flush oauth2 requests", status));
+  }
+
+  self->m_async_flush_oauth2_requests.data = self;
+  self->m_oauth2_mutex.unlock();
+#endif
+
+  if ((status = uv_async_init(self->m_loop, &self->m_async_close, topgg::http_backend::on_async_close)) < 0) {
+    return self->socket_throw(topgg::exception::uv("Unable to create UV async close", status));
+  }
+
+  self->m_async_close.data = self;
 
   SSL_set_bio(self->m_ssl, self->m_ssl_read_bio, self->m_ssl_write_bio);
   SSL_set_connect_state(self->m_ssl);
@@ -135,15 +170,18 @@ void topgg::http_backend::on_connect(uv_connect_t* connection, int status) {
     buf->len = static_cast<unsigned long>(length);
   }, topgg::http_backend::on_read)) < 0) {
     return self->socket_throw(topgg::exception::uv("Unable to start reading socket stream", status));
-  };
+  }
 
+#ifndef TOPGG_PROJECT_TOKENS_ONLY
+  self->flush_oauth2_requests();
+#endif
   self->flush_requests();
 }
 
 void topgg::http_backend::flush() {
   TOPGG_LOG("Flushing pending I/O bytes");
 
-  unsigned char buf[8 * 1024];
+  uint8_t buf[8 * 1024];
 
   while (BIO_pending(m_ssl_write_bio) > 0) {
     const auto read_length{BIO_read(m_ssl_write_bio, buf, sizeof(buf))};
@@ -152,7 +190,7 @@ void topgg::http_backend::flush() {
       break;
     }
 
-    auto* raw_uv_buf{new std::vector<unsigned char>(buf, buf + read_length)};
+    auto* raw_uv_buf{new std::vector<uint8_t>(buf, buf + read_length)};
     auto request{new uv_write_t};
 
     request->data = raw_uv_buf;
@@ -168,7 +206,7 @@ void topgg::http_backend::flush() {
       &uv_buf,
       1,
       [](uv_write_t* request, int status) {
-        delete reinterpret_cast<std::vector<unsigned char>*>(request->data);
+        delete reinterpret_cast<std::vector<uint8_t>*>(request->data);
         delete request;
       }
     )};
@@ -192,7 +230,7 @@ void topgg::http_backend::flush_requests() {
         return socket_throw("Unable to verify certificate");
       }
 
-      const unsigned char* alpn{nullptr};
+      const uint8_t* alpn{nullptr};
       unsigned int alpn_length{};
 
       SSL_get0_alpn_selected(m_ssl, &alpn, &alpn_length);
@@ -246,35 +284,41 @@ void topgg::http_backend::flush_requests() {
 
   int status{};
 
-  {
-    std::lock_guard _guard{m_frontend->m_requests_mutex};
+  m_frontend->m_requests_mutex.lock();
 
-    while (!m_frontend->m_requests.empty()) {
-      const auto request{m_frontend->m_requests[m_frontend->m_requests.size() - 1]};
+  while (!m_frontend->m_requests.empty()) {
+    const auto request{m_frontend->m_requests.back()};
 
-      m_frontend->m_requests.pop_back();
-      m_open_requests++;
+    m_frontend->m_requests.pop_back();
+    m_frontend->m_requests_mutex.unlock();
 
-      nghttp2_data_provider2 body_provider{};
+    m_open_requests++;
 
-      body_provider.source.ptr = request;
-      body_provider.read_callback = topgg::http_request::on_body_read;
+    nghttp2_data_provider2 body_provider{};
 
-      if ((status = nghttp2_submit_request2(
-        m_nghttp2,
-        nullptr,
-        request->m_headers,
-        9,
-        request->m_body.empty() ? nullptr : &body_provider,
-        request
-      )) < 0) {
-        delete request;
-        return socket_throw(topgg::exception::nghttp2("Unable to submit HTTP request", status));
-      }
+    body_provider.source.ptr = request;
+    body_provider.read_callback = topgg::http_request::on_body_read;
 
-      m_ongoing_requests.push_back(request);
+    TOPGG_LOGF("Submitting request to %s", request->m_path.c_str());
+
+    if ((status = nghttp2_submit_request2(
+      m_nghttp2,
+      nullptr,
+      request->m_headers.data(),
+      request->m_headers.size(),
+      request->m_body.empty() ? nullptr : &body_provider,
+      request
+    )) < 0) {
+      delete request;
+      return socket_throw(topgg::exception::nghttp2("Unable to submit HTTP request", status));
     }
-  };
+
+    m_ongoing_requests.push_back(request);
+
+    m_frontend->m_requests_mutex.lock();
+  }
+
+  m_frontend->m_requests_mutex.unlock();
 
   TOPGG_LOG("Processing data from the remote peer");
 
@@ -402,23 +446,97 @@ int topgg::http_backend::on_stream_close(nghttp2_session* http2, int32_t stream_
     self->m_open_requests--;
   }
 
-  if (self->m_open_requests == 0 && self->m_shutdown.load(std::memory_order::memory_order_relaxed)) {
-    self->shutdown();
+  self->m_frontend->m_requests_mutex.lock();
+
+  if (self->m_open_requests == 0 && self->m_shutdown.load(std::memory_order::memory_order_acquire)) {
+    const auto empty_incoming_requests{self->m_frontend->m_requests.empty()};
+
+    self->m_frontend->m_requests_mutex.unlock();
+
+    if (empty_incoming_requests) {
+      self->shutdown();
+    } else {
+#ifndef TOPGG_PROJECT_TOKENS_ONLY
+      self->flush_oauth2_requests();
+#endif
+      self->flush_requests();
+    }
+  } else {
+    self->m_frontend->m_requests_mutex.unlock();
   }
 
   return 0;
 }
 
+#ifndef TOPGG_PROJECT_TOKENS_ONLY
+void topgg::http_backend::flush_oauth2_requests() {
+  TOPGG_LOG("Flushing oauth2 requests");
+
+  m_oauth2_mutex.lock();
+
+  while (!m_oauth2_refresh_queue.empty()) {
+    const auto client{m_oauth2_refresh_queue.back()};
+
+    m_oauth2_refresh_queue.pop_back();
+    m_oauth2_clients.push_back(client);
+    m_oauth2_mutex.unlock();
+
+    uv_timer_init(m_loop, &client->m_oauth2_refresh_timer);
+    client->m_oauth2_refresh_timer.data = new std::shared_ptr(client);
+
+    const auto now{time(nullptr)};
+
+    uv_timer_start(&client->m_oauth2_refresh_timer, [](uv_timer_t* timer) {
+      TOPGG_LOG("Refreshing access token");
+
+      auto client{reinterpret_cast<std::shared_ptr<topgg::oauth2_client>*>(timer->data)};
+
+      (*client)->refresh_token();
+    }, now > client->m_session.token_expires_at ? 0 : ((client->m_session.token_expires_at - now) * 1000), (TOPGG_TOKEN_EXPIRY_INTERVAL * 1000) - 5000);
+
+    m_oauth2_mutex.lock();
+  }
+
+  while (!m_oauth2_revoke_queue.empty()) {
+    const auto client{m_oauth2_revoke_queue.back()};
+
+    m_oauth2_revoke_queue.pop_back();
+    m_oauth2_clients.erase(std::remove(m_oauth2_clients.begin(), m_oauth2_clients.end(), client), m_oauth2_clients.end());
+    m_oauth2_mutex.unlock();
+
+    client->stop_refresh_token();
+
+    m_oauth2_mutex.lock();
+  }
+
+  m_oauth2_mutex.unlock();
+}
+#endif
+
+void topgg::http_backend::on_async_flush_requests(uv_async_t* handle) {
+  TOPGG_LOG("[EVENT: ASYNC FLUSH REQUESTS]");
+
+  auto self{reinterpret_cast<topgg::http_backend*>(handle->data)};
+
+  self->flush_requests();
+}
+
+void topgg::http_backend::on_async_flush_oauth2_requests(uv_async_t* handle) {
+  TOPGG_LOG("[EVENT: ASYNC FLUSH OAUTH2 REQUESTS]");
+
+  auto self{reinterpret_cast<topgg::http_backend*>(handle->data)};
+
+  self->flush_oauth2_requests();
+}
+
 void topgg::http_backend::on_async_close(uv_async_t* handle) {
   TOPGG_LOG("[EVENT: ASYNC CLOSE]");
 
-  auto request{reinterpret_cast<topgg::http_backend*>(handle->data)};
+  auto self{reinterpret_cast<topgg::http_backend*>(handle->data)};
 
-  if (request->m_open_requests == 0) {
-    request->shutdown();
+  if (self->m_open_requests == 0) {
+    self->shutdown();
   }
-
-  uv_close(reinterpret_cast<uv_handle_t*>(handle), nullptr);
 }
 
 void topgg::http_backend::on_close(uv_handle_t* handle) {
@@ -447,6 +565,7 @@ void topgg::http_backend::on_close(uv_handle_t* handle) {
   }
 
   self->m_shook_hand = false;
+  self->m_socket.data = nullptr;
 }
 
 void topgg::http_backend::loop() {
@@ -456,47 +575,92 @@ void topgg::http_backend::loop() {
 }
 
 void topgg::http_backend::shutdown(const bool blocking) {
-  if (!uv_is_closing(reinterpret_cast<uv_handle_t*>(&m_socket))) {
-    TOPGG_LOGF("Shutting down backend (blocking: %d)", blocking);
+  TOPGG_LOGF("Shutting down backend (blocking: %d)", blocking);
 
-    {
-      std::lock_guard _guard{m_frontend->m_requests_mutex};
+  m_frontend->m_requests_mutex.lock();
 
-      while (!m_frontend->m_requests.empty()) {
-        const auto request{m_frontend->m_requests[m_frontend->m_requests.size() - 1]};
+  while (!m_frontend->m_requests.empty()) {
+    const auto request{m_frontend->m_requests.back()};
 
-        m_frontend->m_requests.pop_back();
+    m_frontend->m_requests.pop_back();
+    m_frontend->m_requests_mutex.unlock();
 
-        if (m_error.has_value()) {
-          request->dispatch_exception(m_error.value());
-        }
-
-        delete request;
-      }
-    };
-
-    while (!m_ongoing_requests.empty()) {
-      const auto request{m_ongoing_requests[m_ongoing_requests.size() - 1]};
-
-      m_ongoing_requests.pop_back();
-
-      if (m_error.has_value()) {
-        request->dispatch_exception(m_error.value());
-      }
-
-      delete request;
+    if (m_error.has_value()) {
+      request->dispatch_exception(m_error.value());
     }
 
+    delete request;
+
+    m_frontend->m_requests_mutex.lock();
+  }
+
+  m_frontend->m_requests_mutex.unlock();
+
+  while (!m_ongoing_requests.empty()) {
+    const auto request{m_ongoing_requests.back()};
+
+    m_ongoing_requests.pop_back();
+
+    if (m_error.has_value()) {
+      request->dispatch_exception(m_error.value());
+    }
+
+    delete request;
+  }
+
+#ifndef TOPGG_PROJECT_TOKENS_ONLY
+  m_oauth2_mutex.lock();
+
+  while (!m_oauth2_clients.empty()) {
+    const auto client{m_oauth2_clients.back()};
+
+    m_oauth2_clients.pop_back();
+    m_oauth2_mutex.unlock();
+
+    client->stop_refresh_token();
+
+    m_oauth2_mutex.lock();
+  }
+
+  m_oauth2_mutex.unlock();
+#endif
+
+  if (m_async_close.data != nullptr) {
+    uv_close(reinterpret_cast<uv_handle_t*>(&m_async_close), nullptr);
+    m_async_close.data = nullptr;
+  }
+
+#ifndef TOPGG_PROJECT_TOKENS_ONLY
+  m_oauth2_mutex.lock();
+
+  if (m_async_flush_oauth2_requests.data != nullptr) {
+    uv_close(reinterpret_cast<uv_handle_t*>(&m_async_flush_oauth2_requests), nullptr);
+    m_async_flush_oauth2_requests.data = nullptr;
+  }
+
+  m_oauth2_mutex.unlock();
+#endif
+
+  m_flush_requests_mutex.lock();
+
+  if (m_async_flush_requests.data != nullptr) {
+    uv_close(reinterpret_cast<uv_handle_t*>(&m_async_flush_requests), nullptr);
+    m_async_flush_requests.data = nullptr;
+  }
+
+  m_flush_requests_mutex.unlock();
+
+  if (m_socket.data != nullptr && !uv_is_closing(reinterpret_cast<uv_handle_t*>(&m_socket))) {
     if (m_nghttp2 != nullptr) {
       nghttp2_session_terminate_session(m_nghttp2, NGHTTP2_NO_ERROR);
       nghttp2_session_send(m_nghttp2);
     }
 
     uv_close(reinterpret_cast<uv_handle_t*>(&m_socket), http_backend::on_close);
+  }
 
-    if (blocking) {
-      loop();
-    }
+  if (blocking) {
+    loop();
   }
 }
 
@@ -521,40 +685,48 @@ topgg::http_backend::~http_backend() {
   }
 }
 
-topgg::http_request::http_request(const std::string_view& authorization, const std::string_view& method, const std::string& path, const topgg::http_request_callback& callback, const std::string& body): m_path("/api/v1" + path), m_content_length(std::to_string(body.size())), m_body(body), m_body_remaining(body.size()), m_callback(callback) {  
-  set_header(0, ":method", method);
-  set_header(1, ":scheme", "https");
-  set_header(2, ":authority", "top.gg");
-  set_header(3, ":path", m_path);
-  set_header(4, "accept", "application/json");
-  set_header(5, "authorization", authorization);
-  set_header(6, "content-length", m_content_length);
-  set_header(7, "content-type", "application/json");
-  set_header(8, "user-agent", "topgg-cpp-sdk");
+topgg::http_request::http_request(const std::string& token, const std::string_view& method, const std::string& path, const topgg::http_request_callback& callback, const std::string& body, const std::string& content_type): m_path("/api/v1" + path), m_content_type(content_type), m_content_length(std::to_string(body.size())), m_body(body), m_callback(callback) {  
+  add_header(":method", method);
+  add_header(":scheme", "https");
+  add_header(":authority", "top.gg");
+  add_header(":path", m_path);
+  add_header("content-length", m_content_length);
+  add_header("content-type", m_content_type);
+  add_header("user-agent", "topgg-cpp-sdk");
+
+  if (!token.empty()) {
+    m_authorization = "Bearer " + token;
+
+    add_header("authorization", m_authorization);
+  }
 }
 
-void topgg::http_request::set_header(const size_t index, const std::string_view& name, const std::string_view& value) {
-  auto header{&m_headers[index]};
+void topgg::http_request::add_header(const std::string_view& name, const std::string_view& value) {
+  nghttp2_nv header{};
 
-  header->flags = NGHTTP2_NV_FLAG_NO_COPY_NAME | NGHTTP2_NV_FLAG_NO_COPY_VALUE;
-  header->name = const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(name.data()));
-  header->namelen = name.length();
-  header->value = const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(value.data()));
-  header->valuelen = value.length();
+  header.flags = NGHTTP2_NV_FLAG_NO_COPY_NAME | NGHTTP2_NV_FLAG_NO_COPY_VALUE;
+  header.name = const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(name.data()));
+  header.namelen = name.length();
+  header.value = const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(value.data()));
+  header.valuelen = value.length();
+
+  m_headers.push_back(header);
 }
 
 ssize_t topgg::http_request::on_body_read(nghttp2_session* session, int32_t stream_id, uint8_t* data, size_t length, uint32_t* flags, nghttp2_data_source* source, void* ptr) {
-  auto self{reinterpret_cast<topgg::http_request*>(ptr)};
-  auto to_send{min(self->m_body_remaining, length)};
+  auto self{reinterpret_cast<topgg::http_request*>(source->ptr)};
+
+  const auto remaining{self->m_body.length() - self->m_body_position};
+  auto to_send{min(remaining, length)};
 
   TOPGG_LOGF("[EVENT: NGHTTP2 REQUEST BODY READ] sending %d bytes", to_send);
 
   if (to_send > 0) {
-    memcpy(data, self->m_body.data() + (self->m_body.size() - self->m_body_remaining), to_send);
-    self->m_body_remaining -= to_send;
+    memcpy(data, self->m_body.data() + self->m_body_position, to_send);
+    self->m_body_position += to_send;
   }
 
-  if (self->m_body_remaining == 0) {
+  if (remaining == 0) {
     *flags |= NGHTTP2_DATA_FLAG_EOF;
   }
 
@@ -567,7 +739,7 @@ topgg::http_request::~http_request() {
 }
 #endif
 
-topgg::http_frontend::http_frontend(const std::string& token): m_authorization("Bearer " + token) {
+topgg::http_frontend::http_frontend() {
   topgg::waker frontend_waker{};
   std::optional<topgg::exception> backend_init_error{std::nullopt};
 
@@ -588,10 +760,14 @@ topgg::http_frontend::http_frontend(const std::string& token): m_authorization("
 
     while (1) {
       backend.m_waker.wait();
+      backend.m_frontend->m_requests_mutex.lock();
 
-      if (backend.m_shutdown.load(std::memory_order::memory_order_relaxed)) {
+      if (backend.m_open_requests == 0 && backend.m_frontend->m_requests.empty() && backend.m_shutdown.load(std::memory_order::memory_order_acquire)) {
+        backend.m_frontend->m_requests_mutex.unlock();
         break;
       }
+
+      backend.m_frontend->m_requests_mutex.unlock();
 
       backend.connect();
       backend.loop();
@@ -603,39 +779,42 @@ topgg::http_frontend::http_frontend(const std::string& token): m_authorization("
   TOPGG_LOGF("Backend set up with error: %d", backend_init_error.has_value());
 
   if (backend_init_error.has_value()) {
-    m_backend_thread.join();
+    if (m_backend_thread.joinable()) {
+      m_backend_thread.join();
+    }
 
     throw backend_init_error.value();
   }
 }
 
-void topgg::http_frontend::set_token(const std::string& token) {
-  m_authorization = "Bearer " + token;
-}
+void topgg::http_frontend::fetch(topgg::http_request* request, const bool defer) {
+  std::lock_guard guard_{m_requests_mutex};
 
-void topgg::http_frontend::fetch(const std::string_view& method, const std::string& path, const topgg::http_request_callback& callback, const bool defer, const std::string& body) {
-  auto request{new topgg::http_request{m_authorization, method, path, callback, body}};
-
-  {
-    std::lock_guard _guard{m_requests_mutex};
-
-    m_requests.push_back(request);
-  };
+  m_requests.push_back(request);
 
   if (!defer) {
-    m_backend->m_waker.notify();
+    std::lock_guard guard_{m_backend->m_flush_requests_mutex};
+
+    if (m_backend->m_async_flush_requests.data != nullptr) {
+      uv_async_send(&m_backend->m_async_flush_requests);
+    } else {
+      m_backend->m_waker.notify();
+    }
   }
 }
 
 topgg::http_frontend::~http_frontend() {
   TOPGG_LOG("Freeing up frontend");
 
-  m_backend->m_shutdown.store(true, std::memory_order::memory_order_relaxed);
+  m_backend->m_shutdown.store(true, std::memory_order::memory_order_release);
 
   if (m_backend->m_async_close.data != nullptr) {
     uv_async_send(&m_backend->m_async_close);
   }
 
   m_backend->m_waker.notify();
-  m_backend_thread.join();
+
+  if (m_backend_thread.joinable()) {
+    m_backend_thread.join();
+  }
 }

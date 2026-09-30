@@ -3,20 +3,29 @@
 #include <nlohmann/json.hpp>
 #include <topgg/exception.h>
 #include <optional>
+#include <cstdint>
 #include <variant>
 #include <string>
 #include <vector>
 
 
 namespace topgg {
+  class base_client;
+#ifndef TOPGG_OAUTH2_ACCESS_TOKENS_ONLY
+  class client;
+#endif
+  class empty_result;
+#ifndef TOPGG_PROJECT_TOKENS_ONLY
+  class oauth2_client;
+#endif
   template<class T>
   class paginated_result;
-  
+
   template<class T>
   class result {
-    std::variant<exception, http_exception, nlohmann::json::parse_error, T> m_variant{};
+    std::variant<exception, http_exception, nlohmann::json::exception, T> m_variant{};
 
-    template<typename T2>
+    template<class T2>
     inline result(const T2& data): m_variant(std::in_place_type<T2>, data) {}
 
   public:
@@ -31,17 +40,39 @@ namespace topgg {
         throw std::get<exception>(m_variant);
       }
 
-      throw std::get<nlohmann::json::parse_error>(m_variant);
+      throw std::get<nlohmann::json::exception>(m_variant);
     }
 
+    friend class base_client;
+#ifndef TOPGG_OAUTH2_ACCESS_TOKENS_ONLY
     friend class client;
+#endif
+    friend class empty_result;
+#ifndef TOPGG_PROJECT_TOKENS_ONLY
+    friend class oauth2_client;
+    friend class oauth2;
+#endif
     template<class T2>
     friend class paginated_result;
   };
 
-  using empty_result = result<std::monostate>;
+  class empty_result: private result<std::monostate> {
+    template<class T2>
+    inline empty_result(const T2& data): result(data) {}
 
-  class client;
+  public:
+    inline void check() const {
+      result::get();
+    }
+
+    friend class base_client;
+#ifndef TOPGG_OAUTH2_ACCESS_TOKENS_ONLY
+    friend class client;
+#endif
+#ifndef TOPGG_PROJECT_TOKENS_ONLY
+    friend class oauth2_client;
+#endif
+  };
 
   template<class T>
   class paginated_result: private result<std::pair<std::vector<T>, std::optional<std::string>>> {
@@ -58,7 +89,7 @@ namespace topgg {
       return std::make_pair(data, j.contains("cursor") ? std::optional{j["cursor"].template get<std::string>()} : std::nullopt);
     }
 
-    static inline std::pair<std::vector<T>, std::optional<std::string>> empty() {
+    static inline constexpr std::pair<std::vector<T>, std::optional<std::string>> empty() {
       return std::make_pair(std::vector<T>{}, std::nullopt);
     }
 
@@ -75,32 +106,12 @@ namespace topgg {
       return result::get().first;
     }
 
+    friend class base_client;
+#ifndef TOPGG_OAUTH2_ACCESS_TOKENS_ONLY
     friend class client;
+#endif
+#ifndef TOPGG_PROJECT_TOKENS_ONLY
+    friend class oauth2_client;
+#endif
   };
-
-  enum project_platform {
-    pp_discord,
-    pp_roblox,
-  };
-
-  enum project_type {
-    pt_bot,
-    pt_server,
-    pt_game,
-  };
-
-  class partial_project {
-    partial_project(const nlohmann::json& j);
-
-  public:
-    std::string id{};
-    std::string platform_id{};
-    std::string name{};
-    project_platform platform{};
-    project_type type{};
-
-    friend class client;
-    friend class paginated_result<partial_project>;
-  };
-  
 };

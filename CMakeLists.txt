@@ -13,6 +13,7 @@ set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
 set(CMAKE_BUILD_TYPE Debug CACHE STRING "Build type")
 set(TOPGG_SSLKEYLOG "" CACHE STRING "SSL keylog file for debugging")
+set(TOPGG_TOKEN_EXPIRY_INTERVAL "604800" CACHE STRING "Access token expiry interval for development testing")
 option(BUILD_SHARED_LIBS "Build shared libraries" ${_has_shared})
 
 file(GLOB TOPGG_SOURCE_FILES ${CMAKE_CURRENT_LIST_DIR}/src/*.cpp)
@@ -54,6 +55,8 @@ if(NOT "${TOPGG_SSLKEYLOG}" STREQUAL "")
 target_compile_definitions(topgg PRIVATE TOPGG_SSLKEYLOG="${TOPGG_SSLKEYLOG}")
 endif()
 endif()
+
+target_compile_definitions(topgg PRIVATE TOPGG_TOKEN_EXPIRY_INTERVAL=${TOPGG_TOKEN_EXPIRY_INTERVAL})
 
 find_library(OPENSSL_LIBRARY REQUIRED NAMES ssl)
 find_library(CRYPTO_LIBRARY REQUIRED NAMES crypto)
