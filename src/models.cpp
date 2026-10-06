@@ -34,7 +34,7 @@ void topgg::localized_string::enforce_constraints(const uint16_t minimum, const 
     if (text.length() < minimum) {
       throw topgg::exception{"A localized_string text length is below the minimum threshold"};
     } else if (text.length() > maximum) {
-      throw topgg::exception{"A localized_string text length is below the maximum threshold"};
+      throw topgg::exception{"A localized_string text length is above the maximum threshold"};
     }
   }
 }
