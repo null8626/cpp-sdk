@@ -1,9 +1,5 @@
-#include <topgg/exception.h>
-#include <topgg/client.h>
 #include <openssl/err.h>
-#include <topgg/debug.h>
-#include <topgg/http.h>
-#include <topgg/util.h>
+#include <topgg/topgg.h>
 #include <algorithm>
 #include <cstring>
 #include <vector>
@@ -521,6 +517,7 @@ void topgg::http_backend::on_async_flush_requests(uv_async_t* handle) {
   self->flush_requests();
 }
 
+#ifndef TOPGG_PROJECT_TOKENS_ONLY
 void topgg::http_backend::on_async_flush_oauth2_requests(uv_async_t* handle) {
   TOPGG_LOG("[EVENT: ASYNC FLUSH OAUTH2 REQUESTS]");
 
@@ -528,6 +525,7 @@ void topgg::http_backend::on_async_flush_oauth2_requests(uv_async_t* handle) {
 
   self->flush_oauth2_requests();
 }
+#endif
 
 void topgg::http_backend::on_async_close(uv_async_t* handle) {
   TOPGG_LOG("[EVENT: ASYNC CLOSE]");
@@ -699,10 +697,6 @@ topgg::http_request::http_request(const std::string& token, const std::string_vi
 
     add_header("authorization", m_authorization);
   }
-
-#ifdef TOPGG_TEST_CF_AUTHORIZATION
-  add_header("cookie", "CF_Authorization=" TOPGG_TEST_CF_AUTHORIZATION);
-#endif
 }
 
 void topgg::http_request::add_header(const std::string_view& name, const std::string_view& value) {

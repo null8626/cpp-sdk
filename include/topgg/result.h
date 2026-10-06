@@ -1,7 +1,7 @@
 #pragma once
 
 #include <nlohmann/json.hpp>
-#include <topgg/exception.h>
+#include <topgg/topgg.h>
 #include <optional>
 #include <cstdint>
 #include <variant>

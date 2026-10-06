@@ -1,4 +1,4 @@
-#include <topgg/debug.h>
+#include <topgg/topgg.h>
 #include <cstdarg>
 #include <cstdio>
 #include <mutex>

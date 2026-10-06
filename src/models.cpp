@@ -1,6 +1,4 @@
-#include <topgg/exception.h>
-#include <topgg/models.h>
-#include <topgg/util.h>
+#include <topgg/topgg.h>
 
 
 topgg::partial_project::partial_project(const nlohmann::json& j) {
@@ -113,6 +111,7 @@ topgg::vote::vote(const nlohmann::json& j): topgg::partial_vote(j) {
   platform_id = j["platform_id"].template get<std::string>();
 }
 
+#ifndef TOPGG_PROJECT_TOKENS_ONLY
 topgg::integration::integration(const nlohmann::json& j) {
   id = j["id"].template get<std::string>();
   name = j["name"].template get<std::string>();
@@ -130,7 +129,6 @@ topgg::webhook::webhook(const nlohmann::json& j): topgg::base_webhook(j) {
   id = j["id"].template get<std::string>();
 }
 
-#ifndef TOPGG_PROJECT_TOKENS_ONLY
 topgg::user::user(const nlohmann::json& j) {
   id = j["id"].template get<std::string>();
   username = j["username"].template get<std::string>();
@@ -156,5 +154,40 @@ topgg::user_project::user_project(const nlohmann::json& j): topgg::partial_proje
   } else {
     review_status = topgg::review_status::rs_approved;
   }
+}
+#endif
+
+#ifdef TOPGG_WEBHOOKS
+topgg::webhooks::project::project(const nlohmann::json& j) {
+  id = j["id"].template get<std::string>();
+  platform_id = j["platform_id"].template get<std::string>();
+  platform = topgg::_from_platform_string(j["platform"].template get<std::string>());
+  type = topgg::_from_project_type_string(j["type"].template get<std::string>());
+}
+
+topgg::webhooks::user::user(const nlohmann::json& j) {
+  id = j["id"].template get<std::string>();
+  platform_id = j["platform_id"].template get<std::string>();
+  name = j["name"].template get<std::string>();
+  avatar = j["avatar_url"].template get<std::string>();
+}
+
+topgg::webhooks::vote_create::vote_create(const nlohmann::json& j): project(j["project"]), user(j["user"]) {
+  id = j["id"].template get<std::string>();
+  weight = j["weight"].template get<uint16_t>();
+  created_at = topgg::_from_time_string(j["created_at"].template get<std::string>().substr(0, 19));
+  expires_at = topgg::_from_time_string(j["expires_at"].template get<std::string>().substr(0, 19));
+  query = j["query"].template get<std::unordered_map<std::string, std::string>>();
+}
+
+topgg::webhooks::test::test(const nlohmann::json& j): project(j["project"]), user(j["user"]) {}
+
+topgg::webhooks::integration_create::integration_create(const nlohmann::json& j): project(j["project"]), user(j["user"]) {
+  connection_id = j["connection_id"].template get<std::string>();
+  webhook_secret = j["webhook_secret"].template get<std::string>();
+}
+
+topgg::webhooks::integration_delete::integration_delete(const nlohmann::json& j) {
+  connection_id = j["connection_id"].template get<std::string>();
 }
 #endif

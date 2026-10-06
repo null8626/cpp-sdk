@@ -14,6 +14,9 @@ set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 set(CMAKE_BUILD_TYPE Debug CACHE STRING "Build type")
 set(TOPGG_SSLKEYLOG "" CACHE STRING "SSL keylog file for debugging")
 set(TOPGG_TOKEN_EXPIRY_INTERVAL "604800" CACHE STRING "Access token expiry interval for development testing")
+option(TOPGG_PROJECT_TOKENS_ONLY "Only include project token support")
+option(TOPGG_OAUTH2_ACCESS_TOKENS_ONLY "Only include oauth2 access token support")
+option(TOPGG_WEBHOOKS "Webhooks support")
 option(BUILD_SHARED_LIBS "Build shared libraries" ${_has_shared})
 
 file(GLOB TOPGG_SOURCE_FILES ${CMAKE_CURRENT_LIST_DIR}/src/*.cpp)
@@ -57,6 +60,18 @@ endif()
 endif()
 
 target_compile_definitions(topgg PRIVATE TOPGG_TOKEN_EXPIRY_INTERVAL=${TOPGG_TOKEN_EXPIRY_INTERVAL})
+
+if(TOPGG_PROJECT_TOKENS_ONLY)
+target_compile_definitions(topgg PUBLIC TOPGG_PROJECT_TOKENS_ONLY=1)
+endif()
+
+if(TOPGG_OAUTH2_ACCESS_TOKENS_ONLY)
+target_compile_definitions(topgg PUBLIC TOPGG_OAUTH2_ACCESS_TOKENS_ONLY=1)
+endif()
+
+if(TOPGG_WEBHOOKS)
+target_compile_definitions(topgg PUBLIC TOPGG_WEBHOOKS=1)
+endif()
 
 find_library(OPENSSL_LIBRARY REQUIRED NAMES ssl)
 find_library(CRYPTO_LIBRARY REQUIRED NAMES crypto)

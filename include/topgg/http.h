@@ -8,7 +8,7 @@
 #include <nlohmann/json.hpp>
 #include <openssl/ssl.h>
 #include <openssl/bio.h>
-#include <topgg/util.h>
+#include <topgg/topgg.h>
 #include <functional>
 #include <optional>
 #include <variant>

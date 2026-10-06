@@ -2,10 +2,9 @@
 #define NGHTTP2_NO_SSIZE_T
 #endif
 
-#include <topgg/exception.h>
 #include <nghttp2/nghttp2.h>
 #include <openssl/err.h>
-#include <topgg/debug.h>
+#include <topgg/topgg.h>
 #include <uv.h>
 
 #ifdef _WIN32

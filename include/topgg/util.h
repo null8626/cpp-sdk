@@ -1,6 +1,6 @@
 #pragma once
 
-#include <topgg/models.h>
+#include <topgg/topgg.h>
 #include <ctime>
 
 #ifdef _WIN32

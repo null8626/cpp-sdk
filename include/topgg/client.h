@@ -1,8 +1,6 @@
 #pragma once
 
-#include <topgg/models.h>
-#include <topgg/result.h>
-#include <topgg/http.h>
+#include <topgg/topgg.h>
 #include <functional>
 #include <string>
 
@@ -10,6 +8,7 @@
 #include <openssl/bio.h>
 #include <openssl/evp.h>
 #include <ctime>
+#include <mutex>
 #include <uv.h>
 #endif
 
@@ -146,22 +145,6 @@ namespace topgg {
 
     void get_votes(const std::string& id, const std::string& user_id, const user_source& source, const callback<partial_vote>& callback, const bool defer = false);
 
-    void get_integrations(const std::string& id, const callback<std::vector<integration>>& callback, const bool defer = false);
-
-    void connect_integration(const std::string& project_id, const std::string& integration_id, const empty_callback& callback, const bool defer = false);
-
-    void disconnect_integration(const std::string& project_id, const std::string& integration_id, const empty_callback& callback, const bool defer = false);
-
-    void get_webhooks(const std::string& id, const callback<std::vector<webhook>>& callback, const bool defer = false);
-
-    void create_webhook(const std::string& id, const base_webhook& webhook, const empty_callback& callback, const bool defer = false);
-
-    void delete_webhook(const std::string& project_id, const std::string& webhook_id, const empty_callback& callback, const bool defer = false);
-
-    void rotate_webhook_secret(const std::string& project_id, const std::string& webhook_id, const callback<std::string>& callback, const bool defer = false);
-
-    void test_webhook(const std::string& project_id, const std::string& webhook_id, const empty_callback& callback, const bool defer = false);
-
 #ifndef TOPGG_OAUTH2_ACCESS_TOKENS_ONLY
     friend class client;
 #endif
@@ -206,7 +189,7 @@ namespace topgg {
 
     template<class T>
     inline void post_metrics(const timestamped_metrics<T>& metrics_, const empty_callback& callback, const bool defer = false) {
-      base_client::post_metrics("@me", metrics, callback, defer);
+      base_client::post_metrics("@me", metrics_, callback, defer);
     }
 
     inline void post_commands(const std::string& commands, const empty_callback& callback, const bool defer = false) {
@@ -223,38 +206,6 @@ namespace topgg {
 
     inline void get_votes(const std::string& user_id, const user_source& source, const callback<partial_vote>& callback, const bool defer = false) {
       base_client::get_votes("@me", user_id, source, callback, defer);
-    }
-
-    inline void get_integrations(const callback<std::vector<integration>>& callback, const bool defer = false) {
-      base_client::get_integrations("@me", callback, defer);
-    }
-
-    inline void connect_integration(const std::string& integration_id, const empty_callback& callback, const bool defer = false) {
-      base_client::connect_integration("@me", integration_id, callback, defer);
-    }
-
-    inline void disconnect_integration(const std::string& integration_id, const empty_callback& callback, const bool defer = false) {
-      base_client::disconnect_integration("@me", integration_id, callback, defer);
-    }
-
-    inline void get_webhooks(const callback<std::vector<webhook>>& callback, const bool defer = false) {
-      base_client::get_webhooks("@me", callback, defer);
-    }
-
-    inline void create_webhook(const base_webhook& webhook, const empty_callback& callback, const bool defer = false) {
-      base_client::create_webhook("@me", webhook, callback, defer);
-    }
-
-    inline void delete_webhook(const std::string& webhook_id, const empty_callback& callback, const bool defer = false) {
-      base_client::delete_webhook("@me", webhook_id, callback, defer);
-    }
-
-    inline void rotate_webhook_secret(const std::string& webhook_id, const callback<std::string>& callback, const bool defer = false) {
-      base_client::rotate_webhook_secret("@me", webhook_id, callback, defer);
-    }
-
-    inline void test_webhook(const std::string& webhook_id, const empty_callback& callback, const bool defer = false) {
-      base_client::test_webhook("@me", webhook_id, callback, defer);
     }
   };
 #endif
@@ -333,6 +284,22 @@ namespace topgg {
     void get_authorized_user_project(const callback<std::vector<user_project>>& callback, const bool defer = false);
 
     void submit_project(const project_submission& submission, const empty_callback& callback, const bool defer = false);
+
+    void get_integrations(const std::string& id, const callback<std::vector<integration>>& callback, const bool defer = false);
+
+    void connect_integration(const std::string& project_id, const std::string& integration_id, const empty_callback& callback, const bool defer = false);
+
+    void disconnect_integration(const std::string& project_id, const std::string& integration_id, const empty_callback& callback, const bool defer = false);
+
+    void get_webhooks(const std::string& id, const callback<std::vector<webhook>>& callback, const bool defer = false);
+
+    void create_webhook(const std::string& id, const base_webhook& webhook, const empty_callback& callback, const bool defer = false);
+
+    void delete_webhook(const std::string& project_id, const std::string& webhook_id, const empty_callback& callback, const bool defer = false);
+
+    void rotate_webhook_secret(const std::string& project_id, const std::string& webhook_id, const callback<std::string>& callback, const bool defer = false);
+
+    void test_webhook(const std::string& project_id, const std::string& webhook_id, const empty_callback& callback, const bool defer = false);
 
     void revoke_token(const empty_callback& callback, const bool defer = false);
 

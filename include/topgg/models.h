@@ -18,8 +18,8 @@ namespace topgg {
   class paginated_result;
 
   enum platform {
-    pp_discord,
-    pp_roblox,
+    p_discord,
+    p_roblox,
   };
 
   enum project_type {
@@ -194,7 +194,7 @@ namespace topgg {
 
   template<class T>
   class timestamped_metrics {
-    static_assert(std::is_base_of_v<metrics, T>, "topgg::timestamped_metrics class template must be a child of topgg::metrics");
+    static_assert(std::is_base_of_v<metrics, T>, "timestamped_metrics class template must be a child of metrics");
 
     nlohmann::json m_json{};
 
@@ -268,6 +268,7 @@ namespace topgg {
     friend class paginated_result<vote>;
   };
 
+#ifndef TOPGG_PROJECT_TOKENS_ONLY
   class integration {
     integration(const nlohmann::json& j);
 
@@ -281,9 +282,7 @@ namespace topgg {
     bool connected{};
 
     friend class base_client;
-#ifndef TOPGG_PROJECT_TOKENS_ONLY
     friend class oauth2_client;
-#endif
   };
 
   class webhook;
@@ -292,13 +291,12 @@ namespace topgg {
     std::string label{};
     std::string url{};
 
+    base_webhook() = default;
+
   private:
     base_webhook(const nlohmann::json& j);
 
-    friend class base_client;
-#ifndef TOPGG_PROJECT_TOKENS_ONLY
     friend class oauth2_client;
-#endif
     friend class webhook;
   };
 
@@ -311,12 +309,9 @@ namespace topgg {
     std::string id{};
 
     friend class base_client;
-#ifndef TOPGG_PROJECT_TOKENS_ONLY
     friend class oauth2_client;
-#endif
   };
 
-#ifndef TOPGG_PROJECT_TOKENS_ONLY
   struct user_connection {
     platform platform{};
     std::string id{};

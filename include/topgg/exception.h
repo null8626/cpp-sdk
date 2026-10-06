@@ -5,6 +5,10 @@
 #include <string>
 #include <ctime>
 
+#ifdef TOPGG_WEBHOOKS
+#include <topgg/topgg.h>
+#endif
+
 
 namespace topgg {
 #ifndef TOPGG_OAUTH2_ACCESS_TOKENS_ONLY
@@ -54,6 +58,10 @@ namespace topgg {
     friend class oauth2;
 #endif
     friend class waker;
+#ifdef TOPGG_WEBHOOKS
+    friend webhooks::payload webhooks::parse(const std::string& body);
+    friend class webhooks::verifier;
+#endif
 #ifdef _WIN32
     friend class wsastartup_guard;
 #endif

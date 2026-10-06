@@ -1,6 +1,4 @@
-#include <topgg/exception.h>
-#include <topgg/models.h>
-#include <topgg/util.h>
+#include <topgg/topgg.h>
 #include <sstream>
 
 #ifndef TOPGG_PROJECT_TOKENS_ONLY
@@ -68,10 +66,10 @@ topgg::wsastartup_guard::~wsastartup_guard() {
 
 topgg::platform topgg::_from_platform_string(const std::string& platform) {
   if (platform == "discord") {
-    return topgg::platform::pp_discord;
+    return topgg::platform::p_discord;
   }
 
-  return topgg::platform::pp_roblox;
+  return topgg::platform::p_roblox;
 }
 
 topgg::project_type topgg::_from_project_type_string(const std::string& type) {
