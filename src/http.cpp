@@ -69,8 +69,6 @@ void topgg::http_backend::init() {
   hints.ai_socktype = SOCK_STREAM;
   hints.ai_protocol = IPPROTO_TCP;
 
-  int status{};
-
   if (getaddrinfo("top.gg", "443", &hints, &m_addrs) < 0 || m_addrs == nullptr) {
     throw topgg::exception{"Unable to retrieve top.gg's IP address"};
   }
@@ -121,7 +119,7 @@ void topgg::http_backend::on_connect(uv_connect_t* connection, int status) {
     return self->socket_throw(topgg::exception::uv("Unable to perform TCP handshake with Top.gg", status));
   } else if ((self->m_ssl_read_bio = BIO_new(BIO_s_mem())) == nullptr || (self->m_ssl_write_bio = BIO_new(BIO_s_mem())) == nullptr) {
     return self->socket_throw(topgg::exception::ssl("Unable to create BIO"));
-  } else if ((self->m_ssl = SSL_new(self->m_ssl_context)) == nullptr || SSL_set_tlsext_host_name(self->m_ssl, "top.gg") == 0 || SSL_set1_dnsname(self->m_ssl, "top.gg") == 0) {
+  } else if ((self->m_ssl = SSL_new(self->m_ssl_context)) == nullptr || SSL_set_tlsext_host_name(self->m_ssl, "top.gg") == 0 || SSL_set1_host(self->m_ssl, "top.gg") == 0) {
     return self->socket_throw(topgg::exception::ssl("Unable to create and configure SSL instance"));
   }
 
@@ -161,7 +159,7 @@ void topgg::http_backend::on_connect(uv_connect_t* connection, int status) {
   BIO_set_conn_hostname(self->m_ssl_read_bio, "top.gg:443");
   BIO_set_conn_hostname(self->m_ssl_write_bio, "top.gg:443");
 
-  if ((status = uv_read_start(reinterpret_cast<uv_stream_t*>(&self->m_socket), [](uv_handle_t* handle, size_t length, uv_buf_t* buf) {
+  if ((status = uv_read_start(reinterpret_cast<uv_stream_t*>(&self->m_socket), []([[maybe_unused]] uv_handle_t* handle, size_t length, uv_buf_t* buf) {
     buf->base = new char[length];
     buf->len = static_cast<unsigned long>(length);
   }, topgg::http_backend::on_read)) < 0) {
@@ -201,7 +199,7 @@ void topgg::http_backend::flush() {
       reinterpret_cast<uv_stream_t*>(&m_socket),
       &uv_buf,
       1,
-      [](uv_write_t* request, int status) {
+      [](uv_write_t* request, [[maybe_unused]] int status) {
         delete reinterpret_cast<std::vector<uint8_t>*>(request->data);
         delete request;
       }
@@ -344,7 +342,7 @@ void topgg::http_backend::flush_requests() {
   }
 }
 
-nghttp2_ssize topgg::http_backend::on_send(nghttp2_session* http2, const uint8_t* data, size_t length, int flags, void* ptr) {
+nghttp2_ssize topgg::http_backend::on_send([[maybe_unused]] nghttp2_session* http2, const uint8_t* data, size_t length, [[maybe_unused]] int flags, void* ptr) {
   TOPGG_LOGF("[EVENT: NGHTTP2 SEND] %d bytes", length);
 
   auto self{reinterpret_cast<topgg::http_backend*>(ptr)};
@@ -385,7 +383,7 @@ nghttp2_ssize topgg::http_backend::on_send(nghttp2_session* http2, const uint8_t
   return static_cast<nghttp2_ssize>(length);
 }
 
-int topgg::http_backend::on_header(nghttp2_session* http2, const nghttp2_frame* frame, const uint8_t* name, size_t name_length, const uint8_t* value, size_t value_length, uint8_t flags, void* ptr) {
+int topgg::http_backend::on_header([[maybe_unused]] nghttp2_session* http2, const nghttp2_frame* frame, const uint8_t* name, size_t name_length, const uint8_t* value, size_t value_length, [[maybe_unused]] uint8_t flags, void* ptr) {
   if (frame->hd.type == NGHTTP2_HEADERS && frame->headers.cat == NGHTTP2_HCAT_RESPONSE) {
     TOPGG_LOGF("[EVENT: NGHTTP2 STREAM %d HEADER] %.*s: %.*s", frame->hd.stream_id, name_length, name, value_length, value);
 
@@ -399,7 +397,7 @@ int topgg::http_backend::on_header(nghttp2_session* http2, const nghttp2_frame* 
   return 0;
 }
 
-int topgg::http_backend::on_data_chunk(nghttp2_session* http2, uint8_t flags, int32_t stream_id, const uint8_t* data, size_t length, void* ptr) {
+int topgg::http_backend::on_data_chunk([[maybe_unused]] nghttp2_session* http2, [[maybe_unused]] uint8_t flags, int32_t stream_id, const uint8_t* data, size_t length, void* ptr) {
   TOPGG_LOGF("[EVENT: NGHTTP2 STREAM %d BODY CHUNK] %d bytes", stream_id, length);
 
   auto request{reinterpret_cast<topgg::http_request*>(nghttp2_session_get_stream_user_data(reinterpret_cast<topgg::http_backend*>(ptr)->m_nghttp2, stream_id))};
@@ -414,13 +412,13 @@ void topgg::http_backend::dispatch(topgg::http_request* request, uv_work_cb work
 
   work->data = request;
 
-  uv_queue_work(m_loop, work, work_callback, [](uv_work_t* work, int status) {
+  uv_queue_work(m_loop, work, work_callback, [](uv_work_t* work, [[maybe_unused]] int status) {
     delete reinterpret_cast<topgg::http_request*>(work->data);
     delete work;
   });
 }
 
-int topgg::http_backend::on_stream_close(nghttp2_session* http2, int32_t stream_id, uint32_t error, void* ptr) {
+int topgg::http_backend::on_stream_close([[maybe_unused]] nghttp2_session* http2, int32_t stream_id, uint32_t error, void* ptr) {
   TOPGG_LOGF("[EVENT: NGHTTP2 STREAM %d CLOSE] error: %d", stream_id, error);
 
   auto self{reinterpret_cast<topgg::http_backend*>(ptr)};
@@ -711,11 +709,11 @@ void topgg::http_request::add_header(const std::string_view& name, const std::st
   m_headers.push_back(header);
 }
 
-ssize_t topgg::http_request::on_body_read(nghttp2_session* session, int32_t stream_id, uint8_t* data, size_t length, uint32_t* flags, nghttp2_data_source* source, void* ptr) {
+ssize_t topgg::http_request::on_body_read([[maybe_unused]] nghttp2_session* session, [[maybe_unused]] int32_t stream_id, uint8_t* data, size_t length, uint32_t* flags, nghttp2_data_source* source, [[maybe_unused]] void* ptr) {
   auto self{reinterpret_cast<topgg::http_request*>(source->ptr)};
 
   const auto remaining{self->m_body.length() - self->m_body_position};
-  auto to_send{min(remaining, length)};
+  auto to_send{std::min(remaining, length)};
 
   TOPGG_LOGF("[EVENT: NGHTTP2 REQUEST BODY READ] sending %d bytes", to_send);
 

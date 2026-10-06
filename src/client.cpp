@@ -302,12 +302,15 @@ void topgg::oauth2_client::revoke_token(const topgg::empty_callback& callback, c
   }
 }
 
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wwrite-strings"
+#endif
+
 topgg::oauth2::oauth2(const std::string& client_id, const std::string& client_secret, const std::string& redirect_uri, const std::initializer_list<std::string_view>& scopes): m_client_id(client_id), m_client_secret(client_secret), m_redirect_uri(redirect_uri) {
-  if (!scopes.empty()) {
-    for (const auto& scope: scopes) {
-      m_scopes += '+';
-      m_scopes += scope;
-    }
+  for (const auto& scope: scopes) {
+    m_scopes += '+';
+    m_scopes += scope;
   }
 
   if ((m_bio = BIO_new(BIO_s_mem())) == nullptr || (m_base64_bio = BIO_new(BIO_f_base64())) == nullptr) {
@@ -321,6 +324,10 @@ topgg::oauth2::oauth2(const std::string& client_id, const std::string& client_se
 
   regenerate();
 }
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
 std::shared_ptr<topgg::oauth2_client> topgg::oauth2::new_client(const topgg::oauth2_session& session) {
   std::lock_guard guard_{m_http.m_backend->m_oauth2_mutex};

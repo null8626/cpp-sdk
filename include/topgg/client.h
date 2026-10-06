@@ -20,14 +20,8 @@ namespace topgg {
   template<class T>
   using paginated_callback = std::function<void(const paginated_result<T>&)>;
 
-#ifndef TOPGG_OAUTH2_ACCESS_TOKENS_ONLY
-  class client;
-#endif
-#ifndef TOPGG_PROJECT_TOKENS_ONLY
-  class oauth2_client;
-#endif
-
   class base_client {
+  protected:
     virtual http_frontend* get_http() = 0;
 
     virtual std::string get_token() = 0;
@@ -144,13 +138,6 @@ namespace topgg {
     void get_votes(const std::string& id, const paginated_result<vote>& cursor, const paginated_callback<vote>& callback, const bool defer = false);
 
     void get_votes(const std::string& id, const std::string& user_id, const user_source& source, const callback<partial_vote>& callback, const bool defer = false);
-
-#ifndef TOPGG_OAUTH2_ACCESS_TOKENS_ONLY
-    friend class client;
-#endif
-#ifndef TOPGG_PROJECT_TOKENS_ONLY
-    friend class oauth2_client;
-#endif
   };
 
 #ifndef TOPGG_OAUTH2_ACCESS_TOKENS_ONLY
@@ -216,6 +203,8 @@ namespace topgg {
     std::string refresh_token{};
     time_t token_expires_at{};
   };
+
+  class oauth2_client;
 
   class oauth2 {
     http_frontend m_http{};

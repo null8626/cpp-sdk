@@ -15,7 +15,6 @@ namespace topgg {
   class client;
 #endif
   class http_backend;
-  class http_exception;
   class http_frontend;
 #ifndef TOPGG_PROJECT_TOKENS_ONLY
   class oauth2_client;
@@ -26,13 +25,16 @@ namespace topgg {
 #endif
 
   class exception: public std::runtime_error {
+  protected:
     inline exception(const char* message): std::runtime_error(message) {}
 
     static exception ssl(const char* message);
 
     static exception uv(const char* message, const int status);
 
+#ifdef _WIN32
     static exception system(const char* message);
+#endif
 
     static exception nghttp2(const char* message, const int status);
 
@@ -50,7 +52,6 @@ namespace topgg {
     friend class client;
 #endif
     friend class http_backend;
-    friend class http_exception;
     friend class http_frontend;
     friend class localized_string;
 #ifndef TOPGG_PROJECT_TOKENS_ONLY

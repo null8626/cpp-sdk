@@ -14,15 +14,13 @@ namespace topgg {
 #ifndef TOPGG_OAUTH2_ACCESS_TOKENS_ONLY
   class client;
 #endif
-  class empty_result;
 #ifndef TOPGG_PROJECT_TOKENS_ONLY
   class oauth2_client;
 #endif
-  template<class T>
-  class paginated_result;
 
   template<class T>
   class result {
+  protected:
     std::variant<exception, http_exception, nlohmann::json::exception, T> m_variant{};
 
     template<class T2>
@@ -44,13 +42,10 @@ namespace topgg {
     }
 
     friend class base_client;
-    friend class empty_result;
 #ifndef TOPGG_PROJECT_TOKENS_ONLY
     friend class oauth2_client;
     friend class oauth2;
 #endif
-    template<class T2>
-    friend class paginated_result;
   };
 
   class empty_result: private result<std::monostate> {
@@ -70,8 +65,10 @@ namespace topgg {
 
   template<class T>
   class paginated_result: private result<std::pair<std::vector<T>, std::optional<std::string>>> {
+    using base_result = result<std::pair<std::vector<T>, std::optional<std::string>>>;
+
     template<class T2>
-    inline paginated_result(const T2& data): result(data) {}
+    inline paginated_result(const T2& data): base_result(data) {}
 
     static inline paginated_result<T> from_array(const char* key, const nlohmann::json& j) {
       std::vector<T> data{};
@@ -87,9 +84,9 @@ namespace topgg {
       return std::make_pair(std::vector<T>{}, std::nullopt);
     }
 
-    inline const std::optional<std::string>& cursor() const {
-      return std::holds_alternative<std::pair<std::vector<T>, std::optional<std::string>>>(m_variant) ?
-        std::get<std::pair<std::vector<T>, std::optional<std::string>>>(m_variant).second :
+    inline std::optional<std::string> cursor() const {
+      return std::holds_alternative<std::pair<std::vector<T>, std::optional<std::string>>>(this->m_variant) ?
+        std::get<std::pair<std::vector<T>, std::optional<std::string>>>(this->m_variant).second :
         std::nullopt;
     }
 
@@ -97,7 +94,7 @@ namespace topgg {
     paginated_result() = delete;
 
     inline const std::vector<T>& get() const {
-      return result::get().first;
+      return base_result::get().first;
     }
 
     friend class base_client;

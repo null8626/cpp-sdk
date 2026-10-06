@@ -23,7 +23,7 @@ namespace topgg::webhooks {
 
     std::string id{};
     std::string platform_id{};
-    platform platform{};
+    topgg::platform platform{};
     project_type type{};
 
     friend class vote_create;

@@ -28,9 +28,8 @@ namespace topgg {
     pt_game,
   };
 
-  class user_project;
-
   class partial_project {
+  protected:
     partial_project(const nlohmann::json& j);
 
   public:
@@ -39,7 +38,7 @@ namespace topgg {
     std::string id{};
     std::string platform_id{};
     std::string name{};
-    platform platform{};
+    topgg::platform platform{};
     project_type type{};
 
     friend class base_client;
@@ -47,7 +46,6 @@ namespace topgg {
     friend class oauth2_client;
 #endif
     friend class paginated_result<partial_project>;
-    friend class user_project;
   };
 
   class project {
@@ -58,7 +56,7 @@ namespace topgg {
 
     std::string id{};
     std::string name{};
-    platform platform{};
+    topgg::platform platform{};
     project_type type{};
     std::string headline{};
     std::vector<std::string> tags{};
@@ -145,11 +143,11 @@ namespace topgg {
     inline constexpr discord_bot_metrics(const uint64_t server_count_, const uint64_t shard_count_): m_server_count(server_count_), m_shard_count(shard_count_) {}
 
     static inline constexpr discord_bot_metrics server_count(const uint64_t server_count_) noexcept {
-      return std::make_pair(server_count_, std::nullopt);
+      return {std::make_pair(server_count_, std::nullopt)};
     }
 
     static inline constexpr discord_bot_metrics shard_count(const uint64_t shard_count_) noexcept {
-      return std::make_pair(std::nullopt, shard_count_);
+      return {std::make_pair(std::nullopt, shard_count_)};
     }
 
     friend class timestamped_metrics<discord_bot_metrics>;
@@ -169,11 +167,11 @@ namespace topgg {
     inline constexpr discord_server_metrics(const uint64_t total_member_count_, const uint64_t online_member_count_): m_total_member_count(total_member_count_), m_online_member_count(online_member_count_) {}
 
     static inline constexpr discord_server_metrics total_member_count(const uint64_t total_member_count_) noexcept {
-      return std::make_pair(total_member_count_, std::nullopt);
+      return {std::make_pair(total_member_count_, std::nullopt)};
     }
 
     static inline constexpr discord_server_metrics online_member_count(const uint64_t online_member_count_) noexcept {
-      return std::make_pair(std::nullopt, online_member_count_);
+      return {std::make_pair(std::nullopt, online_member_count_)};
     }
 
     friend class timestamped_metrics<discord_server_metrics>;
@@ -191,6 +189,8 @@ namespace topgg {
 
     friend class timestamped_metrics<roblox_metrics>;
   };
+
+  std::string _to_time_string(const time_t timestamp);
 
   template<class T>
   class timestamped_metrics {
@@ -224,9 +224,8 @@ namespace topgg {
 #endif
   };
 
-  class vote;
-
   class partial_vote {
+  protected:
     partial_vote(const nlohmann::json& j);
 
   public:
@@ -244,7 +243,6 @@ namespace topgg {
 #ifndef TOPGG_PROJECT_TOKENS_ONLY
     friend class oauth2_client;
 #endif
-    friend class vote;
   };
 
   enum user_source {
@@ -285,19 +283,16 @@ namespace topgg {
     friend class oauth2_client;
   };
 
-  class webhook;
-
   struct base_webhook {
     std::string label{};
     std::string url{};
 
     base_webhook() = default;
 
-  private:
+  protected:
     base_webhook(const nlohmann::json& j);
 
     friend class oauth2_client;
-    friend class webhook;
   };
 
   class webhook: public base_webhook {
@@ -313,7 +308,7 @@ namespace topgg {
   };
 
   struct user_connection {
-    platform platform{};
+    topgg::platform platform{};
     std::string id{};
   };
 
@@ -345,7 +340,7 @@ namespace topgg {
     user_project() = delete;
 
     std::string headline{};
-    review_status review_status{};
+    topgg::review_status review_status{};
 
     friend class base_client;
     friend class oauth2_client;
@@ -356,7 +351,7 @@ namespace topgg {
 
     inline project_submission(const platform platform_, const project_type type_, const std::string& platform_id_, const std::string& headline_, const std::string& page_content_): platform(platform_), type(type_), platform_id(platform_id_), headline(headline_), page_content(page_content_) {}
 
-    platform platform{};
+    topgg::platform platform{};
     project_type type{};
     std::string platform_id{};
     std::string headline{};

@@ -38,7 +38,7 @@ set_target_properties(topgg PROPERTIES
 )
 
 if(MSVC)
-target_compile_options(topgg PRIVATE /EHsc $<$<CONFIG:Debug>:/diagnostics:caret /MDd> $<$<CONFIG:Release>:/MD /O2 /Oi /Oy /Gy>)
+target_compile_options(topgg PRIVATE /EHsc /permissive- $<$<CONFIG:Debug>:/diagnostics:caret /MDd> $<$<CONFIG:Release>:/MD /O2 /Oi /Oy /Gy>)
 else()
 target_compile_options(topgg PRIVATE $<$<CONFIG:Release>:-O3> -Wall -Wextra -Wpedantic -Wformat=2 -Wnull-dereference -Wuninitialized -Wdeprecated)
 endif()

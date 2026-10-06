@@ -38,10 +38,10 @@ topgg::exception topgg::exception::uv(const char* message, const int status) {
   return exc;
 }
 
+#ifdef _WIN32
 topgg::exception topgg::exception::system(const char* message) {
   topgg::exception exc{message};
 
-#ifdef _WIN32
   auto error{GetLastError()};
 
   if (error == 0) {
@@ -63,12 +63,12 @@ topgg::exception topgg::exception::system(const char* message) {
       LocalFree(cause_buf);
     }
   }
-#endif
 
   TOPGG_LOGF("SYSTEM ERROR: %s - %s", exc.what(), exc.cause.c_str());
 
   return exc;
 }
+#endif
 
 topgg::exception topgg::exception::nghttp2(const char* message, const int status) {
   topgg::exception exc{message};
