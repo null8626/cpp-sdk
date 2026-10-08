@@ -25,11 +25,19 @@ void topgg::base_client::fetch_empty(const std::string_view& method, const std::
   }, body}, defer);
 }
 
+void topgg::base_client::get_projects(const topgg::paginated_callback<topgg::partial_project>& callback, const bool defer) {
+  fetch_paginated("projects", "GET", "/projects", callback, defer);
+}
+
+void topgg::base_client::get_projects(const topgg::paginated_result<topgg::partial_project>& cursor, const topgg::paginated_callback<topgg::partial_project>& callback, const bool defer) {
+  fetch_paginated(cursor, "projects", "GET", "/projects", callback, defer);
+}
+
 void topgg::base_client::get_project(const std::string& id, const topgg::callback<topgg::project>& callback, const bool defer) {
   fetch_simple("GET", "/projects/" + id, callback, defer);
 }
 
-void topgg::base_client::edit_project(const std::string& id, const topgg::localized_string& headline, const topgg::localized_string& page_content, const topgg::empty_callback& callback, const bool defer) {
+void topgg::base_client::edit_project(const std::string& id, const topgg::locale_map& headline, const topgg::locale_map& page_content, const topgg::empty_callback& callback, const bool defer) {
   if (headline.m_json.empty() && page_content.m_json.empty()) {
     throw topgg::exception{"Either headline or page_content must be specified"};
   }
@@ -103,11 +111,72 @@ void topgg::base_client::get_votes(const std::string& id, const std::string& use
   fetch_simple("GET", "/projects/" + id + "/votes/" + user_id + "?source=" + source_string, callback, defer);
 }
 
+void topgg::base_client::get_integrations(const std::string& id, const topgg::callback<std::vector<topgg::integration>>& callback, const bool defer) {
+  fetch_vector("GET", "/projects/" + id + "/integrations", callback, defer);
+}
+
+void topgg::base_client::connect_integration(const std::string& project_id, const std::string& integration_id, const topgg::empty_callback& callback, const bool defer) {
+  fetch_empty("PUT", "/projects/" + project_id + "/integrations/" + integration_id, callback, defer);
+}
+
+void topgg::base_client::disconnect_integration(const std::string& project_id, const std::string& integration_id, const topgg::empty_callback& callback, const bool defer) {
+  fetch_empty("DELETE", "/projects/" + project_id + "/integrations/" + integration_id, callback, defer);
+}
+
+void topgg::base_client::get_webhooks(const std::string& id, const topgg::callback<std::vector<topgg::webhook>>& callback, const bool defer) {
+  fetch_vector("GET", "/projects/" + id + "/webhooks", callback, defer);
+}
+
+void topgg::base_client::create_webhook(const std::string& id, const topgg::base_webhook& webhook, const topgg::empty_callback& callback, const bool defer) {
+  nlohmann::json body{};
+
+  body["label"] = webhook.label;
+  body["url"] = webhook.url;
+
+  fetch_empty("POST", "/projects/" + id + "/webhooks", callback, defer, body.dump());
+}
+
+void topgg::base_client::delete_webhook(const std::string& project_id, const std::string& webhook_id, const topgg::empty_callback& callback, const bool defer) {
+  fetch_empty("DELETE", "/projects/" + project_id + "/webhooks/" + webhook_id, callback, defer);
+}
+
+void topgg::base_client::rotate_webhook_secret(const std::string& project_id, const std::string& webhook_id, const topgg::callback<std::string>& callback, const bool defer) {
+  get_http()->fetch(new http_request{get_token(), "POST", "/projects/" + project_id + "/webhooks/" + webhook_id + "/rotate", [callback](const topgg::http_response& response) {
+    if (std::holds_alternative<exception>(response)) {
+      callback(std::get<exception>(response));
+    } else {
+      try {
+        const auto& response_pair{std::get<std::pair<uint16_t, std::string_view>>(response)};
+
+        if (response_pair.first >= 400) {
+          callback(http_exception{response_pair});
+        } else {
+          const auto json{nlohmann::json::parse(response_pair.second)};
+
+          callback(json["secret"].template get<std::string>());
+        }
+      } catch (const nlohmann::json::exception& error) {
+        callback(error);
+      }
+    }
+  }}, defer);
+}
+
+void topgg::base_client::test_webhook(const std::string& project_id, const std::string& webhook_id, const topgg::empty_callback& callback, const bool defer) {
+  fetch_empty("POST", "/projects/" + project_id + "/webhooks/" + webhook_id + "/test", callback, defer);
+}
+
 #ifndef TOPGG_PROJECT_TOKENS_ONLY
 topgg::oauth2_session topgg::oauth2_client::get_session() {
   std::lock_guard guard_{m_token_mutex};
 
   return m_session;
+}
+
+bool topgg::oauth2_client::has_expired() {
+  std::lock_guard guard_{m_token_mutex};
+
+  return m_session.has_expired();
 }
 
 std::string topgg::oauth2_client::get_token() {
@@ -158,14 +227,6 @@ void topgg::oauth2_client::stop_refresh_token() {
   }
 }
 
-void topgg::oauth2_client::get_projects(const topgg::paginated_callback<topgg::partial_project>& callback, const bool defer) {
-  fetch_paginated("projects", "GET", "/projects", callback, defer);
-}
-
-void topgg::oauth2_client::get_projects(const topgg::paginated_result<topgg::partial_project>& cursor, const topgg::paginated_callback<topgg::partial_project>& callback, const bool defer) {
-  fetch_paginated(cursor, "projects", "GET", "/projects", callback, defer);
-}
-
 void topgg::oauth2_client::get_authorized_user(const topgg::callback<topgg::user>& callback, const bool defer) {
   fetch_simple("GET", "/users/@me", callback, defer);
 }
@@ -205,61 +266,6 @@ void topgg::oauth2_client::submit_project(const topgg::project_submission& submi
   body["page_content"] = submission.page_content;
 
   fetch_empty("POST", "/users/@me/projects", callback, defer, body.dump());
-}
-
-void topgg::oauth2_client::get_integrations(const std::string& id, const topgg::callback<std::vector<topgg::integration>>& callback, const bool defer) {
-  fetch_vector("GET", "/projects/" + id + "/integrations", callback, defer);
-}
-
-void topgg::oauth2_client::connect_integration(const std::string& project_id, const std::string& integration_id, const topgg::empty_callback& callback, const bool defer) {
-  fetch_empty("PUT", "/projects/" + project_id + "/integrations/" + integration_id, callback, defer);
-}
-
-void topgg::oauth2_client::disconnect_integration(const std::string& project_id, const std::string& integration_id, const topgg::empty_callback& callback, const bool defer) {
-  fetch_empty("DELETE", "/projects/" + project_id + "/integrations/" + integration_id, callback, defer);
-}
-
-void topgg::oauth2_client::get_webhooks(const std::string& id, const topgg::callback<std::vector<topgg::webhook>>& callback, const bool defer) {
-  fetch_vector("GET", "/projects/" + id + "/webhooks", callback, defer);
-}
-
-void topgg::oauth2_client::create_webhook(const std::string& id, const topgg::base_webhook& webhook, const topgg::empty_callback& callback, const bool defer) {
-  nlohmann::json body{};
-
-  body["label"] = webhook.label;
-  body["url"] = webhook.url;
-
-  fetch_empty("POST", "/projects/" + id + "/webhooks", callback, defer, body.dump());
-}
-
-void topgg::oauth2_client::delete_webhook(const std::string& project_id, const std::string& webhook_id, const topgg::empty_callback& callback, const bool defer) {
-  fetch_empty("DELETE", "/projects/" + project_id + "/webhooks/" + webhook_id, callback, defer);
-}
-
-void topgg::oauth2_client::rotate_webhook_secret(const std::string& project_id, const std::string& webhook_id, const topgg::callback<std::string>& callback, const bool defer) {
-  get_http()->fetch(new http_request{get_token(), "POST", "/projects/" + project_id + "/webhooks/" + webhook_id + "/rotate", [callback](const topgg::http_response& response) {
-    if (std::holds_alternative<exception>(response)) {
-      callback(std::get<exception>(response));
-    } else {
-      try {
-        const auto& response_pair{std::get<std::pair<uint16_t, std::string_view>>(response)};
-
-        if (response_pair.first >= 400) {
-          callback(http_exception{response_pair});
-        } else {
-          const auto json{nlohmann::json::parse(response_pair.second)};
-
-          callback(json["secret"].template get<std::string>());
-        }
-      } catch (const nlohmann::json::exception& error) {
-        callback(error);
-      }
-    }
-  }}, defer);
-}
-
-void topgg::oauth2_client::test_webhook(const std::string& project_id, const std::string& webhook_id, const topgg::empty_callback& callback, const bool defer) {
-  fetch_empty("POST", "/projects/" + project_id + "/webhooks/" + webhook_id + "/test", callback, defer);
 }
 
 void topgg::oauth2_client::revoke_token(const topgg::empty_callback& callback, const bool defer) {
@@ -302,6 +308,37 @@ void topgg::oauth2_client::revoke_token(const topgg::empty_callback& callback, c
   }
 }
 
+void topgg::oauth2_url::exchange(const std::string& code, const std::string& state, const topgg::callback<topgg::oauth2_session>& callback) {
+  std::string body{"grant_type=authorization_code&client_id="};
+
+  body += m_oauth2->m_client_id + "&client_secret=" + m_oauth2->m_client_secret + "&code=" + code + "&redirect_uri=" + topgg::_url_encode(m_oauth2->m_redirect_uri) + "&code_verifier=" + m_code_verifier;
+
+  m_oauth2->m_http.fetch(new topgg::http_request{"", "POST", "/oauth2/token", [this, callback](const topgg::http_response& response) {
+    if (std::holds_alternative<topgg::exception>(response)) {
+      callback(std::get<topgg::exception>(response));
+    } else {
+      try {
+        const auto& response_pair{std::get<std::pair<uint16_t, std::string_view>>(response)};
+
+        if (response_pair.first >= 400) {
+          callback(topgg::http_exception{response_pair});
+        } else {
+          const auto json{nlohmann::json::parse(response_pair.second)};
+
+          callback(topgg::oauth2_session{
+            json["access_token"].template get<std::string>(),
+            json["refresh_token"].template get<std::string>(),
+            TOPGG_NEW_TOKEN_EXPIRY_TIMESTAMP()
+          });
+        }
+      } catch (const nlohmann::json::exception& error) {
+        callback(error);
+      }
+    }
+  }, body, "application/x-www-form-urlencoded"});
+}
+
+
 #ifdef __clang__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wwrite-strings"
@@ -321,8 +358,6 @@ topgg::oauth2::oauth2(const std::string& client_id, const std::string& client_se
 
   BIO_set_flags(m_base64_bio, BIO_FLAGS_BASE64_NO_NL);
   m_base64_bio = BIO_push(m_base64_bio, m_bio);
-
-  regenerate();
 }
 
 #ifdef __clang__
@@ -351,13 +386,13 @@ std::shared_ptr<topgg::oauth2_client> topgg::oauth2::new_client(const topgg::oau
   return client;
 }
 
-void topgg::oauth2::regenerate() {
-  std::lock_guard guard_{m_regenerate_mutex};
+std::shared_ptr<topgg::oauth2_url> topgg::oauth2::new_url() {
+  const auto state{topgg::_random_string()};
+  auto code_verifier{topgg::_random_string()};
 
-  m_state = topgg::_random_string();
-  m_code_verifier = topgg::_random_string();
+  std::lock_guard guard_{m_url_mutex};
 
-  if (EVP_DigestUpdate(m_md_context, m_code_verifier.data(), m_code_verifier.length()) != 1) {
+  if (EVP_DigestUpdate(m_md_context, code_verifier.data(), code_verifier.length()) != 1) {
     throw topgg::exception{"Unable to update sha256 hash of code verifier"};
   }
 
@@ -373,68 +408,22 @@ void topgg::oauth2::regenerate() {
 
   BIO_get_mem_ptr(m_bio, &code_challenge_hash_base64);
 
-  m_code_challenge = std::string{code_challenge_hash_base64->data, code_challenge_hash_base64->length};
+  auto code_challenge{std::string{code_challenge_hash_base64->data, code_challenge_hash_base64->length}};
 
-  std::replace(m_code_challenge.begin(), m_code_challenge.end(), '+', '-');
-  std::replace(m_code_challenge.begin(), m_code_challenge.end(), '/', '_');
+  std::replace(code_challenge.begin(), code_challenge.end(), '+', '-');
+  std::replace(code_challenge.begin(), code_challenge.end(), '/', '_');
 
-  m_code_challenge.erase(std::remove(m_code_challenge.begin(), m_code_challenge.end(), '='), m_code_challenge.end());
-}
+  code_challenge.erase(std::remove(code_challenge.begin(), code_challenge.end(), '='), code_challenge.end());
 
-std::string topgg::oauth2::get_url() {
   std::string_view scopes{m_scopes};
 
   scopes = scopes.empty() ? scopes : scopes.substr(1);
 
-  std::lock_guard guard_{m_regenerate_mutex};
-
-  auto url{std::string{"https://top.gg/oauth2/authorize?response_type=code&code_challenge_method=S256&client_id="} + m_client_id + "&redirect_uri=" + topgg::_url_encode(m_redirect_uri) + "&state=" + m_state + "&code_challenge=" + m_code_challenge + "&scope="};
+  auto url{std::string{"https://top.gg/oauth2/authorize?response_type=code&code_challenge_method=S256&client_id="} + m_client_id + "&redirect_uri=" + topgg::_url_encode(m_redirect_uri) + "&state=" + state + "&code_challenge=" + code_challenge + "&scope="};
 
   url += scopes;
 
-  return url;
-}
-
-void topgg::oauth2::exchange(const std::string& code, const std::string& state, const topgg::callback<topgg::oauth2_session>& callback) {
-  std::lock_guard guard_{m_regenerate_mutex};
-
-  if (state != m_state) {
-    throw topgg::exception{"Mismatched state"};
-  }
-
-  std::string body{"grant_type=authorization_code&client_id="};
-
-  body += m_client_id + "&client_secret=" + m_client_secret + "&code=" + code + "&redirect_uri=" + topgg::_url_encode(m_redirect_uri) + "&code_verifier=" + m_code_verifier;
-
-  m_http.fetch(new topgg::http_request{"", "POST", "/oauth2/token", [this, callback](const topgg::http_response& response) {
-    try {
-      regenerate();
-    } catch (const topgg::exception& error) {
-      return callback(error);
-    }
-
-    if (std::holds_alternative<topgg::exception>(response)) {
-      callback(std::get<topgg::exception>(response));
-    } else {
-      try {
-        const auto& response_pair{std::get<std::pair<uint16_t, std::string_view>>(response)};
-
-        if (response_pair.first >= 400) {
-          callback(topgg::http_exception{response_pair});
-        } else {
-          const auto json{nlohmann::json::parse(response_pair.second)};
-
-          callback(topgg::oauth2_session{
-            json["access_token"].template get<std::string>(),
-            json["refresh_token"].template get<std::string>(),
-            TOPGG_NEW_TOKEN_EXPIRY_TIMESTAMP()
-          });
-        }
-      } catch (const nlohmann::json::exception& error) {
-        callback(error);
-      }
-    }
-  }, body, "application/x-www-form-urlencoded"});
+  return std::shared_ptr<topgg::oauth2_url>{new topgg::oauth2_url{this, code_verifier, url}};
 }
 
 topgg::oauth2::~oauth2() {

@@ -16,8 +16,14 @@ namespace topgg {
 #endif
 #ifndef TOPGG_PROJECT_TOKENS_ONLY
   class oauth2_client;
+  class oauth2_url;
 #endif
 
+  /**
+   * @brief An API call result that may contain a singular data.
+   * 
+   * @since 2.0.0
+   */
   template<class T>
   class result {
   protected:
@@ -29,6 +35,15 @@ namespace topgg {
   public:
     result() = delete;
 
+    /**
+     * @brief Retrieves the contained data with error checking.
+     * 
+     * @return T The contained data.
+     * @throw topgg::exception A general Top.gg exception has occurred.
+     * @throw topgg::http_exception An HTTP request exception has occurred.
+     * @throw nlohmann::json::exception Unable to parse JSON.
+     * @since 2.0.0
+     */
     const T& get() const {
       if (std::holds_alternative<T>(m_variant)) {
         return std::get<T>(m_variant);
@@ -44,15 +59,29 @@ namespace topgg {
     friend class base_client;
 #ifndef TOPGG_PROJECT_TOKENS_ONLY
     friend class oauth2_client;
+    friend class oauth2_url;
     friend class oauth2;
 #endif
   };
 
+  /**
+   * @brief An API call result that does not contain any data.
+   * 
+   * @since 2.0.0
+   */
   class empty_result: private result<std::monostate> {
     template<class T2>
     inline empty_result(const T2& data): result(data) {}
 
   public:
+    /**
+     * @brief Throws an error if the API call failed.
+     * 
+     * @throw topgg::exception A general Top.gg exception has occurred.
+     * @throw topgg::http_exception An HTTP request exception has occurred.
+     * @throw nlohmann::json::exception Unable to parse JSON.
+     * @since 2.0.0
+     */
     inline void check() const {
       result::get();
     }
@@ -63,6 +92,11 @@ namespace topgg {
 #endif
   };
 
+  /**
+   * @brief An API call result that may contain paginated data.
+   * 
+   * @since 2.0.0
+   */
   template<class T>
   class paginated_result: private result<std::pair<std::vector<T>, std::optional<std::string>>> {
     using base_result = result<std::pair<std::vector<T>, std::optional<std::string>>>;
@@ -93,6 +127,15 @@ namespace topgg {
   public:
     paginated_result() = delete;
 
+    /**
+     * @brief Retrieves the contained data with error checking.
+     * 
+     * @return std::vector<T> The contained data.
+     * @throw topgg::exception A general Top.gg exception has occurred.
+     * @throw topgg::http_exception An HTTP request exception has occurred.
+     * @throw nlohmann::json::exception Unable to parse JSON.
+     * @since 2.0.0
+     */
     inline const std::vector<T>& get() const {
       return base_result::get().first;
     }

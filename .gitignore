@@ -1,2 +1,5 @@
-include/nlohmann/
+build/
+docs/*.bak
+docs/html/
 include/httplib.h
+include/nlohmann/

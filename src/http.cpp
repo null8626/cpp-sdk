@@ -1,3 +1,7 @@
+#if defined(_WIN32) && !defined(NOMINMAX)
+#define NOMINMAX
+#endif
+
 #include <openssl/err.h>
 #include <topgg/topgg.h>
 #include <algorithm>
@@ -119,7 +123,7 @@ void topgg::http_backend::on_connect(uv_connect_t* connection, int status) {
     return self->socket_throw(topgg::exception::uv("Unable to perform TCP handshake with Top.gg", status));
   } else if ((self->m_ssl_read_bio = BIO_new(BIO_s_mem())) == nullptr || (self->m_ssl_write_bio = BIO_new(BIO_s_mem())) == nullptr) {
     return self->socket_throw(topgg::exception::ssl("Unable to create BIO"));
-  } else if ((self->m_ssl = SSL_new(self->m_ssl_context)) == nullptr || SSL_set_tlsext_host_name(self->m_ssl, "top.gg") == 0 || SSL_set1_host(self->m_ssl, "top.gg") == 0) {
+  } else if ((self->m_ssl = SSL_new(self->m_ssl_context)) == nullptr || SSL_set_tlsext_host_name(self->m_ssl, "top.gg") == 0 || X509_VERIFY_PARAM_set1_host(SSL_get0_param(self->m_ssl), "top.gg", 0) == 0) {
     return self->socket_throw(topgg::exception::ssl("Unable to create and configure SSL instance"));
   }
 

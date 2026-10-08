@@ -4,7 +4,7 @@ project(
   topgg
   LANGUAGES CXX
   HOMEPAGE_URL "https://docs.top.gg/docs"
-  DESCRIPTION "The community-maintained C++ SDK for Top.gg."
+  DESCRIPTION "The community-maintained C++17 SDK for Top.gg."
 )
 
 get_property(_has_shared GLOBAL PROPERTY TARGET_SUPPORTS_SHARED_LIBS)
@@ -12,7 +12,7 @@ get_property(_has_shared GLOBAL PROPERTY TARGET_SUPPORTS_SHARED_LIBS)
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
 set(CMAKE_BUILD_TYPE Debug CACHE STRING "Build type")
-set(TOPGG_SSLKEYLOG "" CACHE STRING "SSL keylog file for debugging")
+set(TOPGG_SSLKEYLOG "" CACHE STRING "SSL keylog file for network debugging with Wireshark")
 set(TOPGG_TOKEN_EXPIRY_INTERVAL "604800" CACHE STRING "Access token expiry interval for development testing")
 option(TOPGG_PROJECT_TOKENS_ONLY "Only include project token support")
 option(TOPGG_OAUTH2_ACCESS_TOKENS_ONLY "Only include oauth2 access token support")
@@ -24,9 +24,9 @@ file(GLOB TOPGG_SOURCE_FILES ${CMAKE_CURRENT_LIST_DIR}/src/*.cpp)
 if(BUILD_SHARED_LIBS)
 add_library(topgg SHARED ${TOPGG_SOURCE_FILES})
 
-# if(WIN32)
-# target_sources(topgg PRIVATE ${CMAKE_CURRENT_LIST_DIR}/topgg.rc)
-# endif()
+if(WIN32)
+target_sources(topgg PRIVATE ${CMAKE_CURRENT_LIST_DIR}/topgg.rc)
+endif()
 else()
 add_library(topgg STATIC ${TOPGG_SOURCE_FILES})
 endif()

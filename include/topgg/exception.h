@@ -18,12 +18,18 @@ namespace topgg {
   class http_frontend;
 #ifndef TOPGG_PROJECT_TOKENS_ONLY
   class oauth2_client;
+  class oauth2_url;
 #endif
   class waker;
 #ifdef _WIN32
   class wsastartup_guard;
 #endif
 
+  /**
+   * @brief A standard exception.
+   * 
+   * @since 2.0.0
+   */
   class exception: public std::runtime_error {
   protected:
     inline exception(const char* message): std::runtime_error(message) {}
@@ -39,6 +45,11 @@ namespace topgg {
     static exception nghttp2(const char* message, const int status);
 
   public:
+    /**
+     * @brief The exception's cause if any.
+     * 
+     * @since 2.0.0
+     */
     std::string cause{};
 
     exception() = delete;
@@ -53,7 +64,7 @@ namespace topgg {
 #endif
     friend class http_backend;
     friend class http_frontend;
-    friend class localized_string;
+    friend class locale_map;
 #ifndef TOPGG_PROJECT_TOKENS_ONLY
     friend class oauth2_client;
     friend class oauth2;
@@ -68,11 +79,27 @@ namespace topgg {
 #endif
   };
 
+  /**
+   * @brief An HTTP request exception.
+   * 
+   * @since 2.0.0
+   */
   class http_exception: public exception {
     http_exception(const std::pair<uint16_t, std::string_view>& response_pair);
 
   public:
+    /**
+     * @brief The exception's HTTP status code.
+     * 
+     * @since 2.0.0
+     */
     uint16_t status{};
+
+    /**
+     * @brief The exception's detail if any.
+     * 
+     * @since 2.0.0
+     */
     std::string detail{};
 
     http_exception() = delete;
@@ -81,6 +108,7 @@ namespace topgg {
     friend class http_backend;
 #ifndef TOPGG_PROJECT_TOKENS_ONLY
     friend class oauth2_client;
+    friend class oauth2_url;
     friend class oauth2;
 #endif
   };

@@ -34,6 +34,7 @@ namespace topgg {
 #endif
 #ifndef TOPGG_PROJECT_TOKENS_ONLY
   class oauth2_client;
+  class oauth2_url;
   class oauth2;
 #endif
 
@@ -168,6 +169,7 @@ namespace topgg {
     friend class http_backend;
 #ifndef TOPGG_PROJECT_TOKENS_ONLY
     friend class oauth2_client;
+    friend class oauth2_url;
     friend class oauth2;
 #endif
   };
@@ -189,6 +191,7 @@ namespace topgg {
     friend class http_backend;
 #ifndef TOPGG_PROJECT_TOKENS_ONLY
     friend class oauth2;
+    friend class oauth2_url;
     friend class oauth2_client;
 #endif
   };

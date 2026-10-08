@@ -27,19 +27,19 @@ topgg::project::project(const nlohmann::json& j) {
   review_count = j["review_count"].template get<uint64_t>();
 }
 
-void topgg::localized_string::enforce_constraints(const uint16_t minimum, const uint16_t maximum) const {
+void topgg::locale_map::enforce_constraints(const uint16_t minimum, const uint16_t maximum) const {
   for (const auto& item: m_json.items()) {
     const auto text{item.value().template get<std::string_view>()};
 
     if (text.length() < minimum) {
-      throw topgg::exception{"A localized_string text length is below the minimum threshold"};
+      throw topgg::exception{"A locale_map text length is below the minimum threshold"};
     } else if (text.length() > maximum) {
-      throw topgg::exception{"A localized_string text length is above the maximum threshold"};
+      throw topgg::exception{"A locale_map text length is above the maximum threshold"};
     }
   }
 }
 
-void topgg::localized_string::set(const topgg::locale& locale, const std::string& text) {
+void topgg::locale_map::set(const topgg::locale& locale, const std::string& text) {
   std::string key{};
 
   switch (locale) {
