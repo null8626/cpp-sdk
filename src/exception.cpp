@@ -22,7 +22,7 @@ topgg::exception topgg::exception::ssl(const char* message) {
     exc.cause += "\n";
   }
 
-  TOPGG_LOGF("SSL ERROR: %s - %s", exc.what(), exc.cause.c_str());
+  TOPGG_ELOGF("SSL ERROR: %s - %s", exc.what(), exc.cause.c_str());
 
   return exc;
 }
@@ -32,7 +32,7 @@ topgg::exception topgg::exception::uv(const char* message, const int status) {
 
   exc.cause = const_cast<char*>(uv_err_name(status));
 
-  TOPGG_LOGF("UV ERROR: %s - %s", exc.what(), exc.cause.c_str());
+  TOPGG_ELOGF("UV ERROR: %s - %s", exc.what(), exc.cause.c_str());
 
   return exc;
 }
@@ -63,7 +63,7 @@ topgg::exception topgg::exception::system(const char* message) {
     }
   }
 
-  TOPGG_LOGF("SYSTEM ERROR: %s - %s", exc.what(), exc.cause.c_str());
+  TOPGG_ELOGF("SYSTEM ERROR: %s - %s", exc.what(), exc.cause.c_str());
 
   return exc;
 }
@@ -74,7 +74,7 @@ topgg::exception topgg::exception::nghttp2(const char* message, const int status
 
   exc.cause = const_cast<char*>(nghttp2_strerror(status));
 
-  TOPGG_LOGF("NGHTTP2 ERROR: %s - %s", exc.what(), exc.cause.c_str());
+  TOPGG_ELOGF("NGHTTP2 ERROR: %s - %s", exc.what(), exc.cause.c_str());
 
   return exc;
 }
@@ -87,5 +87,5 @@ topgg::http_exception::http_exception(const topgg::http_response& response): top
     detail = j.value(j.contains("error_description") ? "error_description" : "detail", cause);
   } catch (const nlohmann::json::exception&) {}
 
-  TOPGG_LOGF("HTTP ERROR: %d", response.status);
+  TOPGG_ELOGF("HTTP ERROR: %d", response.status);
 }
