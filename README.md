@@ -37,28 +37,28 @@ $ sudo apt install libssl-dev libnghttp2-dev libuv1-dev
 $ cmake -B build .
 $ cmake --build build --config Release
 ```
-#### Linux (Fedora)
+### Linux (Fedora)
 
 ```sh
 $ sudo dnf install openssl-devel libnghttp2-devel libuv-devel
 $ cmake -B build .
 $ cmake --build build --config Release
 ```
-#### Linux (Arch)
+### Linux (Arch)
 
 ```sh
 $ sudo pacman -S openssl nghttp2 libuv
 $ cmake -B build .
 $ cmake --build build --config Release
 ```
-#### macOS
+### macOS
 
 ```sh
 $ brew install openssl nghttp2 libuv
 $ cmake -B build .
 $ cmake --build build --config Release
 ```
-#### Windows
+### Windows
 ```bat
 > vcpkg install openssl nghttp2 libuv
 > cmake -B build .
