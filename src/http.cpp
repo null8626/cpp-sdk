@@ -104,6 +104,9 @@ void topgg::http_backend::on_read(uv_stream_t* stream, ssize_t read_length, cons
     if (const auto status{BIO_write(self->m_ssl_read_bio, buf->base, static_cast<int>(read_length))}; status != read_length) {
       self->socket_throw(topgg::exception::ssl("Unable to write entire socket stream data to BIO"));
     } else {
+#ifndef TOPGG_PROJECT_TOKENS_ONLY
+      self->flush_oauth2_requests();
+#endif
       self->flush_requests();
     }
   }
