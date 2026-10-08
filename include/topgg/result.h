@@ -8,7 +8,6 @@
 #include <string>
 #include <vector>
 
-
 namespace topgg {
   class base_client;
 #ifndef TOPGG_OAUTH2_ACCESS_TOKENS_ONLY
@@ -21,7 +20,7 @@ namespace topgg {
 
   /**
    * @brief An API call result that may contain a singular data.
-   * 
+   *
    * @since 2.0.0
    */
   template<class T>
@@ -37,7 +36,7 @@ namespace topgg {
 
     /**
      * @brief Retrieves the contained data with error checking.
-     * 
+     *
      * @return T The contained data.
      * @throw topgg::exception A general Top.gg exception has occurred.
      * @throw topgg::http_exception An HTTP request exception has occurred.
@@ -66,7 +65,7 @@ namespace topgg {
 
   /**
    * @brief An API call result that does not contain any data.
-   * 
+   *
    * @since 2.0.0
    */
   class empty_result: private result<std::monostate> {
@@ -76,7 +75,7 @@ namespace topgg {
   public:
     /**
      * @brief Throws an error if the API call failed.
-     * 
+     *
      * @throw topgg::exception A general Top.gg exception has occurred.
      * @throw topgg::http_exception An HTTP request exception has occurred.
      * @throw nlohmann::json::exception Unable to parse JSON.
@@ -94,7 +93,7 @@ namespace topgg {
 
   /**
    * @brief An API call result that may contain paginated data.
-   * 
+   *
    * @since 2.0.0
    */
   template<class T>
@@ -119,9 +118,7 @@ namespace topgg {
     }
 
     inline std::optional<std::string> cursor() const {
-      return std::holds_alternative<std::pair<std::vector<T>, std::optional<std::string>>>(this->m_variant) ?
-        std::get<std::pair<std::vector<T>, std::optional<std::string>>>(this->m_variant).second :
-        std::nullopt;
+      return std::holds_alternative<std::pair<std::vector<T>, std::optional<std::string>>>(this->m_variant) ? std::get<std::pair<std::vector<T>, std::optional<std::string>>>(this->m_variant).second : std::nullopt;
     }
 
   public:
@@ -129,7 +126,7 @@ namespace topgg {
 
     /**
      * @brief Retrieves the contained data with error checking.
-     * 
+     *
      * @return std::vector<T> The contained data.
      * @throw topgg::exception A general Top.gg exception has occurred.
      * @throw topgg::http_exception An HTTP request exception has occurred.
@@ -145,4 +142,4 @@ namespace topgg {
     friend class oauth2_client;
 #endif
   };
-};
+}; // namespace topgg

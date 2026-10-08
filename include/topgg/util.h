@@ -7,7 +7,6 @@
 #include <windows.h>
 #endif
 
-
 namespace topgg {
   class waker {
 #ifdef _WIN32
@@ -53,4 +52,4 @@ namespace topgg {
 #ifndef TOPGG_PROJECT_TOKENS_ONLY
   std::string _random_string();
 #endif
-};
+}; // namespace topgg

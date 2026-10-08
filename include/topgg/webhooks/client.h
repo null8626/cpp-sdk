@@ -6,11 +6,10 @@
 #include <string>
 #include <mutex>
 
-
 namespace topgg::webhooks {
   /**
    * @brief Parses a webhook request's JSON body.
-   * 
+   *
    * @param body The webhook request's JSON body.
    * @return topgg::payload The parsed webhook payload.
    * @throws topgg::exception The webhook payload's event type is unrecognized.
@@ -21,7 +20,7 @@ namespace topgg::webhooks {
 
   /**
    * @brief A thread-safe helper that helps verify incoming webhook requests.
-   * 
+   *
    * @since 2.0.0
    */
   class verifier {
@@ -33,7 +32,7 @@ namespace topgg::webhooks {
   public:
     /**
      * @brief Creates a verifier instance.
-     * 
+     *
      * @throws topgg::exception Unable to create HMAC context.
      * @since 2.0.0
      */
@@ -41,7 +40,7 @@ namespace topgg::webhooks {
 
     /**
      * @brief Verifies an incoming webhook request.
-     * 
+     *
      * @param secret The webhook's current secret.
      * @param signature The request's x-topgg-signature header.
      * @param body The request's raw body.
@@ -52,4 +51,4 @@ namespace topgg::webhooks {
 
     ~verifier();
   };
-};
+}; // namespace topgg::webhooks

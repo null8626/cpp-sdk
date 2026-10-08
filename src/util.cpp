@@ -8,7 +8,6 @@
 #ifdef _WIN32
 #include <winsock2.h>
 
-
 static thread_local size_t g_wsastartup_counter = 0;
 #endif
 
@@ -102,7 +101,7 @@ time_t topgg::_from_time_string(const std::string& timestamp) {
 std::string topgg::_to_time_string(const time_t timestamp) {
   std::ostringstream ss{};
 
-  ss << std::put_time(std::gmtime(&timestamp), "%FT%TZ"); 
+  ss << std::put_time(std::gmtime(&timestamp), "%FT%TZ");
 
   return ss.str();
 }

@@ -12,7 +12,6 @@
 #include <windows.h>
 #endif
 
-
 topgg::exception topgg::exception::ssl(const char* message) {
   topgg::exception exc{message};
 

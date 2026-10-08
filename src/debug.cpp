@@ -9,9 +9,7 @@
 #define PATH_SEPARATOR '/'
 #endif
 
-
 static std::mutex g_log_mutex{};
-
 
 void topgg::_log(const char* file, const size_t line, const char* text) {
   std::lock_guard guard_{g_log_mutex};

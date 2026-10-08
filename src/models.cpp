@@ -1,6 +1,5 @@
 #include <topgg/topgg.h>
 
-
 topgg::partial_project::partial_project(const nlohmann::json& j) {
   id = j["id"].template get<std::string>();
   platform_id = j["platform_id"].template get<std::string>();
@@ -43,22 +42,54 @@ void topgg::locale_map::set(const topgg::locale& locale, const std::string& text
   std::string key{};
 
   switch (locale) {
-    case topgg::locale::l_english: key = "en"; break;
-    case topgg::locale::l_german: key = "de"; break;
-    case topgg::locale::l_french: key = "fr"; break;
-    case topgg::locale::l_portuguese: key = "pt"; break;
-    case topgg::locale::l_turkish: key = "tr"; break;
-    case topgg::locale::l_hindi: key = "hi"; break;
-    case topgg::locale::l_japanese: key = "ja"; break;
-    case topgg::locale::l_arabic: key = "ar"; break;
-    case topgg::locale::l_dutch: key = "nl"; break;
-    case topgg::locale::l_korean: key = "ko"; break;
-    case topgg::locale::l_italian: key = "it"; break;
-    case topgg::locale::l_spanish: key = "es"; break;
-    case topgg::locale::l_russian: key = "ru"; break;
-    case topgg::locale::l_ukrainian: key = "uk"; break;
-    case topgg::locale::l_vietnamese: key = "vi"; break;
-    case topgg::locale::l_chinese_simplified: key = "zh"; break;
+  case topgg::locale::l_english:
+    key = "en";
+    break;
+  case topgg::locale::l_german:
+    key = "de";
+    break;
+  case topgg::locale::l_french:
+    key = "fr";
+    break;
+  case topgg::locale::l_portuguese:
+    key = "pt";
+    break;
+  case topgg::locale::l_turkish:
+    key = "tr";
+    break;
+  case topgg::locale::l_hindi:
+    key = "hi";
+    break;
+  case topgg::locale::l_japanese:
+    key = "ja";
+    break;
+  case topgg::locale::l_arabic:
+    key = "ar";
+    break;
+  case topgg::locale::l_dutch:
+    key = "nl";
+    break;
+  case topgg::locale::l_korean:
+    key = "ko";
+    break;
+  case topgg::locale::l_italian:
+    key = "it";
+    break;
+  case topgg::locale::l_spanish:
+    key = "es";
+    break;
+  case topgg::locale::l_russian:
+    key = "ru";
+    break;
+  case topgg::locale::l_ukrainian:
+    key = "uk";
+    break;
+  case topgg::locale::l_vietnamese:
+    key = "vi";
+    break;
+  case topgg::locale::l_chinese_simplified:
+    key = "zh";
+    break;
   }
 
   m_json[key] = text;

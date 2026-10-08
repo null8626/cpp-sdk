@@ -8,7 +8,6 @@
 #define TOPGG_ELOG(text) topgg::_elog(__FILE__, __LINE__, text)
 #define TOPGG_ELOGF(format, ...) topgg::_elogf(__FILE__, __LINE__, format, __VA_ARGS__)
 
-
 namespace topgg {
   void _log(const char* file, const size_t line, const char* text);
 
@@ -17,7 +16,7 @@ namespace topgg {
   void _elog(const char* file, const size_t line, const char* text);
 
   void _elogf(const char* file, const size_t line, const char* format, ...);
-};
+}; // namespace topgg
 #else
 #define TOPGG_LOG(text)
 #define TOPGG_LOGF(format, ...)

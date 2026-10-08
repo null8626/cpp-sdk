@@ -5,10 +5,9 @@
 #include <string>
 #include <ctime>
 
-
 /**
  * @brief The Top.gg namespace.
- * 
+ *
  * @since 2.0.0
  */
 namespace topgg {
@@ -17,20 +16,20 @@ namespace topgg {
 
   /**
    * @brief A project's platform.
-   * 
+   *
    * @since 2.0.0
    */
   enum platform {
     /**
      * @brief Discord.
-     * 
+     *
      * @since 2.0.0
      */
     p_discord,
 
     /**
      * @brief Roblox.
-     * 
+     *
      * @since 2.0.0
      */
     p_roblox,
@@ -38,27 +37,27 @@ namespace topgg {
 
   /**
    * @brief A project's type.
-   * 
+   *
    * @since 2.0.0
    */
   enum project_type {
     /**
      * @brief A bot.
-     * 
+     *
      * @since 2.0.0
      */
     pt_bot,
 
     /**
      * @brief A server.
-     * 
+     *
      * @since 2.0.0
      */
     pt_server,
 
     /**
      * @brief A game.
-     * 
+     *
      * @since 2.0.0
      */
     pt_game,
@@ -66,7 +65,7 @@ namespace topgg {
 
   /**
    * @brief A partial project.
-   * 
+   *
    * @since 2.0.0
    */
   class partial_project {
@@ -78,35 +77,35 @@ namespace topgg {
 
     /**
      * @brief The project's Top.gg ID.
-     * 
+     *
      * @since 2.0.0
      */
     std::string id{};
 
     /**
      * @brief The project's platform ID.
-     * 
+     *
      * @since 2.0.0
      */
     std::string platform_id{};
 
     /**
      * @brief The project's name in its platform.
-     * 
+     *
      * @since 2.0.0
      */
     std::string name{};
 
     /**
      * @brief The project's platform.
-     * 
+     *
      * @since 2.0.0
      */
     topgg::platform platform{};
 
     /**
      * @brief The project's type.
-     * 
+     *
      * @since 2.0.0
      */
     project_type type{};
@@ -117,7 +116,7 @@ namespace topgg {
 
   /**
    * @brief A project.
-   * 
+   *
    * @since 2.0.0
    */
   class project {
@@ -128,70 +127,70 @@ namespace topgg {
 
     /**
      * @brief The project's Top.gg ID.
-     * 
+     *
      * @since 2.0.0
      */
     std::string id{};
 
     /**
      * @brief The project's name in its platform.
-     * 
+     *
      * @since 2.0.0
      */
     std::string name{};
 
     /**
      * @brief The project's platform.
-     * 
+     *
      * @since 2.0.0
      */
     topgg::platform platform{};
 
     /**
      * @brief The project's type.
-     * 
+     *
      * @since 2.0.0
      */
     project_type type{};
 
     /**
      * @brief The project's headline.
-     * 
+     *
      * @since 2.0.0
      */
     std::string headline{};
 
     /**
      * @brief The project's tags.
-     * 
+     *
      * @since 2.0.0
      */
     std::vector<std::string> tags{};
 
     /**
      * @brief The project's current vote count.
-     * 
+     *
      * @since 2.0.0
      */
     uint64_t current_votes{};
 
     /**
      * @brief The project's vote count.
-     * 
+     *
      * @since 2.0.0
      */
     uint64_t total_votes{};
 
     /**
      * @brief The project's review score.
-     * 
+     *
      * @since 2.0.0
      */
     float review_score{};
 
     /**
      * @brief The project's review count.
-     * 
+     *
      * @since 2.0.0
      */
     uint64_t review_count{};
@@ -205,7 +204,7 @@ namespace topgg {
 
   /**
    * @brief A supported locale.
-   * 
+   *
    * @since 2.0.0
    */
   enum locale {
@@ -324,7 +323,7 @@ namespace topgg {
 
   /**
    * @brief A locale-text map.
-   * 
+   *
    * @since 2.0.0
    */
   class locale_map {
@@ -335,7 +334,7 @@ namespace topgg {
   public:
     /**
      * @brief Inserts a new locale-text entry.
-     * 
+     *
      * @param locale_ The locale.
      * @param text The text.
      * @since 2.0.0
@@ -353,27 +352,27 @@ namespace topgg {
 
   /**
    * @brief An announcement category.
-   * 
+   *
    * @since 2.0.0
    */
   enum announcement_category {
     /**
      * @brief A generic announcement.
-     * 
+     *
      * @since 2.0.0
      */
     ac_announcement,
 
     /**
      * @brief An event.
-     * 
+     *
      * @since 2.0.0
      */
     ac_event,
 
     /**
      * @brief A new feature.
-     * 
+     *
      * @since 2.0.0
      */
     ac_new_feature,
@@ -381,7 +380,7 @@ namespace topgg {
 
   /**
    * @brief A project's metrics.
-   * 
+   *
    * @since 2.0.0
    */
   class metrics {
@@ -401,7 +400,7 @@ namespace topgg {
 
   /**
    * @brief A Discord bot's metrics.
-   * 
+   *
    * @since 2.0.0
    */
   class discord_bot_metrics: public metrics {
@@ -417,7 +416,7 @@ namespace topgg {
 
     /**
      * @brief Creates a Discord bot's metrics instance.
-     * 
+     *
      * @param server_count_ The bot's current server count.
      * @param shard_count_ The bot's current shard count.
      * @since 2.0.0
@@ -426,7 +425,7 @@ namespace topgg {
 
     /**
      * @brief Creates a Discord bot's metrics instance.
-     * 
+     *
      * @param server_count_ The bot's current server count.
      * @return topgg::discord_bot_metrics The Discord bot's metrics.
      * @since 2.0.0
@@ -437,7 +436,7 @@ namespace topgg {
 
     /**
      * @brief Creates a Discord bot's metrics instance.
-     * 
+     *
      * @param shard_count_ The bot's current shard count.
      * @return topgg::discord_bot_metrics The Discord bot's metrics.
      * @since 2.0.0
@@ -451,7 +450,7 @@ namespace topgg {
 
   /**
    * @brief A Discord server's metrics.
-   * 
+   *
    * @since 2.0.0
    */
   class discord_server_metrics: public metrics {
@@ -467,7 +466,7 @@ namespace topgg {
 
     /**
      * @brief Creates a Discord server's metrics instance.
-     * 
+     *
      * @param total_member_count_ The server's current member count.
      * @param online_member_count_ The server's current online member count.
      * @since 2.0.0
@@ -476,7 +475,7 @@ namespace topgg {
 
     /**
      * @brief Creates a Discord server's metrics instance.
-     * 
+     *
      * @param total_member_count_ The server's current member count.
      * @return topgg::discord_server_metrics The Discord server's metrics.
      * @since 2.0.0
@@ -487,7 +486,7 @@ namespace topgg {
 
     /**
      * @brief Creates a Discord server's metrics instance.
-     * 
+     *
      * @param online_member_count_ The server's current online member count.
      * @return topgg::discord_server_metrics The Discord server's metrics.
      * @since 2.0.0
@@ -501,7 +500,7 @@ namespace topgg {
 
   /**
    * @brief A Roblox game's metrics.
-   * 
+   *
    * @since 2.0.0
    */
   class roblox_metrics: public metrics {
@@ -514,7 +513,7 @@ namespace topgg {
 
     /**
      * @brief Creates a Roblox game's metrics instance.
-     * 
+     *
      * @param player_count The game's current player count.
      * @since 2.0.0
      */
@@ -527,7 +526,7 @@ namespace topgg {
 
   /**
    * @brief A project's timestamped metrics.
-   * 
+   *
    * @since 2.0.0
    */
   template<class T>
@@ -541,7 +540,7 @@ namespace topgg {
 
     /**
      * @brief Inserts a new timestamped metrics entry.
-     * 
+     *
      * @param timestamp The timestamp.
      * @param metrics_ The project's metrics.
      * @since 2.0.0
@@ -557,7 +556,7 @@ namespace topgg {
 
     /**
      * @brief Inserts a new timestamped metrics entry using the current timestamp.
-     * 
+     *
      * @param metrics_ The project's metrics.
      * @since 2.0.0
      */
@@ -567,7 +566,7 @@ namespace topgg {
 
     /**
      * @brief Clears the contents.
-     * 
+     *
      * @since 2.0.0
      */
     inline void clear() {
@@ -582,7 +581,7 @@ namespace topgg {
 
   /**
    * @brief A partial vote.
-   * 
+   *
    * @since 2.0.0
    */
   class partial_vote {
@@ -594,28 +593,28 @@ namespace topgg {
 
     /**
      * @brief The vote's weight (1 normally, 2 during weekend multiplier.)
-     * 
+     *
      * @since 2.0.0
      */
     uint16_t weight{};
 
     /**
      * @brief When the vote was cast.
-     * 
+     *
      * @since 2.0.0
      */
     time_t created_at{};
 
     /**
      * @brief When the user can vote again.
-     * 
+     *
      * @since 2.0.0
      */
     time_t expires_at{};
 
     /**
      * @brief Whether the vote has expired.
-     * 
+     *
      * @return bool Whether the vote has expired.
      * @since 2.0.0
      */
@@ -631,20 +630,20 @@ namespace topgg {
 
   /**
    * @brief A user's source platform.
-   * 
+   *
    * @since 2.0.0
    */
   enum user_source {
     /**
      * @brief The user came from Top.gg.
-     * 
+     *
      * @since 2.0.0
      */
     us_topgg,
 
     /**
      * @brief The user came from Discord.
-     * 
+     *
      * @since 2.0.0
      */
     us_discord,
@@ -652,7 +651,7 @@ namespace topgg {
 
   /**
    * @brief A vote.
-   * 
+   *
    * @since 2.0.0
    */
   class vote: public partial_vote {
@@ -663,14 +662,14 @@ namespace topgg {
 
     /**
      * @brief The voter's Top.gg ID.
-     * 
+     *
      * @since 2.0.0
      */
     std::string user_id{};
 
     /**
      * @brief The voter's platform ID.
-     * 
+     *
      * @since 2.0.0
      */
     std::string platform_id{};
@@ -684,7 +683,7 @@ namespace topgg {
 
   /**
    * @brief An integration.
-   * 
+   *
    * @since 2.0.0
    */
   class integration {
@@ -695,35 +694,35 @@ namespace topgg {
 
     /**
      * @brief The integration's Top.gg ID.
-     * 
+     *
      * @since 2.0.0
      */
     std::string id{};
 
     /**
      * @brief The integration's name.
-     * 
+     *
      * @since 2.0.0
      */
     std::string name{};
 
     /**
      * @brief The integration's description.
-     * 
+     *
      * @since 2.0.0
      */
     std::string description{};
 
     /**
      * @brief The integration's icon URL.
-     * 
+     *
      * @since 2.0.0
      */
     std::string icon_url{};
 
     /**
      * @brief Whether the integration is connected to the project.
-     * 
+     *
      * @since 2.0.0
      */
     bool connected{};
@@ -733,20 +732,20 @@ namespace topgg {
 
   /**
    * @brief A base webhook.
-   * 
+   *
    * @since 2.0.0
    */
   struct base_webhook {
     /**
      * @brief The webhook's label.
-     * 
+     *
      * @since 2.0.0
      */
     std::string label{};
 
     /**
      * @brief The webhook's URL.
-     * 
+     *
      * @since 2.0.0
      */
     std::string url{};
@@ -761,7 +760,7 @@ namespace topgg {
 
   /**
    * @brief A webhook.
-   * 
+   *
    * @since 2.0.0
    */
   class webhook: public base_webhook {
@@ -772,7 +771,7 @@ namespace topgg {
 
     /**
      * @brief The webhook's Top.gg ID.
-     * 
+     *
      * @since 2.0.0
      */
     std::string id{};
@@ -783,20 +782,20 @@ namespace topgg {
 #ifndef TOPGG_PROJECT_TOKENS_ONLY
   /**
    * @brief A user's platform connection.
-   * 
+   *
    * @since 2.0.0
    */
   struct user_connection {
     /**
      * @brief The connection's platform.
-     * 
+     *
      * @since 2.0.0
      */
     topgg::platform platform{};
 
     /**
      * @brief The user's platform ID.
-     * 
+     *
      * @since 2.0.0
      */
     std::string id{};
@@ -804,7 +803,7 @@ namespace topgg {
 
   /**
    * @brief A user.
-   * 
+   *
    * @since 2.0.0
    */
   class user {
@@ -815,28 +814,28 @@ namespace topgg {
 
     /**
      * @brief The user's Top.gg ID.
-     * 
+     *
      * @since 2.0.0
      */
     std::string id{};
 
     /**
      * @brief The user's username.
-     * 
+     *
      * @since 2.0.0
      */
     std::string username{};
 
     /**
      * @brief The user's avatar URL.
-     * 
+     *
      * @since 2.0.0
      */
     std::optional<std::string> avatar{std::nullopt};
 
     /**
      * @brief The user's platform connections.
-     * 
+     *
      * @since 2.0.0
      */
     std::vector<user_connection> connections{};
@@ -847,27 +846,27 @@ namespace topgg {
 
   /**
    * @brief A project's review status.
-   * 
+   *
    * @since 2.0.0
    */
   enum review_status {
     /**
      * @brief The project is currently a draft.
-     * 
+     *
      * @since 2.0.0
      */
     rs_draft,
 
     /**
      * @brief The project is currently in the reviewer queue.
-     * 
+     *
      * @since 2.0.0
      */
     rs_in_review,
 
     /**
      * @brief The project is approved and listed.
-     * 
+     *
      * @since 2.0.0
      */
     rs_approved,
@@ -875,7 +874,7 @@ namespace topgg {
 
   /**
    * @brief A user's project.
-   * 
+   *
    * @since 2.0.0
    */
   class user_project: public partial_project {
@@ -886,14 +885,14 @@ namespace topgg {
 
     /**
      * @brief The project's headline.
-     * 
+     *
      * @since 2.0.0
      */
     std::string headline{};
 
     /**
      * @brief The project's review status.
-     * 
+     *
      * @since 2.0.0
      */
     topgg::review_status review_status{};
@@ -904,7 +903,7 @@ namespace topgg {
 
   /**
    * @brief A project submission.
-   * 
+   *
    * @since 2.0.0
    */
   struct project_submission {
@@ -914,38 +913,38 @@ namespace topgg {
 
     /**
      * @brief The project's platform.
-     * 
+     *
      * @since 2.0.0
      */
     topgg::platform platform{};
 
     /**
      * @brief The project's type.
-     * 
+     *
      * @since 2.0.0
      */
     project_type type{};
 
     /**
      * @brief The project's platform ID.
-     * 
+     *
      * @since 2.0.0
      */
     std::string platform_id{};
 
     /**
      * @brief The project's headline.
-     * 
+     *
      * @since 2.0.0
      */
     std::string headline{};
 
     /**
      * @brief The project's page content.
-     * 
+     *
      * @since 2.0.0
      */
     std::string page_content{};
   };
 #endif
-};
+}; // namespace topgg

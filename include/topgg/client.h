@@ -13,34 +13,33 @@
 #include <uv.h>
 #endif
 
-
 namespace topgg {
- /**
-  * @brief An API call callback function that receives a topgg::result<T>.
-  * 
-  * @since 2.0.0
-  */
+  /**
+   * @brief An API call callback function that receives a topgg::result<T>.
+   *
+   * @since 2.0.0
+   */
   template<class T>
   using callback = std::function<void(const result<T>&)>;
 
- /**
-  * @brief An API call callback function that receives a topgg::empty_result.
-  * 
-  * @since 2.0.0
-  */
+  /**
+   * @brief An API call callback function that receives a topgg::empty_result.
+   *
+   * @since 2.0.0
+   */
   using empty_callback = std::function<void(const empty_result&)>;
   template<class T>
 
- /**
-  * @brief An API call callback function that receives a topgg::paginated_result<T>.
-  * 
-  * @since 2.0.0
-  */
+  /**
+   * @brief An API call callback function that receives a topgg::paginated_result<T>.
+   *
+   * @since 2.0.0
+   */
   using paginated_callback = std::function<void(const paginated_result<T>&)>;
 
   /**
    * @brief A base API client.
-   * 
+   *
    * @since 2.0.0
    */
   class base_client {
@@ -52,43 +51,46 @@ namespace topgg {
     template<class T>
     void fetch_simple(const std::string_view& method, const std::string& path, const callback<T>& callback_, const bool defer, const std::string& body = "") {
       get_http()->fetch(new http_request{get_token(), method, path, [callback_](const http_response_pair& response_pair) {
-        if (std::holds_alternative<exception>(response_pair)) {
-          callback_(std::get<exception>(response_pair));
-        } else {
-          try {
-            const auto& response{std::get<http_response>(response_pair)};
+                                           if (std::holds_alternative<exception>(response_pair)) {
+                                             callback_(std::get<exception>(response_pair));
+                                           } else {
+                                             try {
+                                               const auto& response{std::get<http_response>(response_pair)};
 
-            if (response.status >= 400) {
-              callback_(http_exception{response});
-            } else {
-              callback_(T{nlohmann::json::parse(response.body)});
-            }
-          } catch (const nlohmann::json::exception& error) {
-            callback_(error);
-          }
-        }
-      }, body}, defer);
+                                               if (response.status >= 400) {
+                                                 callback_(http_exception{response});
+                                               } else {
+                                                 callback_(T{nlohmann::json::parse(response.body)});
+                                               }
+                                             } catch (const nlohmann::json::exception& error) {
+                                               callback_(error);
+                                             }
+                                           }
+                                         },
+                                         body},
+                        defer);
     }
 
     template<class T>
     void fetch_paginated(const char* key, const std::string_view& method, const std::string& path, const paginated_callback<T>& callback, const bool defer) {
       get_http()->fetch(new http_request{get_token(), method, path, [key, callback](const http_response_pair& response_pair) {
-        if (std::holds_alternative<exception>(response_pair)) {
-          callback(std::get<exception>(response_pair));
-        } else {
-          try {
-            const auto& response{std::get<http_response>(response_pair)};
+                                           if (std::holds_alternative<exception>(response_pair)) {
+                                             callback(std::get<exception>(response_pair));
+                                           } else {
+                                             try {
+                                               const auto& response{std::get<http_response>(response_pair)};
 
-            if (response.status >= 400) {
-              callback(http_exception{response});
-            } else {
-              callback(paginated_result<T>::from_array(key, nlohmann::json::parse(response.body)));
-            }
-          } catch (const nlohmann::json::exception& error) {
-            callback(error);
-          }
-        }
-      }}, defer);
+                                               if (response.status >= 400) {
+                                                 callback(http_exception{response});
+                                               } else {
+                                                 callback(paginated_result<T>::from_array(key, nlohmann::json::parse(response.body)));
+                                               }
+                                             } catch (const nlohmann::json::exception& error) {
+                                               callback(error);
+                                             }
+                                           }
+                                         }},
+                        defer);
     }
 
     template<class T>
@@ -107,35 +109,37 @@ namespace topgg {
     template<class T>
     void fetch_vector(const std::string_view& method, const std::string& path, const callback<std::vector<T>>& callback, const bool defer, const std::string& body = "") {
       get_http()->fetch(new http_request{get_token(), method, path, [callback](const http_response_pair& response_pair) {
-        if (std::holds_alternative<exception>(response_pair)) {
-          callback(std::get<exception>(response_pair));
-        } else {
-          try {
-            const auto& response{std::get<http_response>(response_pair)};
+                                           if (std::holds_alternative<exception>(response_pair)) {
+                                             callback(std::get<exception>(response_pair));
+                                           } else {
+                                             try {
+                                               const auto& response{std::get<http_response>(response_pair)};
 
-            if (response.status >= 400) {
-              callback(http_exception{response});
-            } else {
-              const auto json{nlohmann::json::parse(response.body)};
-              std::vector<T> output{};
+                                               if (response.status >= 400) {
+                                                 callback(http_exception{response});
+                                               } else {
+                                                 const auto json{nlohmann::json::parse(response.body)};
+                                                 std::vector<T> output{};
 
-              for (const auto& project: json) {
-                output.push_back(T{project});
-              }
+                                                 for (const auto& project: json) {
+                                                   output.push_back(T{project});
+                                                 }
 
-              callback(output);
-            }
-          } catch (const nlohmann::json::exception& error) {
-            callback(error);
-          }
-        }
-      }, body}, defer);
+                                                 callback(output);
+                                               }
+                                             } catch (const nlohmann::json::exception& error) {
+                                               callback(error);
+                                             }
+                                           }
+                                         },
+                                         body},
+                        defer);
     }
 
   public:
     /**
      * @brief Fetches the projects the current credential covers.
-     * 
+     *
      * @param callback The API call's callback function.
      * @param defer Whether to defer the request later. Defaults to false.
      * @since 2.0.0
@@ -144,7 +148,7 @@ namespace topgg {
 
     /**
      * @brief Fetches the projects the current credential covers from a cursor.
-     * 
+     *
      * @param cursor The cursor frame of reference.
      * @param callback The API call's callback function.
      * @param defer Whether to defer the request later. Defaults to false.
@@ -152,9 +156,9 @@ namespace topgg {
      */
     void get_projects(const paginated_result<partial_project>& cursor, const paginated_callback<partial_project>& callback, const bool defer = false);
 
-  /**
+    /**
      * @brief Fetches a project associated with the current token.
-     * 
+     *
      * @param id The project's Top.gg ID.
      * @param callback The API call's callback function.
      * @param defer Whether to defer the request later. Defaults to false.
@@ -164,7 +168,7 @@ namespace topgg {
 
     /**
      * @brief Updates the headline and/or page content for a project. Both fields are locale-keyed, so you can set content for multiple languages in a single request.
-     * 
+     *
      * @param id The project's Top.gg ID.
      * @param headline A map of locales to headline strings. Each headline must be between 3 and 140 characters.
      * @param page_content A map of locales to page content strings (Markdown supported.) Each entry must be between 300 and 50,000 characters.
@@ -177,7 +181,7 @@ namespace topgg {
 
     /**
      * @brief Creates a new announcement for a project. Announcements appear on a project’s page and can be used to notify users about updates, new features, or other news.
-     * 
+     *
      * @param id The project's Top.gg ID.
      * @param title The announcement's title.
      * @param content The announcement's body.
@@ -191,7 +195,7 @@ namespace topgg {
 
     /**
      * @brief Submits a single metrics payload for a project. Use this to push fresh numbers after an event such as joining or leaving a guild or a player connecting.
-     * 
+     *
      * @param id The project's Top.gg ID.
      * @param metrics The metrics payload.
      * @param callback The API call's callback function.
@@ -202,7 +206,7 @@ namespace topgg {
 
     /**
      * @brief Submits up to 100 metrics entries in a single request.
-     * 
+     *
      * @param id The project's Top.gg ID.
      * @param metrics_ The metrics payloads.
      * @param callback The API call's callback function.
@@ -225,7 +229,7 @@ namespace topgg {
 
     /**
      * @brief Overwrites the list of slash command definitions for a bot project on Top.gg. This is only applicable to bot-type projects on the discord platform.
-     * 
+     *
      * @param id The project's Top.gg ID.
      * @param commands The array of slash commands in a JSON-stringified Discord API's application command structure format.
      * @param callback The API call's callback function.
@@ -236,7 +240,7 @@ namespace topgg {
 
     /**
      * @brief Fetches a cursor-paginated list of votes for a project, ordered by creation date (oldest first within each page.)
-     * 
+     *
      * @param id The project's Top.gg ID.
      * @param since The creation date frame of reference.
      * @param callback The API call's callback function.
@@ -248,7 +252,7 @@ namespace topgg {
 
     /**
      * @brief Fetches a cursor-paginated list of votes for a project from a cursor.
-     * 
+     *
      * @param id The project's Top.gg ID.
      * @param cursor The cursor frame of reference.
      * @param callback The API call's callback function.
@@ -259,7 +263,7 @@ namespace topgg {
 
     /**
      * @brief Fetches the most recent vote status for a specific user. Use this to check whether a user has voted before granting in-app rewards or unlocking features.
-     * 
+     *
      * @param id The project's Top.gg ID.
      * @param user_id The ID of the user to look up. The expected format depends on the source parameter.
      * @param source The ID type being provided.
@@ -271,7 +275,7 @@ namespace topgg {
 
     /**
      * @brief Fetches the integrations available for a project and whether each one is connected.
-     * 
+     *
      * @param id The project's Top.gg ID.
      * @param callback The API call's callback function.
      * @param defer Whether to defer the request later. Defaults to false.
@@ -281,7 +285,7 @@ namespace topgg {
 
     /**
      * @brief Connects an integration to the project. Top.gg runs the integration handshake and starts delivering events to it.
-     * 
+     *
      * @param project_id The project's Top.gg ID.
      * @param integration_id The integration's Top.gg ID.
      * @param callback The API call's callback function.
@@ -292,7 +296,7 @@ namespace topgg {
 
     /**
      * @brief Disconnects an integration the application connected. The integration receives an integration.delete event.
-     * 
+     *
      * @param project_id The project's Top.gg ID.
      * @param integration_id The integration's Top.gg ID.
      * @param callback The API call's callback function.
@@ -303,7 +307,7 @@ namespace topgg {
 
     /**
      * @brief Fetches the webhooks the application created on the project.
-     * 
+     *
      * @param id The project's Top.gg ID.
      * @param callback The API call's callback function.
      * @param defer Whether to defer the request later. Defaults to false.
@@ -313,7 +317,7 @@ namespace topgg {
 
     /**
      * @brief Creates a vote webhook on the project.
-     * 
+     *
      * @param id The project's Top.gg ID.
      * @param webhook The vote webhook.
      * @param callback The API call's callback function.
@@ -324,7 +328,7 @@ namespace topgg {
 
     /**
      * @brief Deletes a webhook the application created.
-     * 
+     *
      * @param project_id The project's Top.gg ID.
      * @param webhook_id The webhook's Top.gg ID.
      * @param callback The API call's callback function.
@@ -335,7 +339,7 @@ namespace topgg {
 
     /**
      * @brief Replaces the signing secret of a webhook the application created. The previous secret stops working immediately.
-     * 
+     *
      * @param project_id The project's Top.gg ID.
      * @param webhook_id The webhook's Top.gg ID.
      * @param callback The API call's callback function.
@@ -346,7 +350,7 @@ namespace topgg {
 
     /**
      * @brief Sends a webhook.test event to a webhook the application created.
-     * 
+     *
      * @param project_id The project's Top.gg ID.
      * @param webhook_id The webhook's Top.gg ID.
      * @param callback The API call's callback function.
@@ -359,7 +363,7 @@ namespace topgg {
 #ifndef TOPGG_OAUTH2_ACCESS_TOKENS_ONLY
   /**
    * @brief A project or application API client.
-   * 
+   *
    * @since 2.0.0
    */
   class client: public base_client {
@@ -379,7 +383,7 @@ namespace topgg {
 
     /**
      * @brief Creates a client instance.
-     * 
+     *
      * @param token The project or application token.
      * @since 2.0.0
      */
@@ -387,7 +391,7 @@ namespace topgg {
 
     /**
      * @brief Fetches the project associated with the current token.
-     * 
+     *
      * @param callback The API call's callback function.
      * @param defer Whether to defer the request later. Defaults to false.
      * @since 2.0.0
@@ -398,7 +402,7 @@ namespace topgg {
 
     /**
      * @brief Updates the headline and/or page content for the current project. Both fields are locale-keyed, so you can set content for multiple languages in a single request.
-     * 
+     *
      * @param headline A map of locales to headline strings. Each headline must be between 3 and 140 characters.
      * @param page_content A map of locales to page content strings (Markdown supported.) Each entry must be between 300 and 50,000 characters.
      * @param callback The API call's callback function.
@@ -412,7 +416,7 @@ namespace topgg {
 
     /**
      * @brief Creates a new announcement for the current project. Announcements appear on a project’s page and can be used to notify users about updates, new features, or other news.
-     * 
+     *
      * @param title The announcement's title.
      * @param content The announcement's body.
      * @param category The category to publish the announcement under.
@@ -427,7 +431,7 @@ namespace topgg {
 
     /**
      * @brief Submits a single metrics payload for the current project. Use this to push fresh numbers after an event such as joining or leaving a guild or a player connecting.
-     * 
+     *
      * @param metrics The metrics payload.
      * @param callback The API call's callback function.
      * @param defer Whether to defer the request later. Defaults to false.
@@ -439,7 +443,7 @@ namespace topgg {
 
     /**
      * @brief Submits up to 100 metrics entries in a single request.
-     * 
+     *
      * @param metrics_ The metrics payloads.
      * @param callback The API call's callback function.
      * @param defer Whether to defer the request later. Defaults to false.
@@ -453,7 +457,7 @@ namespace topgg {
 
     /**
      * @brief Overwrites the list of slash command definitions for the current bot project on Top.gg. This is only applicable to bot-type projects on the discord platform.
-     * 
+     *
      * @param commands The array of slash commands in a JSON-stringified Discord API's application command structure format.
      * @param callback The API call's callback function.
      * @param defer Whether to defer the request later. Defaults to false.
@@ -465,7 +469,7 @@ namespace topgg {
 
     /**
      * @brief Fetches a cursor-paginated list of votes for the current project, ordered by creation date (oldest first within each page.)
-     * 
+     *
      * @param since The creation date frame of reference.
      * @param callback The API call's callback function.
      * @param defer Whether to defer the request later. Defaults to false.
@@ -478,7 +482,7 @@ namespace topgg {
 
     /**
      * @brief Fetches a cursor-paginated list of votes for the current project from a cursor.
-     * 
+     *
      * @param cursor The cursor frame of reference.
      * @param callback The API call's callback function.
      * @param defer Whether to defer the request later. Defaults to false.
@@ -490,7 +494,7 @@ namespace topgg {
 
     /**
      * @brief Fetches the most recent vote status for a specific user. Use this to check whether a user has voted before granting in-app rewards or unlocking features.
-     * 
+     *
      * @param user_id The ID of the user to look up. The expected format depends on the source parameter.
      * @param source The ID type being provided.
      * @param callback The API call's callback function.
@@ -506,34 +510,34 @@ namespace topgg {
 #ifndef TOPGG_PROJECT_TOKENS_ONLY
   /**
    * @brief An oauth2 session.
-   * 
+   *
    * @since 2.0.0
    */
   struct oauth2_session {
     /**
      * @brief The session's access token.
-     * 
+     *
      * @since 2.0.0
      */
     std::string token{};
 
     /**
      * @brief The session's refresh token.
-     * 
+     *
      * @since 2.0.0
      */
     std::string refresh_token{};
 
     /**
      * @brief When the session's access token expires.
-     * 
+     *
      * @since 2.0.0
      */
     time_t token_expires_at{};
 
     /**
      * @brief Whether the session's access token has expired.
-     * 
+     *
      * @return bool Whether the session's access token has expired.
      * @since 2.0.0
      */
@@ -546,7 +550,7 @@ namespace topgg {
 
   /**
    * @brief An oauth2 URL.
-   * 
+   *
    * @since 2.0.0
    */
   class oauth2_url {
@@ -560,14 +564,14 @@ namespace topgg {
 
     /**
      * @brief The URL.
-     * 
+     *
      * @since 2.0.0
      */
     std::string url{};
 
     /**
      * @brief Exchanges an authorization code for an oauth2 session.
-     * 
+     *
      * @param code The request's code query parameter.
      * @param state The request's state query parameter.
      * @param callback The API call's callback function.
@@ -582,7 +586,7 @@ namespace topgg {
 
   /**
    * @brief A thread-safe oauth2 manager.
-   * 
+   *
    * @since 2.0.0
    */
   class oauth2 {
@@ -602,7 +606,7 @@ namespace topgg {
 
     /**
      * @brief Creates an oauth2 manager instance.
-     * 
+     *
      * @param client_id The client ID.
      * @param client_secret The client secret.
      * @param redirect_uri The redirect URI.
@@ -614,7 +618,7 @@ namespace topgg {
 
     /**
      * @brief Creates an oauth2 API client from an oauth2 session.
-     * 
+     *
      * @param session The session.
      * @return std::shared_ptr<topgg::oauth2_client> The oauth2 API client.
      * @since 2.0.0
@@ -623,7 +627,7 @@ namespace topgg {
 
     /**
      * @brief Creates an oauth2 URL.
-     * 
+     *
      * @return std::shared_ptr<topgg::oauth2_url> The oauth2 URL.
      * @throws topgg::exception Code verifier computation failure.
      * @since 2.0.0
@@ -638,7 +642,7 @@ namespace topgg {
 
   /**
    * @brief An oauth2 API client.
-   * 
+   *
    * @since 2.0.0
    */
   class oauth2_client: public base_client, private std::enable_shared_from_this<oauth2_client> {
@@ -666,7 +670,7 @@ namespace topgg {
 
     /**
      * @brief Retrieves the client's oauth2 session.
-     * 
+     *
      * @return topgg::oauth2_session The oauth2 session.
      * @since 2.0.0
      */
@@ -674,7 +678,7 @@ namespace topgg {
 
     /**
      * @brief Whether the client's session access token has expired.
-     * 
+     *
      * @return bool Whether the client's session access token has expired.
      * @since 2.0.0
      */
@@ -682,7 +686,7 @@ namespace topgg {
 
     /**
      * @brief Fetches the user who authorized the application.
-     * 
+     *
      * @param callback The API call's callback function.
      * @param defer Whether to defer the request later. Defaults to false.
      * @since 2.0.0
@@ -691,7 +695,7 @@ namespace topgg {
 
     /**
      * @brief Fetches the projects owned by the user who authorized the application.
-     * 
+     *
      * @param callback The API call's callback function.
      * @param defer Whether to defer the request later. Defaults to false.
      * @since 2.0.0
@@ -700,7 +704,7 @@ namespace topgg {
 
     /**
      * @brief Creates a draft project for the user who authorized the application. Name, icon, and missing descriptions are fetched from the platform. The project starts as a draft; the user completes the listing and submits it for review in their Top.gg dashboard.
-     * 
+     *
      * @param submission The project submission.
      * @param callback The API call's callback function.
      * @param defer Whether to defer the request later. Defaults to false.
@@ -710,7 +714,7 @@ namespace topgg {
 
     /**
      * @brief Revokes the client's access token.
-     * 
+     *
      * @param callback The API call's callback function.
      * @param defer Whether to defer the request later. Defaults to false.
      * @since 2.0.0
@@ -725,4 +729,4 @@ namespace topgg {
     friend class oauth2;
   };
 #endif
-};
+}; // namespace topgg

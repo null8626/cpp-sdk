@@ -12,7 +12,6 @@
 #include <cstdio>
 #endif
 
-
 void topgg::http_backend::init() {
   m_socket.data = nullptr;
   m_async_flush_requests.data = nullptr;
@@ -165,8 +164,7 @@ void topgg::http_backend::on_connect(uv_connect_t* connection, int status) {
 
   if ((status = uv_read_start(reinterpret_cast<uv_stream_t*>(&self->m_socket), []([[maybe_unused]] uv_handle_t* handle, size_t length, uv_buf_t* buf) {
     buf->base = new char[length];
-    buf->len = static_cast<unsigned long>(length);
-  }, topgg::http_backend::on_read)) < 0) {
+    buf->len = static_cast<unsigned long>(length); }, topgg::http_backend::on_read)) < 0) {
     return self->socket_throw(topgg::exception::uv("Unable to start reading socket stream", status));
   }
 
@@ -299,14 +297,7 @@ void topgg::http_backend::flush_requests() {
 
     TOPGG_LOGF("Submitting request to %s", request->m_path.c_str());
 
-    if ((status = nghttp2_submit_request2(
-      m_nghttp2,
-      nullptr,
-      request->m_headers.data(),
-      request->m_headers.size(),
-      request->m_body.empty() ? nullptr : &body_provider,
-      request
-    )) < 0) {
+    if ((status = nghttp2_submit_request2(m_nghttp2, nullptr, request->m_headers.data(), request->m_headers.size(), request->m_body.empty() ? nullptr : &body_provider, request)) < 0) {
       delete request;
       return socket_throw(topgg::exception::nghttp2("Unable to submit HTTP request", status));
     }
@@ -324,11 +315,7 @@ void topgg::http_backend::flush_requests() {
   int read_length{};
 
   while ((read_length = SSL_read(m_ssl, buf, sizeof(buf))) > 0) {
-    if ((status = static_cast<int>(nghttp2_session_mem_recv2(
-      m_nghttp2,
-      reinterpret_cast<uint8_t*>(buf),
-      read_length
-    ))) < 0) {
+    if ((status = static_cast<int>(nghttp2_session_mem_recv2(m_nghttp2, reinterpret_cast<uint8_t*>(buf), read_length))) < 0) {
       return socket_throw(topgg::exception::nghttp2("Unable to process data from the remote peer", status));
     }
   }
@@ -351,7 +338,10 @@ nghttp2_ssize topgg::http_backend::on_send([[maybe_unused]] nghttp2_session* htt
 
   auto self{reinterpret_cast<topgg::http_backend*>(ptr)};
 
-  self->m_pending_writes.push_back({std::vector<uint8_t>{data, data + length}, 0});
+  self->m_pending_writes.push_back({
+    std::vector<uint8_t>{data, data + length},
+    0
+  });
 
   while (!self->m_pending_writes.empty()) {
     auto& pending{self->m_pending_writes.front()};
@@ -491,8 +481,7 @@ void topgg::http_backend::flush_oauth2_requests() {
 
       auto client{reinterpret_cast<std::shared_ptr<topgg::oauth2_client>*>(timer->data)};
 
-      (*client)->refresh_token();
-    }, now > client->m_session.token_expires_at ? 0 : ((client->m_session.token_expires_at - now) * 1000), (TOPGG_TOKEN_EXPIRY_INTERVAL * 1000) - 5000);
+      (*client)->refresh_token(); }, now > client->m_session.token_expires_at ? 0 : ((client->m_session.token_expires_at - now) * 1000), (TOPGG_TOKEN_EXPIRY_INTERVAL * 1000) - 5000);
 
     m_oauth2_mutex.lock();
   }

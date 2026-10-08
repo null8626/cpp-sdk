@@ -7,11 +7,10 @@
 #include <string>
 #include <ctime>
 
-
 namespace topgg {
   /**
    * @brief A standard exception.
-   * 
+   *
    * @since 2.0.0
    */
   class exception: public std::runtime_error {
@@ -31,7 +30,7 @@ namespace topgg {
   public:
     /**
      * @brief The exception's cause if any.
-     * 
+     *
      * @since 2.0.0
      */
     std::string cause{};
@@ -67,7 +66,7 @@ namespace topgg {
 
   /**
    * @brief An HTTP request exception.
-   * 
+   *
    * @since 2.0.0
    */
   class http_exception: public exception {
@@ -76,7 +75,7 @@ namespace topgg {
   public:
     /**
      * @brief The exception's HTTP status code.
-     * 
+     *
      * @since 2.0.0
      */
     uint16_t status{};
@@ -90,7 +89,7 @@ namespace topgg {
 
     /**
      * @brief The exception's detail if any.
-     * 
+     *
      * @since 2.0.0
      */
     std::string detail{};
@@ -105,4 +104,4 @@ namespace topgg {
     friend class oauth2;
 #endif
   };
-};
+}; // namespace topgg

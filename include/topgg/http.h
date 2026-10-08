@@ -18,7 +18,6 @@
 #include <mutex>
 #include <uv.h>
 
-
 namespace topgg {
   class http_frontend;
   class http_request;
@@ -60,7 +59,7 @@ namespace topgg {
     uv_async_t m_async_close{};
     std::optional<exception> m_error{std::nullopt};
 
-    inline http_backend(http_frontend* frontend): m_frontend(frontend) {};
+    inline http_backend(http_frontend* frontend): m_frontend(frontend) {}
 
     http_backend() = delete;
 
@@ -194,4 +193,4 @@ namespace topgg {
     friend class oauth2_client;
 #endif
   };
-};
+}; // namespace topgg
