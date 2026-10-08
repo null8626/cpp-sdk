@@ -12,7 +12,7 @@ window.addEventListener('load', () => {
   if (headerDetails) {
     const contents = document.querySelector('.contents')
     const textBlock = contents.querySelector('#header-details + .textblock')
-    
+
     contents.prepend(contents.removeChild(textBlock))
     headerDetails.remove()
   }

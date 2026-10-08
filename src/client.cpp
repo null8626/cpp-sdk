@@ -6,15 +6,15 @@
 #endif
 
 void topgg::base_client::fetch_empty(const std::string_view& method, const std::string& path, const topgg::empty_callback& callback, const bool defer, const std::string& body) {
-  get_http()->fetch(new topgg::http_request{get_token(), method, path, [callback](const topgg::http_response& response) {
-    if (std::holds_alternative<topgg::exception>(response)) {
-      callback(std::get<topgg::exception>(response));
+  get_http()->fetch(new topgg::http_request{get_token(), method, path, [callback](const topgg::http_response_pair& response_pair) {
+    if (std::holds_alternative<topgg::exception>(response_pair)) {
+      callback(std::get<topgg::exception>(response_pair));
     } else {
       try {
-        const auto& response_pair{std::get<std::pair<uint16_t, std::string_view>>(response)};
+        const auto& response{std::get<topgg::http_response>(response_pair)};
 
-        if (response_pair.first >= 400) {
-          callback(topgg::http_exception{response_pair});
+        if (response.status >= 400) {
+          callback(topgg::http_exception{response});
         } else {
           callback(std::monostate{});
         }
@@ -141,17 +141,17 @@ void topgg::base_client::delete_webhook(const std::string& project_id, const std
 }
 
 void topgg::base_client::rotate_webhook_secret(const std::string& project_id, const std::string& webhook_id, const topgg::callback<std::string>& callback, const bool defer) {
-  get_http()->fetch(new http_request{get_token(), "POST", "/projects/" + project_id + "/webhooks/" + webhook_id + "/rotate", [callback](const topgg::http_response& response) {
-    if (std::holds_alternative<exception>(response)) {
-      callback(std::get<exception>(response));
+  get_http()->fetch(new http_request{get_token(), "POST", "/projects/" + project_id + "/webhooks/" + webhook_id + "/rotate", [callback](const topgg::http_response_pair& response_pair) {
+    if (std::holds_alternative<exception>(response_pair)) {
+      callback(std::get<exception>(response_pair));
     } else {
       try {
-        const auto& response_pair{std::get<std::pair<uint16_t, std::string_view>>(response)};
+        const auto& response{std::get<topgg::http_response>(response_pair)};
 
-        if (response_pair.first >= 400) {
-          callback(http_exception{response_pair});
+        if (response.status >= 400) {
+          callback(http_exception{response});
         } else {
-          const auto json{nlohmann::json::parse(response_pair.second)};
+          const auto json{nlohmann::json::parse(response.body)};
 
           callback(json["secret"].template get<std::string>());
         }
@@ -194,13 +194,13 @@ void topgg::oauth2_client::refresh_token() {
 
   m_token_mutex.unlock();
 
-  get_http()->fetch(new topgg::http_request{"", "POST", "/oauth2/token", [this](const topgg::http_response& response) {
-    if (std::holds_alternative<std::pair<uint16_t, std::string_view>>(response)) {
-      const auto& response_pair{std::get<std::pair<uint16_t, std::string_view>>(response)};
+  get_http()->fetch(new topgg::http_request{"", "POST", "/oauth2/token", [this](const topgg::http_response_pair& response_pair) {
+    if (std::holds_alternative<topgg::http_response>(response_pair)) {
+      const auto& response{std::get<topgg::http_response>(response_pair)};
 
-      if (response_pair.first < 400) {
+      if (response.status < 400) {
         try {
-          const auto json{nlohmann::json::parse(response_pair.second)};
+          const auto json{nlohmann::json::parse(response.body)};
 
           std::lock_guard guard_{m_token_mutex};
 
@@ -279,15 +279,15 @@ void topgg::oauth2_client::revoke_token(const topgg::empty_callback& callback, c
 
   auto http{get_http()};
 
-  http->fetch(new topgg::http_request{"", "POST", "/oauth2/revoke", [callback](const topgg::http_response& response) {
-    if (std::holds_alternative<topgg::exception>(response)) {
-      callback(std::get<topgg::exception>(response));
+  http->fetch(new topgg::http_request{"", "POST", "/oauth2/revoke", [callback](const topgg::http_response_pair& response_pair) {
+    if (std::holds_alternative<topgg::exception>(response_pair)) {
+      callback(std::get<topgg::exception>(response_pair));
     } else {
       try {
-        const auto& response_pair{std::get<std::pair<uint16_t, std::string_view>>(response)};
+        const auto& response{std::get<topgg::http_response>(response_pair)};
 
-        if (response_pair.first >= 400) {
-          callback(topgg::http_exception{response_pair});
+        if (response.status >= 400) {
+          callback(topgg::http_exception{response});
         } else {
           callback(std::monostate{});
         }
@@ -313,17 +313,17 @@ void topgg::oauth2_url::exchange(const std::string& code, const std::string& sta
 
   body += m_oauth2->m_client_id + "&client_secret=" + m_oauth2->m_client_secret + "&code=" + code + "&redirect_uri=" + topgg::_url_encode(m_oauth2->m_redirect_uri) + "&code_verifier=" + m_code_verifier;
 
-  m_oauth2->m_http.fetch(new topgg::http_request{"", "POST", "/oauth2/token", [this, callback](const topgg::http_response& response) {
-    if (std::holds_alternative<topgg::exception>(response)) {
-      callback(std::get<topgg::exception>(response));
+  m_oauth2->m_http.fetch(new topgg::http_request{"", "POST", "/oauth2/token", [this, callback](const topgg::http_response_pair& response_pair) {
+    if (std::holds_alternative<topgg::exception>(response_pair)) {
+      callback(std::get<topgg::exception>(response_pair));
     } else {
       try {
-        const auto& response_pair{std::get<std::pair<uint16_t, std::string_view>>(response)};
+        const auto& response{std::get<topgg::http_response>(response_pair)};
 
-        if (response_pair.first >= 400) {
-          callback(topgg::http_exception{response_pair});
+        if (response.status >= 400) {
+          callback(topgg::http_exception{response});
         } else {
-          const auto json{nlohmann::json::parse(response_pair.second)};
+          const auto json{nlohmann::json::parse(response.body)};
 
           callback(topgg::oauth2_session{
             json["access_token"].template get<std::string>(),
@@ -479,7 +479,9 @@ topgg::webhooks::verifier::verifier() {
     throw topgg::exception::ssl("Unable to create HMAC context");
   }
 
-  m_params[0] = OSSL_PARAM_construct_utf8_string("digest", "SHA256", 0);
+  char sha256[] = "SHA256";
+
+  m_params[0] = OSSL_PARAM_construct_utf8_string("digest", sha256, 0);
   m_params[1] = OSSL_PARAM_construct_end();
 }
 

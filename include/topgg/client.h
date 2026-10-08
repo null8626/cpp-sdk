@@ -51,17 +51,17 @@ namespace topgg {
 
     template<class T>
     void fetch_simple(const std::string_view& method, const std::string& path, const callback<T>& callback_, const bool defer, const std::string& body = "") {
-      get_http()->fetch(new http_request{get_token(), method, path, [callback_](const http_response& response) {
-        if (std::holds_alternative<exception>(response)) {
-          callback_(std::get<exception>(response));
+      get_http()->fetch(new http_request{get_token(), method, path, [callback_](const http_response_pair& response_pair) {
+        if (std::holds_alternative<exception>(response_pair)) {
+          callback_(std::get<exception>(response_pair));
         } else {
           try {
-            const auto& response_pair{std::get<std::pair<uint16_t, std::string_view>>(response)};
+            const auto& response{std::get<http_response>(response_pair)};
 
-            if (response_pair.first >= 400) {
-              callback_(http_exception{response_pair});
+            if (response.status >= 400) {
+              callback_(http_exception{response});
             } else {
-              callback_(T{nlohmann::json::parse(response_pair.second)});
+              callback_(T{nlohmann::json::parse(response.body)});
             }
           } catch (const nlohmann::json::exception& error) {
             callback_(error);
@@ -72,17 +72,17 @@ namespace topgg {
 
     template<class T>
     void fetch_paginated(const char* key, const std::string_view& method, const std::string& path, const paginated_callback<T>& callback, const bool defer) {
-      get_http()->fetch(new http_request{get_token(), method, path, [key, callback](const http_response& response) {
-        if (std::holds_alternative<exception>(response)) {
-          callback(std::get<exception>(response));
+      get_http()->fetch(new http_request{get_token(), method, path, [key, callback](const http_response_pair& response_pair) {
+        if (std::holds_alternative<exception>(response_pair)) {
+          callback(std::get<exception>(response_pair));
         } else {
           try {
-            const auto& response_pair{std::get<std::pair<uint16_t, std::string_view>>(response)};
+            const auto& response{std::get<http_response>(response_pair)};
 
-            if (response_pair.first >= 400) {
-              callback(http_exception{response_pair});
+            if (response.status >= 400) {
+              callback(http_exception{response});
             } else {
-              callback(paginated_result<T>::from_array(key, nlohmann::json::parse(response_pair.second)));
+              callback(paginated_result<T>::from_array(key, nlohmann::json::parse(response.body)));
             }
           } catch (const nlohmann::json::exception& error) {
             callback(error);
@@ -106,17 +106,17 @@ namespace topgg {
 
     template<class T>
     void fetch_vector(const std::string_view& method, const std::string& path, const callback<std::vector<T>>& callback, const bool defer, const std::string& body = "") {
-      get_http()->fetch(new http_request{get_token(), method, path, [callback](const http_response& response) {
-        if (std::holds_alternative<exception>(response)) {
-          callback(std::get<exception>(response));
+      get_http()->fetch(new http_request{get_token(), method, path, [callback](const http_response_pair& response_pair) {
+        if (std::holds_alternative<exception>(response_pair)) {
+          callback(std::get<exception>(response_pair));
         } else {
           try {
-            const auto& response_pair{std::get<std::pair<uint16_t, std::string_view>>(response)};
+            const auto& response{std::get<http_response>(response_pair)};
 
-            if (response_pair.first >= 400) {
-              callback(http_exception{response_pair});
+            if (response.status >= 400) {
+              callback(http_exception{response});
             } else {
-              const auto json{nlohmann::json::parse(response_pair.second)};
+              const auto json{nlohmann::json::parse(response.body)};
               std::vector<T> output{};
 
               for (const auto& project: json) {
@@ -523,7 +523,7 @@ namespace topgg {
      * @since 2.0.0
      */
     std::string refresh_token{};
-    
+
     /**
      * @brief When the session's access token expires.
      * 

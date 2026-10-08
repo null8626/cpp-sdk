@@ -12,13 +12,6 @@
  * @since 2.0.0
  */
 namespace topgg {
-  class base_client;
-#ifndef TOPGG_OAUTH2_ACCESS_TOKENS_ONLY
-  class client;
-#endif
-#ifndef TOPGG_PROJECT_TOKENS_ONLY
-  class oauth2_client;
-#endif
   template<class T>
   class paginated_result;
 
@@ -222,105 +215,105 @@ namespace topgg {
      * @since 2.0.0
      */
     l_english,
-    
+
     /**
      * @brief German.
      *
      * @since 2.0.0
      */
     l_german,
-    
+
     /**
      * @brief French.
      *
      * @since 2.0.0
      */
     l_french,
-    
+
     /**
      * @brief Portuguese.
      *
      * @since 2.0.0
      */
     l_portuguese,
-    
+
     /**
      * @brief Turkish.
      *
      * @since 2.0.0
      */
     l_turkish,
-    
+
     /**
      * @brief Hindi.
      *
      * @since 2.0.0
      */
     l_hindi,
-    
+
     /**
      * @brief Japanese.
      *
      * @since 2.0.0
      */
     l_japanese,
-    
+
     /**
      * @brief Arabic.
      *
      * @since 2.0.0
      */
     l_arabic,
-    
+
     /**
      * @brief Dutch.
      *
      * @since 2.0.0
      */
     l_dutch,
-    
+
     /**
      * @brief Korean.
      *
      * @since 2.0.0
      */
     l_korean,
-    
+
     /**
      * @brief Italian.
      *
      * @since 2.0.0
      */
     l_italian,
-    
+
     /**
      * @brief Spanish.
      *
      * @since 2.0.0
      */
     l_spanish,
-    
+
     /**
      * @brief Russian.
      *
      * @since 2.0.0
      */
     l_russian,
-    
+
     /**
      * @brief Ukrainian.
      *
      * @since 2.0.0
      */
     l_ukrainian,
-    
+
     /**
      * @brief Vietnamese.
      *
      * @since 2.0.0
      */
     l_vietnamese,
-    
+
     /**
      * @brief Chinese Simplified.
      *
@@ -365,7 +358,7 @@ namespace topgg {
    */
   enum announcement_category {
     /**
-     * @brief Generic announcement.
+     * @brief A generic announcement.
      * 
      * @since 2.0.0
      */
@@ -674,7 +667,7 @@ namespace topgg {
      * @since 2.0.0
      */
     std::string user_id{};
-    
+
     /**
      * @brief The voter's platform ID.
      * 

@@ -77,7 +77,7 @@ $ cmake --build build --config Release
 int main() {
   try {
     const auto token{std::getenv("TOPGG_TOKEN")};
-  
+
     topgg::client dbl{token};
 
     dbl.get_project([](const topgg::result<topgg::project>& result) {
@@ -258,7 +258,6 @@ int main() {
 ### cpp-httplib Oauth2
 ```cpp
 #include <topgg/topgg.h>
-
 #include <stdexcept>
 #include <httplib.h>
 #include <iostream>

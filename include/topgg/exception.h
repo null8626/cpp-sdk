@@ -1,30 +1,14 @@
 #pragma once
 
 #include <nlohmann/json.hpp>
+#include <topgg/topgg.h>
 #include <stdexcept>
+#include <optional>
 #include <string>
 #include <ctime>
 
-#ifdef TOPGG_WEBHOOKS
-#include <topgg/topgg.h>
-#endif
-
 
 namespace topgg {
-#ifndef TOPGG_OAUTH2_ACCESS_TOKENS_ONLY
-  class client;
-#endif
-  class http_backend;
-  class http_frontend;
-#ifndef TOPGG_PROJECT_TOKENS_ONLY
-  class oauth2_client;
-  class oauth2_url;
-#endif
-  class waker;
-#ifdef _WIN32
-  class wsastartup_guard;
-#endif
-
   /**
    * @brief A standard exception.
    * 
@@ -79,13 +63,15 @@ namespace topgg {
 #endif
   };
 
+  struct http_response;
+
   /**
    * @brief An HTTP request exception.
    * 
    * @since 2.0.0
    */
   class http_exception: public exception {
-    http_exception(const std::pair<uint16_t, std::string_view>& response_pair);
+    http_exception(const http_response& response);
 
   public:
     /**
@@ -94,6 +80,13 @@ namespace topgg {
      * @since 2.0.0
      */
     uint16_t status{};
+
+    /**
+     * @brief How many seconds to wait before a ratelimit is lifted.
+     *
+     * @since 2.0.0
+     */
+    std::optional<uint32_t> retry_after{};
 
     /**
      * @brief The exception's detail if any.

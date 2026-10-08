@@ -9,13 +9,6 @@
 
 
 namespace topgg {
-  class http_backend;
-  class http_frontend;
-#ifndef TOPGG_PROJECT_TOKENS_ONLY
-  class oauth2;
-  class oauth2_client;
-#endif
-
   class waker {
 #ifdef _WIN32
     HANDLE m_semaphore{nullptr};

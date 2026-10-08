@@ -23,22 +23,12 @@ namespace topgg {
   class http_frontend;
   class http_request;
 
-  struct http_backend_pending_write {
-    std::vector<uint8_t> data{};
-    size_t offset{};
-  };
-
-  class base_client;
-#ifndef TOPGG_OAUTH2_ACCESS_TOKENS_ONLY
-  class client;
-#endif
-#ifndef TOPGG_PROJECT_TOKENS_ONLY
-  class oauth2_client;
-  class oauth2_url;
-  class oauth2;
-#endif
-
   class http_backend {
+    struct pending_write {
+      std::vector<uint8_t> data{};
+      size_t offset{};
+    };
+
     http_frontend* m_frontend{};
     waker m_waker{};
     std::atomic<bool> m_shutdown{};
@@ -55,7 +45,7 @@ namespace topgg {
     uv_connect_t m_socket_connection{};
     bool m_shook_hand{};
     nghttp2_session* m_nghttp2{nullptr};
-    std::deque<http_backend_pending_write> m_pending_writes{};
+    std::deque<http_backend::pending_write> m_pending_writes{};
     std::vector<http_request*> m_ongoing_requests{};
     size_t m_open_requests{static_cast<size_t>(-1)};
     std::mutex m_flush_requests_mutex{};
@@ -129,10 +119,17 @@ namespace topgg {
 #endif
   };
 
-  using http_response = std::variant<exception, std::pair<uint16_t, std::string_view>>;
-  using http_request_callback = std::function<void(const http_response&)>;
+  struct http_response {
+    uint16_t status{};
+    std::optional<uint32_t> retry_after{std::nullopt};
+    std::string_view body{};
+  };
+
+  using http_response_pair = std::variant<exception, http_response>;
 
   class http_request {
+    using callback = std::function<void(const http_response_pair&)>;
+
     std::vector<nghttp2_nv> m_headers{};
     std::string m_path{};
     std::string m_authorization{};
@@ -140,18 +137,19 @@ namespace topgg {
     std::string m_content_length{};
     std::string m_body{};
     size_t m_body_position{};
-    http_request_callback m_callback{};
+    http_request::callback m_callback{};
     uint16_t m_status{};
+    std::optional<uint32_t> m_retry_after{};
     std::string m_response{};
 
-    http_request(const std::string& token, const std::string_view& method, const std::string& path, const http_request_callback& callback, const std::string& body = "", const std::string& content_type = "application/json");
+    http_request(const std::string& token, const std::string_view& method, const std::string& path, const http_request::callback& callback, const std::string& body = "", const std::string& content_type = "application/json");
 
     void add_header(const std::string_view& name, const std::string_view& value);
 
     static ssize_t on_body_read(nghttp2_session* session, int32_t stream_id, uint8_t* data, size_t length, uint32_t* flags, nghttp2_data_source* source, void* ptr);
 
-    inline void dispatch_body() {
-      m_callback(std::make_pair(m_status, std::string_view{m_response}));
+    inline void dispatch_response() {
+      m_callback(http_response{m_status, m_retry_after, std::string_view{m_response}});
     }
 
     inline void dispatch_exception(const exception& error) {
@@ -167,6 +165,7 @@ namespace topgg {
 
     friend class base_client;
     friend class http_backend;
+    friend class http_exception;
 #ifndef TOPGG_PROJECT_TOKENS_ONLY
     friend class oauth2_client;
     friend class oauth2_url;

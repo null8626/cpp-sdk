@@ -93,7 +93,7 @@ namespace topgg::webhooks {
      * @since 2.0.0
      */
     std::string platform_id{};
-    
+
     /**
      * @brief The user's Discord username.
      * 

@@ -389,12 +389,14 @@ nghttp2_ssize topgg::http_backend::on_send([[maybe_unused]] nghttp2_session* htt
 
 int topgg::http_backend::on_header([[maybe_unused]] nghttp2_session* http2, const nghttp2_frame* frame, const uint8_t* name, size_t name_length, const uint8_t* value, size_t value_length, [[maybe_unused]] uint8_t flags, void* ptr) {
   if (frame->hd.type == NGHTTP2_HEADERS && frame->headers.cat == NGHTTP2_HCAT_RESPONSE) {
+    auto request{reinterpret_cast<topgg::http_request*>(nghttp2_session_get_stream_user_data(reinterpret_cast<topgg::http_backend*>(ptr)->m_nghttp2, frame->hd.stream_id))};
+
     TOPGG_LOGF("[EVENT: NGHTTP2 STREAM %d HEADER] %.*s: %.*s", frame->hd.stream_id, name_length, name, value_length, value);
 
     if (name_length == 7 && memcmp(name, ":status", 7) == 0 && value_length >= 3) {
-      auto request{reinterpret_cast<topgg::http_request*>(nghttp2_session_get_stream_user_data(reinterpret_cast<topgg::http_backend*>(ptr)->m_nghttp2, frame->hd.stream_id))};
-
       request->m_status = (static_cast<uint16_t>(value[0] - '0') * 100) + (static_cast<uint16_t>(value[1] - '0') * 10) + static_cast<uint16_t>(value[2] - '0');
+    } else if (name_length == 11 && memcmp(name, "retry-after", 11) == 0) {
+      request->m_retry_after = std::stoi(std::string{reinterpret_cast<const char*>(value), value_length});
     }
   }
 
@@ -432,7 +434,7 @@ int topgg::http_backend::on_stream_close([[maybe_unused]] nghttp2_session* http2
 
   if (error == 0) {
     self->dispatch(request, [](uv_work_t* work) {
-      reinterpret_cast<topgg::http_request*>(work->data)->dispatch_body();
+      reinterpret_cast<topgg::http_request*>(work->data)->dispatch_response();
     });
   } else {
     self->dispatch(request, [](uv_work_t* work) {
@@ -685,7 +687,7 @@ topgg::http_backend::~http_backend() {
   }
 }
 
-topgg::http_request::http_request(const std::string& token, const std::string_view& method, const std::string& path, const topgg::http_request_callback& callback, const std::string& body, const std::string& content_type): m_path("/api/v1" + path), m_content_type(content_type), m_content_length(std::to_string(body.size())), m_body(body), m_callback(callback) {  
+topgg::http_request::http_request(const std::string& token, const std::string_view& method, const std::string& path, const topgg::http_request::callback& callback, const std::string& body, const std::string& content_type): m_path("/api/v1" + path), m_content_type(content_type), m_content_length(std::to_string(body.size())), m_body(body), m_callback(callback) {
   add_header(":method", method);
   add_header(":scheme", "https");
   add_header(":authority", "top.gg");

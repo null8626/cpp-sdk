@@ -80,13 +80,13 @@ topgg::exception topgg::exception::nghttp2(const char* message, const int status
   return exc;
 }
 
-topgg::http_exception::http_exception(const std::pair<uint16_t, std::string_view>& response_pair): topgg::exception("Got an invalid HTTP status code from Top.gg"), status(response_pair.first) {
+topgg::http_exception::http_exception(const topgg::http_response& response): topgg::exception("Got an invalid HTTP status code from Top.gg"), status(response.status), retry_after(response.retry_after) {
   try {
-    const auto j{nlohmann::json::parse(response_pair.second)};
+    const auto j{nlohmann::json::parse(response.body)};
 
     cause = j.value(j.contains("error") ? "error" : "title", "");
     detail = j.value(j.contains("error_description") ? "error_description" : "detail", cause);
   } catch (const nlohmann::json::exception&) {}
 
-  TOPGG_LOGF("HTTP ERROR: %d", response_pair.first);
+  TOPGG_LOGF("HTTP ERROR: %d", response.status);
 }
