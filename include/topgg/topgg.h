@@ -8,10 +8,10 @@
 #include <topgg/models.h>
 #include <topgg/util.h>
 #ifdef TOPGG_WEBHOOKS
-#include <topgg/webhooks/models.h>
 #include <topgg/webhooks/client.h>
+#include <topgg/webhooks/models.h>
 #endif
-#include <topgg/exception.h>
-#include <topgg/result.h>
-#include <topgg/http.h>
 #include <topgg/client.h>
+#include <topgg/exception.h>
+#include <topgg/http.h>
+#include <topgg/result.h>

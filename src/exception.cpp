@@ -8,8 +8,8 @@
 #include <uv.h>
 
 #ifdef _WIN32
-#include <winsock2.h>
 #include <windows.h>
+#include <winsock2.h>
 #endif
 
 topgg::exception topgg::exception::ssl(const char* message) {
@@ -54,7 +54,11 @@ topgg::exception topgg::exception::system(const char* message) {
   if (error != 0) {
     LPSTR cause_buf{nullptr};
 
-    const auto size{FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, nullptr, error, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), reinterpret_cast<LPSTR>(&cause_buf), 0, nullptr)};
+    const auto size{FormatMessageA(
+        FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM |
+            FORMAT_MESSAGE_IGNORE_INSERTS,
+        nullptr, error, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+        reinterpret_cast<LPSTR>(&cause_buf), 0, nullptr)};
 
     if (size > 0) {
       exc.cause = std::string{cause_buf, size};
@@ -69,7 +73,8 @@ topgg::exception topgg::exception::system(const char* message) {
 }
 #endif
 
-topgg::exception topgg::exception::nghttp2(const char* message, const int status) {
+topgg::exception topgg::exception::nghttp2(const char* message,
+                                           const int status) {
   topgg::exception exc{message};
 
   exc.cause = const_cast<char*>(nghttp2_strerror(status));
@@ -79,13 +84,19 @@ topgg::exception topgg::exception::nghttp2(const char* message, const int status
   return exc;
 }
 
-topgg::http_exception::http_exception(const topgg::http_response& response): topgg::exception("Got an invalid HTTP status code from Top.gg"), status(response.status), retry_after(response.retry_after) {
+topgg::http_exception::http_exception(const topgg::http_response& response)
+    : topgg::exception("Got an invalid HTTP status code from Top.gg"),
+      status(response.status),
+      retry_after(response.retry_after) {
   try {
     const auto j{nlohmann::json::parse(response.body)};
 
     cause = j.value(j.contains("error") ? "error" : "title", "");
-    detail = j.value(j.contains("error_description") ? "error_description" : "detail", cause);
-  } catch (const nlohmann::json::exception&) {}
+    detail = j.value(
+        j.contains("error_description") ? "error_description" : "detail",
+        cause);
+  } catch (const nlohmann::json::exception&) {
+  }
 
   TOPGG_ELOGF("HTTP ERROR: %d", response.status);
 }

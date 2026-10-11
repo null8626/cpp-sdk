@@ -1,4 +1,5 @@
 #include <topgg/topgg.h>
+
 #include <sstream>
 
 #ifndef TOPGG_PROJECT_TOKENS_ONLY
@@ -21,7 +22,8 @@ topgg::waker::waker() {
 
 void topgg::waker::notify() {
 #ifdef _WIN32
-  if (ReleaseSemaphore(m_semaphore, 1, nullptr) == 0 && GetLastError() != ERROR_TOO_MANY_POSTS) {
+  if (ReleaseSemaphore(m_semaphore, 1, nullptr) == 0 &&
+      GetLastError() != ERROR_TOO_MANY_POSTS) {
     throw topgg::exception::system("Unable to notify semaphore");
   }
 #endif
@@ -111,13 +113,15 @@ std::string topgg::_url_encode(const std::string& text) {
 
   ss << std::hex << std::uppercase;
 
-  for (const auto c: text) {
-    if (std::isalnum(static_cast<uint8_t>(c)) || c == '-' || c == '_' || c == '.' || c == '~') {
+  for (const auto c : text) {
+    if (std::isalnum(static_cast<uint8_t>(c)) || c == '-' || c == '_' ||
+        c == '.' || c == '~') {
       ss << c;
     } else if (c == ' ') {
       ss << '+';
     } else {
-      ss << '%' << std::setw(2) << std::setfill('0') << static_cast<int>(static_cast<uint8_t>(c));
+      ss << '%' << std::setw(2) << std::setfill('0')
+         << static_cast<int>(static_cast<uint8_t>(c));
     }
   }
 
@@ -136,7 +140,7 @@ std::string topgg::_random_string() {
 
   ss << std::hex << std::setfill('0');
 
-  for (const auto c: buf) {
+  for (const auto c : buf) {
     ss << std::setw(2) << static_cast<int>(c);
   }
 

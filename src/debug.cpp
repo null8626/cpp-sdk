@@ -1,4 +1,5 @@
 #include <topgg/topgg.h>
+
 #include <cstdarg>
 #include <cstdio>
 #include <mutex>
@@ -16,10 +17,12 @@ void topgg::_log(const char* file, const size_t line, const char* text) {
 
   const auto filename{strrchr(file, PATH_SEPARATOR)};
 
-  printf("[%s:%zu] %s\n", filename == nullptr ? file : filename + 1, line, text);
+  printf("[%s:%zu] %s\n", filename == nullptr ? file : filename + 1, line,
+         text);
 }
 
-void topgg::_logf(const char* file, const size_t line, const char* format, ...) {
+void topgg::_logf(const char* file, const size_t line, const char* format,
+                  ...) {
   std::lock_guard guard_{g_log_mutex};
 
   const auto filename{strrchr(file, PATH_SEPARATOR)};
@@ -39,10 +42,12 @@ void topgg::_elog(const char* file, const size_t line, const char* text) {
 
   const auto filename{strrchr(file, PATH_SEPARATOR)};
 
-  fprintf(stderr, "[%s:%zu] ERROR: %s\n", filename == nullptr ? file : filename + 1, line, text);
+  fprintf(stderr, "[%s:%zu] ERROR: %s\n",
+          filename == nullptr ? file : filename + 1, line, text);
 }
 
-void topgg::_elogf(const char* file, const size_t line, const char* format, ...) {
+void topgg::_elogf(const char* file, const size_t line, const char* format,
+                   ...) {
   std::lock_guard guard_{g_log_mutex};
 
   const auto filename{strrchr(file, PATH_SEPARATOR)};
