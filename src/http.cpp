@@ -727,25 +727,26 @@ void topgg::http_backend::shutdown(const bool blocking) {
   }
 
 #ifndef TOPGG_PROJECT_TOKENS_ONLY
-  m_oauth2_mutex.lock();
+  {
+    std::lock_guard guard_{m_oauth2_mutex};
 
-  if (m_async_flush_oauth2_requests.data != nullptr) {
-    uv_close(reinterpret_cast<uv_handle_t*>(&m_async_flush_oauth2_requests),
-             nullptr);
-    m_async_flush_oauth2_requests.data = nullptr;
-  }
-
-  m_oauth2_mutex.unlock();
+    if (m_async_flush_oauth2_requests.data != nullptr) {
+      uv_close(reinterpret_cast<uv_handle_t*>(&m_async_flush_oauth2_requests),
+               nullptr);
+      m_async_flush_oauth2_requests.data = nullptr;
+    }
+  };
 #endif
 
-  m_flush_requests_mutex.lock();
+  {
+    std::lock_guard guard_{m_flush_requests_mutex};
 
-  if (m_async_flush_requests.data != nullptr) {
-    uv_close(reinterpret_cast<uv_handle_t*>(&m_async_flush_requests), nullptr);
-    m_async_flush_requests.data = nullptr;
-  }
-
-  m_flush_requests_mutex.unlock();
+    if (m_async_flush_requests.data != nullptr) {
+      uv_close(reinterpret_cast<uv_handle_t*>(&m_async_flush_requests),
+               nullptr);
+      m_async_flush_requests.data = nullptr;
+    }
+  };
 
   if (m_socket.data != nullptr &&
       !uv_is_closing(reinterpret_cast<uv_handle_t*>(&m_socket))) {

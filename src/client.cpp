@@ -283,13 +283,13 @@ std::string topgg::oauth2_client::get_token() {
 void topgg::oauth2_client::refresh_token() {
   std::string body{"grant_type=refresh_token&client_id="};
 
-  m_token_mutex.lock();
+  {
+    std::lock_guard guard_{m_token_mutex};
 
-  body += m_oauth2->m_client_id +
-          "&client_secret=" + m_oauth2->m_client_secret +
-          "&refresh_token=" + m_session.refresh_token;
-
-  m_token_mutex.unlock();
+    body += m_oauth2->m_client_id +
+            "&client_secret=" + m_oauth2->m_client_secret +
+            "&refresh_token=" + m_session.refresh_token;
+  };
 
   get_http()->fetch(new topgg::http_request{
       "", "POST", "/oauth2/token",
@@ -396,13 +396,13 @@ void topgg::oauth2_client::revoke_token(const topgg::empty_callback& callback,
                                         const bool defer) {
   std::string body{"client_id="};
 
-  m_token_mutex.lock();
+  {
+    std::lock_guard guard_{m_token_mutex};
 
-  body += m_oauth2->m_client_id +
-          "&client_secret=" + m_oauth2->m_client_secret +
-          "&refresh_token=" + m_session.refresh_token;
-
-  m_token_mutex.unlock();
+    body += m_oauth2->m_client_id +
+            "&client_secret=" + m_oauth2->m_client_secret +
+            "&refresh_token=" + m_session.refresh_token;
+  };
 
   auto http{get_http()};
 
