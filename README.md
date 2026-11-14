@@ -1,6 +1,6 @@
 # Top.gg C++ SDK
 
-The community-maintained C++17 library for Top.gg.
+The community-maintained C++17 SDK for Top.gg.
 
 ## Chapters
 
