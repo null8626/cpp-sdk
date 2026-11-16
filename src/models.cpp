@@ -120,12 +120,12 @@ nlohmann::json topgg::discord_bot_metrics::to_json() const {
 nlohmann::json topgg::discord_server_metrics::to_json() const {
   nlohmann::json json{};
 
-  if (m_total_member_count.has_value()) {
-    json["member_count"] = m_total_member_count.value();
+  if (m_member_count.has_value()) {
+    json["member_count"] = m_member_count.value();
   }
 
-  if (m_online_member_count.has_value()) {
-    json["online_count"] = m_online_member_count.value();
+  if (m_online_count.has_value()) {
+    json["online_count"] = m_online_count.value();
   }
 
   return json;

@@ -461,12 +461,12 @@ class discord_bot_metrics : public metrics {
  * @since 2.0.0
  */
 class discord_server_metrics : public metrics {
-  std::optional<uint64_t> m_total_member_count{};
-  std::optional<uint64_t> m_online_member_count{};
+  std::optional<uint64_t> m_member_count{};
+  std::optional<uint64_t> m_online_count{};
 
   inline constexpr discord_server_metrics(
       const std::pair<std::optional<uint64_t>, std::optional<uint64_t>>& pair)
-      : m_total_member_count(pair.first), m_online_member_count(pair.second) {}
+      : m_member_count(pair.first), m_online_count(pair.second) {}
 
   nlohmann::json to_json() const override;
 
@@ -476,37 +476,37 @@ class discord_server_metrics : public metrics {
   /**
    * @brief Creates a Discord server's metrics instance.
    *
-   * @param total_member_count_ The server's current member count.
-   * @param online_member_count_ The server's current online member count.
+   * @param member_count_ The server's current member count.
+   * @param online_count_ The server's current online member count.
    * @since 2.0.0
    */
-  inline constexpr discord_server_metrics(const uint64_t total_member_count_,
-                                          const uint64_t online_member_count_)
-      : m_total_member_count(total_member_count_),
-        m_online_member_count(online_member_count_) {}
+  inline constexpr discord_server_metrics(const uint64_t member_count_,
+                                          const uint64_t online_count_)
+      : m_member_count(member_count_),
+        m_online_count(online_count_) {}
 
   /**
    * @brief Creates a Discord server's metrics instance.
    *
-   * @param total_member_count_ The server's current member count.
+   * @param member_count_ The server's current member count.
    * @return topgg::discord_server_metrics The Discord server's metrics.
    * @since 2.0.0
    */
-  static inline constexpr discord_server_metrics total_member_count(
-      const uint64_t total_member_count_) noexcept {
-    return {std::make_pair(total_member_count_, std::nullopt)};
+  static inline constexpr discord_server_metrics member_count(
+      const uint64_t member_count_) noexcept {
+    return {std::make_pair(member_count_, std::nullopt)};
   }
 
   /**
    * @brief Creates a Discord server's metrics instance.
    *
-   * @param online_member_count_ The server's current online member count.
+   * @param online_count_ The server's current online member count.
    * @return topgg::discord_server_metrics The Discord server's metrics.
    * @since 2.0.0
    */
-  static inline constexpr discord_server_metrics online_member_count(
-      const uint64_t online_member_count_) noexcept {
-    return {std::make_pair(std::nullopt, online_member_count_)};
+  static inline constexpr discord_server_metrics online_count(
+      const uint64_t online_count_) noexcept {
+    return {std::make_pair(std::nullopt, online_count_)};
   }
 
   friend class timestamped_metrics<discord_server_metrics>;
