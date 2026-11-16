@@ -359,6 +359,8 @@ void topgg::oauth2_client::submit_project(
     case topgg::platform::p_roblox:
       platform_string = "roblox";
       break;
+    default:
+      platform_string = "unknown";
   }
 
   switch (submission.type) {
@@ -371,6 +373,8 @@ void topgg::oauth2_client::submit_project(
     case topgg::project_type::pt_game:
       project_type_string = "game";
       break;
+    default:
+      project_type_string = "unknown";
   }
 
   body["platform"] = platform_string;

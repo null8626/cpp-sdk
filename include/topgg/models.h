@@ -33,6 +33,13 @@ enum platform {
    * @since 2.0.0
    */
   p_roblox,
+
+  /**
+   * @brief Unknown.
+   *
+   * @since 2.0.0
+   */
+  p_unknown,
 };
 
 /**
@@ -61,6 +68,13 @@ enum project_type {
    * @since 2.0.0
    */
   pt_game,
+
+  /**
+   * @brief Unknown.
+   *
+   * @since 2.0.0
+   */
+  pt_unknown,
 };
 
 /**

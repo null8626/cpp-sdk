@@ -68,9 +68,11 @@ topgg::wsastartup_guard::~wsastartup_guard() {
 topgg::platform topgg::_from_platform_string(const std::string& platform) {
   if (platform == "discord") {
     return topgg::platform::p_discord;
+  } else if (platform == "roblox") {
+    return topgg::platform::p_roblox;
   }
 
-  return topgg::platform::p_roblox;
+  return topgg::platform::p_unknown;
 }
 
 topgg::project_type topgg::_from_project_type_string(const std::string& type) {
@@ -78,9 +80,11 @@ topgg::project_type topgg::_from_project_type_string(const std::string& type) {
     return topgg::project_type::pt_bot;
   } else if (type == "server") {
     return topgg::project_type::pt_server;
+  } else if (type == "game") {
+    return topgg::project_type::pt_game;
   }
 
-  return topgg::project_type::pt_game;
+  return topgg::project_type::pt_unknown;
 }
 
 time_t topgg::_from_time_string(const std::string& timestamp) {
