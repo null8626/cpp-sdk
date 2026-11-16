@@ -128,6 +128,8 @@ int main() {
       }
     });
 
+    // Array of application commands that
+    // can be serialized to Discord API's raw JSON format.
     dbl.post_commands("[{\"id\":\"1\",\"type\":1,\"application_id\":\"1\",\"name\":\"test\",\"description\":\"command description\",\"default_member_permissions\":\"\",\"version\":\"1\"}]", [](const topgg::empty_result& result) {
       try {
         result.check();
