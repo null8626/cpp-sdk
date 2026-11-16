@@ -401,7 +401,7 @@ void topgg::oauth2_client::revoke_token(const topgg::empty_callback& callback,
 
     body += m_oauth2->m_client_id +
             "&client_secret=" + m_oauth2->m_client_secret +
-            "&refresh_token=" + m_session.refresh_token;
+            "&token=" + m_session.refresh_token;
   };
 
   auto http{get_http()};
