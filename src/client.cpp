@@ -203,15 +203,15 @@ void topgg::base_client::get_webhooks(
 
 void topgg::base_client::create_webhook(const std::string& id,
                                         const topgg::base_webhook& webhook,
-                                        const topgg::empty_callback& callback,
+                                        const topgg::callback<topgg::webhook>& callback,
                                         const bool defer) {
   nlohmann::json body{};
 
   body["label"] = webhook.label;
   body["url"] = webhook.url;
 
-  fetch_empty("POST", "/projects/" + id + "/webhooks", callback, defer,
-              body.dump());
+  fetch_simple("POST", "/projects/" + id + "/webhooks", callback, defer,
+               body.dump());
 }
 
 void topgg::base_client::delete_webhook(const std::string& project_id,

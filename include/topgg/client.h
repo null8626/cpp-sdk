@@ -403,7 +403,7 @@ class base_client {
    * @since 2.0.0
    */
   void create_webhook(const std::string& id, const base_webhook& webhook,
-                      const empty_callback& callback, const bool defer = false);
+                      const callback<webhook>& callback, const bool defer = false);
 
   /**
    * @brief Deletes a webhook the application created.
