@@ -113,10 +113,8 @@ class base_client {
                        const std::string_view& method, const std::string& path,
                        const paginated_callback<T>& callback,
                        const bool defer) {
-    const auto cursor{cursor_.cursor()};
-
-    if (cursor.has_value()) {
-      fetch_paginated(key, method, path + "?cursor=" + cursor.value(), callback,
+    if (cursor_.is_last()) {
+      fetch_paginated(key, method, path + "?cursor=" + cursor_.cursor(), callback,
                       defer);
     } else {
       callback(paginated_result<T>::empty());

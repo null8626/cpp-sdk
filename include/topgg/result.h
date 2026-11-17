@@ -98,9 +98,9 @@ class empty_result : private result<std::monostate> {
  */
 template <class T>
 class paginated_result
-    : private result<std::pair<std::vector<T>, std::optional<std::string>>> {
+    : private result<std::pair<std::vector<T>, std::string>> {
   using base_result =
-      result<std::pair<std::vector<T>, std::optional<std::string>>>;
+      result<std::pair<std::vector<T>, std::string>>;
 
   template <class T2>
   inline paginated_result(const T2& data) : base_result(data) {}
@@ -113,30 +113,30 @@ class paginated_result
       data.push_back(element);
     }
 
-    return std::make_pair(
-        data, j.contains("cursor")
-                  ? std::optional{j["cursor"].template get<std::string>()}
-                  : std::nullopt);
+    return std::make_pair(data, j["cursor"].template get<std::string>());
   }
 
-  static inline constexpr std::pair<std::vector<T>, std::optional<std::string>>
+  static inline constexpr std::pair<std::vector<T>, std::string>
   empty() {
-    return std::make_pair(std::vector<T>{}, std::nullopt);
+    return std::make_pair(std::vector<T>{}, std::string{});
   }
 
-  inline std::optional<std::string> cursor() const {
-    return std::holds_alternative<
-               std::pair<std::vector<T>, std::optional<std::string>>>(
-               this->m_variant)
-               ? std::get<
-                     std::pair<std::vector<T>, std::optional<std::string>>>(
-                     this->m_variant)
-                     .second
-               : std::nullopt;
+  inline std::string cursor() const {
+    return std::get<std::pair<std::vector<T>, std::string>>(this->m_variant).second;
   }
 
  public:
   paginated_result() = delete;
+
+  /**
+   * @brief Whether this is the last page.
+   *
+   * @return bool Whether this is the last page.
+   * @since 2.0.0
+   */
+  inline bool is_last() const {
+    return std::get<std::pair<std::vector<T>, std::string>>(this->m_variant).first.empty();
+  }
 
   /**
    * @brief Retrieves the contained data with error checking.
