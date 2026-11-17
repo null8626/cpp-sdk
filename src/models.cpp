@@ -168,6 +168,10 @@ topgg::base_webhook::base_webhook(const nlohmann::json& j) {
 
 topgg::webhook::webhook(const nlohmann::json& j) : topgg::base_webhook(j) {
   id = j["id"].template get<std::string>();
+
+  if (j.contains("secret")) {
+    secret = j["secret"].template get<std::optional<std::string>>();
+  }
 }
 
 topgg::user::user(const nlohmann::json& j) {

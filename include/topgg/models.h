@@ -803,6 +803,13 @@ class webhook : public base_webhook {
    */
   std::string id{};
 
+  /**
+   * @brief The webhook's secret.
+   *
+   * @since 2.0.0
+   */
+  std::optional<std::string> secret{};
+
   friend class base_client;
 };
 
