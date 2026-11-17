@@ -11,7 +11,7 @@
 #include <topgg/webhooks/client.h>
 #include <topgg/webhooks/models.h>
 #endif
-#include <topgg/client.h>
 #include <topgg/exception.h>
-#include <topgg/http.h>
 #include <topgg/result.h>
+#include <topgg/http.h>
+#include <topgg/client.h>

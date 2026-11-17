@@ -401,7 +401,7 @@ class base_client {
    * @since 2.0.0
    */
   void create_webhook(const std::string& id, const base_webhook& webhook,
-                      const callback<webhook>& callback, const bool defer = false);
+                      const topgg::callback<topgg::webhook>& callback, const bool defer = false);
 
   /**
    * @brief Deletes a webhook the application created.
@@ -620,10 +620,10 @@ class client : public base_client {
    * @param defer Whether to defer the request later. Defaults to false.
    * @since 2.0.0
    */
-  inline void get_votes(const std::string& user_id, const user_source& source,
+  inline void get_vote(const std::string& user_id, const user_source& source,
                         const callback<partial_vote>& callback,
                         const bool defer = false) {
-    base_client::get_votes("@me", user_id, source, callback, defer);
+    base_client::get_vote("@me", user_id, source, callback, defer);
   }
 };
 #endif
