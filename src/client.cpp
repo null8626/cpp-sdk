@@ -183,7 +183,7 @@ http_client::http_client() : m_running(true) {
 void http_client::event_loop() {
   int still_running{};
   int remaining_messages{};
-  CURLMsg* message{};
+  CURLMsg* message{nullptr};
 
 HTTP_CLIENT_EVENT_LOOP:
   m_queued_requests_mutex.lock();
