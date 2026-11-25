@@ -1,9 +1,6 @@
 #pragma once
 
-#include <ctime>
 #include <nlohmann/json.hpp>
-#include <string>
-#include <type_traits>
 
 /**
  * @brief The Top.gg namespace.
@@ -94,7 +91,7 @@ class partial_project {
    *
    * @since 2.0.0
    */
-  std::string id{};
+  uint64_t id{};
 
   /**
    * @brief The project's platform ID.
@@ -124,7 +121,6 @@ class partial_project {
    */
   project_type type{};
 
-  friend class base_client;
   friend class paginated_result<partial_project>;
 };
 
@@ -144,7 +140,7 @@ class project {
    *
    * @since 2.0.0
    */
-  std::string id{};
+  uint64_t id{};
 
   /**
    * @brief The project's name in its platform.
@@ -210,9 +206,6 @@ class project {
   uint64_t review_count{};
 
   friend class base_client;
-#ifndef TOPGG_PROJECT_TOKENS_ONLY
-  friend class oauth2_client;
-#endif
   friend class paginated_result<project>;
 };
 
@@ -343,8 +336,8 @@ enum locale {
 class locale_map {
   nlohmann::json m_json{};
 
-  void enforce_constraints(const uint16_t minimum,
-                           const uint16_t maximum) const;
+  int8_t enforce_constraints(const uint16_t minimum,
+                             const uint16_t maximum) const;
 
  public:
   /**
@@ -357,12 +350,8 @@ class locale_map {
   void set(const locale& locale_, const std::string& text);
 
   friend class base_client;
-#ifndef TOPGG_OAUTH2_ACCESS_TOKENS_ONLY
-  friend class client;
-#endif
-#ifndef TOPGG_PROJECT_TOKENS_ONLY
-  friend class oauth2_client;
-#endif
+  friend class base_application_client;
+  friend struct project_client;
 };
 
 /**
@@ -401,13 +390,8 @@ enum announcement_category {
 class metrics {
   virtual nlohmann::json to_json() const = 0;
 
-  friend class base_client;
-#ifndef TOPGG_OAUTH2_ACCESS_TOKENS_ONLY
-  friend class client;
-#endif
-#ifndef TOPGG_PROJECT_TOKENS_ONLY
-  friend class oauth2_client;
-#endif
+  friend class base_application_client;
+  friend struct project_client;
 };
 
 template <class T>
@@ -496,8 +480,7 @@ class discord_server_metrics : public metrics {
    */
   inline constexpr discord_server_metrics(const uint64_t member_count_,
                                           const uint64_t online_count_)
-      : m_member_count(member_count_),
-        m_online_count(online_count_) {}
+      : m_member_count(member_count_), m_online_count(online_count_) {}
 
   /**
    * @brief Creates a Discord server's metrics instance.
@@ -531,13 +514,13 @@ class discord_server_metrics : public metrics {
  *
  * @since 2.0.0
  */
-class roblox_metrics : public metrics {
+class roblox_game_metrics : public metrics {
   uint64_t m_player_count{};
 
   nlohmann::json to_json() const override;
 
  public:
-  roblox_metrics() = delete;
+  roblox_game_metrics() = delete;
 
   /**
    * @brief Creates a Roblox game's metrics instance.
@@ -545,10 +528,10 @@ class roblox_metrics : public metrics {
    * @param player_count The game's current player count.
    * @since 2.0.0
    */
-  inline constexpr roblox_metrics(const uint64_t player_count)
+  inline constexpr roblox_game_metrics(const uint64_t player_count)
       : m_player_count(player_count) {}
 
-  friend class timestamped_metrics<roblox_metrics>;
+  friend class timestamped_metrics<roblox_game_metrics>;
 };
 
 std::string _to_time_string(const time_t timestamp);
@@ -599,11 +582,6 @@ class timestamped_metrics {
    * @since 2.0.0
    */
   inline void clear() { m_json.clear(); }
-
-  friend class base_client;
-#ifndef TOPGG_PROJECT_TOKENS_ONLY
-  friend class oauth2_client;
-#endif
 };
 
 /**
@@ -649,10 +627,8 @@ class partial_vote {
     return time(nullptr) >= expires_at;
   }
 
-  friend class base_client;
-#ifndef TOPGG_PROJECT_TOKENS_ONLY
-  friend class oauth2_client;
-#endif
+  friend class base_application_client;
+  friend struct project_client;
 };
 
 /**
@@ -692,7 +668,7 @@ class vote : public partial_vote {
    *
    * @since 2.0.0
    */
-  std::string user_id{};
+  uint64_t user_id{};
 
   /**
    * @brief The voter's platform ID.
@@ -701,10 +677,6 @@ class vote : public partial_vote {
    */
   std::string platform_id{};
 
-  friend class base_client;
-#ifndef TOPGG_PROJECT_TOKENS_ONLY
-  friend class oauth2_client;
-#endif
   friend class paginated_result<vote>;
 };
 
@@ -724,7 +696,7 @@ class integration {
    *
    * @since 2.0.0
    */
-  std::string id{};
+  uint64_t id{};
 
   /**
    * @brief The integration's name.
@@ -781,8 +753,6 @@ struct base_webhook {
 
  protected:
   base_webhook(const nlohmann::json& j);
-
-  friend class base_client;
 };
 
 /**
@@ -801,7 +771,7 @@ class webhook : public base_webhook {
    *
    * @since 2.0.0
    */
-  std::string id{};
+  uint64_t id{};
 
   /**
    * @brief The webhook's secret.
@@ -813,7 +783,6 @@ class webhook : public base_webhook {
   friend class base_client;
 };
 
-#ifndef TOPGG_PROJECT_TOKENS_ONLY
 /**
  * @brief A user's platform connection.
  *
@@ -851,7 +820,7 @@ class user {
    *
    * @since 2.0.0
    */
-  std::string id{};
+  uint64_t id{};
 
   /**
    * @brief The user's username.
@@ -875,7 +844,6 @@ class user {
   std::vector<user_connection> connections{};
 
   friend class base_client;
-  friend class oauth2_client;
 };
 
 /**
@@ -932,7 +900,6 @@ class user_project : public partial_project {
   topgg::review_status review_status{};
 
   friend class base_client;
-  friend class oauth2_client;
 };
 
 /**
@@ -943,7 +910,8 @@ class user_project : public partial_project {
 struct project_submission {
   project_submission() = delete;
 
-  inline project_submission(const platform platform_, const project_type type_,
+  inline project_submission(const platform& platform_,
+                            const project_type& type_,
                             const std::string& platform_id_,
                             const std::string& headline_,
                             const std::string& page_content_)
@@ -988,5 +956,4 @@ struct project_submission {
    */
   std::string page_content{};
 };
-#endif
 };  // namespace topgg

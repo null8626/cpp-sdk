@@ -2,23 +2,7 @@
 
 #include <topgg/topgg.h>
 
-#include <cstdint>
-#include <nlohmann/json.hpp>
-#include <optional>
-#include <string>
-#include <variant>
-#include <vector>
-
 namespace topgg {
-class base_client;
-#ifndef TOPGG_OAUTH2_ACCESS_TOKENS_ONLY
-class client;
-#endif
-#ifndef TOPGG_PROJECT_TOKENS_ONLY
-class oauth2_client;
-class oauth2_url;
-#endif
-
 /**
  * @brief An API call result that may contain a singular data.
  *
@@ -27,7 +11,7 @@ class oauth2_url;
 template <class T>
 class result {
  protected:
-  std::variant<exception, http_exception, nlohmann::json::exception, T>
+  std::variant<exception, request_exception, nlohmann::json::exception, T>
       m_variant{};
 
   template <class T2>
@@ -41,15 +25,15 @@ class result {
    *
    * @return T The contained data.
    * @throw topgg::exception A general Top.gg exception has occurred.
-   * @throw topgg::http_exception An HTTP request exception has occurred.
+   * @throw topgg::request_exception An HTTP request exception has occurred.
    * @throw nlohmann::json::exception Unable to parse JSON.
    * @since 2.0.0
    */
   const T& get() const {
     if (std::holds_alternative<T>(m_variant)) {
       return std::get<T>(m_variant);
-    } else if (std::holds_alternative<http_exception>(m_variant)) {
-      throw std::get<http_exception>(m_variant);
+    } else if (std::holds_alternative<request_exception>(m_variant)) {
+      throw std::get<request_exception>(m_variant);
     } else if (std::holds_alternative<exception>(m_variant)) {
       throw std::get<exception>(m_variant);
     }
@@ -58,11 +42,9 @@ class result {
   }
 
   friend class base_client;
-#ifndef TOPGG_PROJECT_TOKENS_ONLY
-  friend class oauth2_client;
+  friend class base_application_client;
   friend class oauth2_url;
-  friend class oauth2;
-#endif
+  friend struct project_client;
 };
 
 /**
@@ -79,16 +61,17 @@ class empty_result : private result<std::monostate> {
    * @brief Throws an error if the API call failed.
    *
    * @throw topgg::exception A general Top.gg exception has occurred.
-   * @throw topgg::http_exception An HTTP request exception has occurred.
+   * @throw topgg::request_exception An HTTP request exception has occurred.
    * @throw nlohmann::json::exception Unable to parse JSON.
    * @since 2.0.0
    */
   inline void check() const { result::get(); }
 
   friend class base_client;
-#ifndef TOPGG_PROJECT_TOKENS_ONLY
+  friend class direct_http_provider;
+  friend class http_client;
   friend class oauth2_client;
-#endif
+  friend class oauth2_http_provider;
 };
 
 /**
@@ -99,8 +82,7 @@ class empty_result : private result<std::monostate> {
 template <class T>
 class paginated_result
     : private result<std::pair<std::vector<T>, std::string>> {
-  using base_result =
-      result<std::pair<std::vector<T>, std::string>>;
+  using base_result = result<std::pair<std::vector<T>, std::string>>;
 
   template <class T2>
   inline paginated_result(const T2& data) : base_result(data) {}
@@ -113,16 +95,22 @@ class paginated_result
       data.push_back(element);
     }
 
-    return std::make_pair(data, j["cursor"].template get<std::string>());
+    std::string cursor{};
+
+    if (j.contains("cursor")) {
+      cursor = j["cursor"].template get<std::string>();
+    }
+
+    return std::make_pair(data, cursor);
   }
 
-  static inline constexpr std::pair<std::vector<T>, std::string>
-  empty() {
+  static inline constexpr std::pair<std::vector<T>, std::string> empty() {
     return std::make_pair(std::vector<T>{}, std::string{});
   }
 
   inline std::string cursor() const {
-    return std::get<std::pair<std::vector<T>, std::string>>(this->m_variant).second;
+    return std::get<std::pair<std::vector<T>, std::string>>(this->m_variant)
+        .second;
   }
 
  public:
@@ -135,7 +123,10 @@ class paginated_result
    * @since 2.0.0
    */
   inline bool is_last() const {
-    return std::get<std::pair<std::vector<T>, std::string>>(this->m_variant).first.empty();
+    const auto& pair{
+        std::get<std::pair<std::vector<T>, std::string>>(this->m_variant)};
+
+    return pair.second.empty() || pair.first.empty();
   }
 
   /**
@@ -143,15 +134,13 @@ class paginated_result
    *
    * @return std::vector<T> The contained data.
    * @throw topgg::exception A general Top.gg exception has occurred.
-   * @throw topgg::http_exception An HTTP request exception has occurred.
+   * @throw topgg::request_exception An HTTP request exception has occurred.
    * @throw nlohmann::json::exception Unable to parse JSON.
    * @since 2.0.0
    */
   inline const std::vector<T>& get() const { return base_result::get().first; }
 
   friend class base_client;
-#ifndef TOPGG_PROJECT_TOKENS_ONLY
-  friend class oauth2_client;
-#endif
+  friend class http_client;
 };
 };  // namespace topgg

@@ -1,69 +1,7 @@
+#include <openssl/rand.h>
 #include <topgg/topgg.h>
 
 #include <sstream>
-
-#ifndef TOPGG_PROJECT_TOKENS_ONLY
-#include <openssl/rand.h>
-#endif
-
-#ifdef _WIN32
-#include <winsock2.h>
-
-static thread_local size_t g_wsastartup_counter = 0;
-#endif
-
-topgg::waker::waker() {
-#ifdef _WIN32
-  if ((m_semaphore = CreateSemaphoreA(nullptr, 0, 1, nullptr)) == nullptr) {
-    throw topgg::exception::system("Unable to create semaphore");
-  }
-#endif
-}
-
-void topgg::waker::notify() {
-#ifdef _WIN32
-  if (ReleaseSemaphore(m_semaphore, 1, nullptr) == 0 &&
-      GetLastError() != ERROR_TOO_MANY_POSTS) {
-    throw topgg::exception::system("Unable to notify semaphore");
-  }
-#endif
-}
-
-void topgg::waker::wait() {
-#ifdef _WIN32
-  if (WaitForSingleObject(m_semaphore, INFINITE) == WAIT_FAILED) {
-    throw topgg::exception::system("Unable to wait for semaphore");
-  }
-#endif
-}
-
-topgg::waker::~waker() {
-#ifdef _WIN32
-  if (m_semaphore != nullptr) {
-    CloseHandle(m_semaphore);
-  }
-#endif
-}
-
-#ifdef _WIN32
-void topgg::wsastartup_guard::init() {
-  if (g_wsastartup_counter == 0) {
-    WSADATA wsa_data{};
-
-    if (const auto status{WSAStartup(MAKEWORD(2, 2), &wsa_data)}; status != 0) {
-      throw topgg::exception::system("Unable to call WSAStartup");
-    }
-
-    g_wsastartup_counter++;
-  }
-}
-
-topgg::wsastartup_guard::~wsastartup_guard() {
-  if (g_wsastartup_counter > 0 && g_wsastartup_counter-- == 1) {
-    WSACleanup();
-  }
-}
-#endif
 
 topgg::platform topgg::_from_platform_string(const std::string& platform) {
   if (platform == "discord") {
@@ -132,7 +70,6 @@ std::string topgg::_url_encode(const std::string& text) {
   return ss.str();
 }
 
-#ifndef TOPGG_PROJECT_TOKENS_ONLY
 std::string topgg::_random_string() {
   std::vector<uint8_t> buf(64);
 
@@ -150,4 +87,27 @@ std::string topgg::_random_string() {
 
   return ss.str();
 }
-#endif
+
+const char* topgg::_platform_to_string(const topgg::platform& platform) {
+  switch (platform) {
+    case topgg::platform::p_discord:
+      return "discord";
+    case topgg::platform::p_roblox:
+      return "roblox";
+    default:
+      return "unknown";
+  }
+}
+
+const char* topgg::_project_type_to_string(const topgg::project_type& type) {
+  switch (type) {
+    case topgg::project_type::pt_bot:
+      return "bot";
+    case topgg::project_type::pt_server:
+      return "server";
+    case topgg::project_type::pt_game:
+      return "game";
+    default:
+      return "unknown";
+  }
+}

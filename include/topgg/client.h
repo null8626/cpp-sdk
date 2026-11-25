@@ -2,18 +2,28 @@
 
 #include <topgg/topgg.h>
 
-#include <functional>
-#include <string>
-
-#ifndef TOPGG_PROJECT_TOKENS_ONLY
-#include <openssl/bio.h>
-#include <openssl/evp.h>
-#include <uv.h>
-
-#include <ctime>
+#include <BS_thread_pool.hpp>
 #include <memory>
-#include <mutex>
+#include <shared_mutex>
+
+#ifndef TOPGG_BASE_URL
+#define TOPGG_BASE_URL "https://top.gg/api/v1"
 #endif
+
+#define TOPGG_CT_APPLICATION_JSON "Content-Type: application/json"
+#define TOPGG_CT_APPLICATION_X_WWW_FORM_URLENCODED \
+  "Content-Type: application/x-www-form-urlencoded"
+
+#define _TOPGG_UNWRAP_VARIANT(callback, response_variant, ...)              \
+  if (std::holds_alternative<topgg::request_exception>(response_variant)) { \
+    callback(std::get<topgg::request_exception>(response_variant));         \
+  } else if (std::holds_alternative<topgg::exception>(response_variant)) {  \
+    callback(std::get<topgg::exception>(response_variant));                 \
+  } else if (std::holds_alternative<nlohmann::json::exception>(             \
+                 response_variant)) {                                       \
+    callback(std::get<nlohmann::json::exception>(response_variant));        \
+  } else                                                                    \
+    __VA_ARGS__
 
 namespace topgg {
 /**
@@ -30,7 +40,6 @@ using callback = std::function<void(const result<T>&)>;
  * @since 2.0.0
  */
 using empty_callback = std::function<void(const empty_result&)>;
-template <class T>
 
 /**
  * @brief An API call callback function that receives a
@@ -38,449 +47,290 @@ template <class T>
  *
  * @since 2.0.0
  */
+template <class T>
 using paginated_callback = std::function<void(const paginated_result<T>&)>;
 
-/**
- * @brief A base API client.
- *
- * @since 2.0.0
- */
-class base_client {
+struct http_response {
+  uint16_t status{};
+  std::optional<uint32_t> retry_after{std::nullopt};
+  std::string_view body{};
+};
+
+using http_response_variant =
+    std::variant<exception, request_exception, nlohmann::json::exception,
+                 http_response>;
+
+class http_request {
+  using callback = std::function<void(const http_response_variant&)>;
+
+  CURL* m_curl{nullptr};
+  std::string m_url{};
+  http_request::callback m_callback{};
+  std::string m_authorization{};
+  std::string m_request_body{};
+  struct curl_slist* m_headers{nullptr};
+
+  char m_curl_error_details[CURL_ERROR_SIZE];
+  uint16_t m_response_status{};
+  std::optional<uint32_t> m_retry_after{};
+  std::string m_response_body{};
+
+  http_request(const char* method, const std::string& path,
+               const http_request::callback& callback,
+               const char* content_type = TOPGG_CT_APPLICATION_JSON,
+               const std::string& body = "");
+
+  void set_token(const std::string& token);
+
+  static size_t write_response_headers(char* ptr, size_t size, size_t nmemb,
+                                       void* userdata);
+
+  static size_t write_response_body(char* ptr, size_t size, size_t nmemb,
+                                    void* userdata);
+
+  void dispatch();
+
+  inline void dispatch_variant(const http_response_variant& variant) {
+    m_callback(variant);
+  }
+
+ public:
+  http_request() = delete;
+
+  ~http_request();
+
+  friend class base_client;
+  friend class base_application_client;
+  friend class http_client;  // OK
+  friend class oauth2_client;
+  friend class oauth2_http_provider;
+  friend class oauth2_url;
+  friend struct project_client;
+};
+
+class http_client {
+  std::atomic<bool> m_running{};
+  CURLM* m_client{nullptr};
+  std::thread m_event_loop_thread{};
+  std::mutex m_pending_requests_mutex{};
+  std::queue<http_request*> m_pending_requests{};
+  BS::thread_pool<> m_callback_thread_pool{};
+
+  http_client();
+
+  void event_loop();
+
+  void submit(http_request* request);
+
+  void safe_submit(http_request* request);
+
+  template <class T, class C, class A>
+  inline void dispatch(const C& callback, const A& args) {
+    m_callback_thread_pool.detach_task(
+        [callback, args]() { callback(T{args}); });
+  }
+
+ public:
+  ~http_client();
+
+  friend class base_client;
+  friend class base_application_client;
+  friend class direct_http_provider;  // OK
+  friend class oauth2;
+  friend class oauth2_client;
+  friend class oauth2_http_provider;
+  friend class oauth2_url;
+  friend struct project_client;
+};
+
+class http_provider {
  protected:
-  virtual http_frontend* get_http() = 0;
+  virtual void ensure_session(const empty_callback& callback) = 0;
 
   virtual std::string get_token() = 0;
 
-  template <class T>
-  void fetch_simple(const std::string_view& method, const std::string& path,
-                    const callback<T>& callback_, const bool defer,
-                    const std::string& body = "") {
-    get_http()->fetch(
-        new http_request{
-            get_token(), method, path,
-            [callback_](const http_response_pair& response_pair) {
-              if (std::holds_alternative<exception>(response_pair)) {
-                callback_(std::get<exception>(response_pair));
-              } else {
-                try {
-                  const auto& response{std::get<http_response>(response_pair)};
+  virtual http_client* get_http() = 0;
 
-                  if (response.status >= 400) {
-                    callback_(http_exception{response});
-                  } else {
-                    callback_(T{nlohmann::json::parse(response.body)});
-                  }
-                } catch (const nlohmann::json::exception& error) {
-                  callback_(error);
-                }
-              }
-            },
-            body},
-        defer);
+  friend class base_client;
+  friend class base_application_client;
+};
+
+class direct_http_provider : protected http_provider {
+  http_client m_http{};
+  std::string m_token{};
+
+  void ensure_session(const empty_callback& callback_) override;
+
+  inline std::string get_token() override { return m_token; }
+
+  inline http_client* get_http() override { return &m_http; }
+
+ protected:
+  inline direct_http_provider(const std::string& token) : m_token(token) {}
+
+ public:
+  direct_http_provider() = delete;
+
+  friend struct project_client;
+};
+
+class base_client {
+  http_provider* m_provider{nullptr};
+
+  void fetch_json(http_request* request);
+
+ protected:
+  inline base_client(http_provider* provider) : m_provider(provider) {}
+
+  template <class T>
+  bool enforce_constraints(const locale_map& map, const uint16_t minimum,
+                           const uint16_t maximum,
+                           const std::function<T>& callback) {
+    const auto result{map.enforce_constraints(minimum, maximum)};
+
+    if (result < 0) {
+      m_provider->get_http()->dispatch<topgg::exception>(
+          callback, "A locale_map text length is below the minimum threshold");
+
+      return false;
+    } else if (result > 0) {
+      m_provider->get_http()->dispatch<topgg::exception>(
+          callback, "A locale_map text length is above the maximum threshold");
+
+      return false;
+    }
+
+    return true;
   }
 
   template <class T>
-  void fetch_paginated(const char* key, const std::string_view& method,
-                       const std::string& path,
-                       const paginated_callback<T>& callback,
-                       const bool defer) {
-    get_http()->fetch(
-        new http_request{
-            get_token(), method, path,
-            [key, callback](const http_response_pair& response_pair) {
-              if (std::holds_alternative<exception>(response_pair)) {
-                callback(std::get<exception>(response_pair));
-              } else {
-                try {
-                  const auto& response{std::get<http_response>(response_pair)};
+  void fetch_simple(const char* method, const std::string& path,
+                    const callback<T>& callback_,
+                    const std::string& body = "") {
+    fetch_json(new http_request{
+        method, path,
+        [callback_](const http_response_variant& response_variant) {
+          _TOPGG_UNWRAP_VARIANT(callback_, response_variant, {
+            try {
+              const auto& response{std::get<http_response>(response_variant)};
 
-                  if (response.status >= 400) {
-                    callback(http_exception{response});
-                  } else {
-                    callback(paginated_result<T>::from_array(
-                        key, nlohmann::json::parse(response.body)));
-                  }
-                } catch (const nlohmann::json::exception& error) {
-                  callback(error);
-                }
+              if (response.status >= 400) {
+                callback_(request_exception::parse(response));
+              } else {
+                callback_(T{nlohmann::json::parse(response.body)});
               }
-            }},
-        defer);
+            } catch (const nlohmann::json::exception& error) {
+              callback_(error);
+            }
+          });
+        },
+        TOPGG_CT_APPLICATION_JSON, body});
+  }
+
+  template <class T>
+  void fetch_paginated(const char* key, const char* method,
+                       const std::string& path,
+                       const paginated_callback<T>& callback) {
+    fetch_json(new http_request{
+        method, path,
+        [key, callback](const http_response_variant& response_variant) {
+          _TOPGG_UNWRAP_VARIANT(callback, response_variant, {
+            try {
+              const auto& response{std::get<http_response>(response_variant)};
+
+              if (response.status >= 400) {
+                callback(request_exception::parse(response));
+              } else {
+                callback(paginated_result<T>::from_array(
+                    key, nlohmann::json::parse(response.body)));
+              }
+            } catch (const nlohmann::json::exception& error) {
+              callback(error);
+            }
+          });
+        }});
   }
 
   template <class T>
   void fetch_paginated(const paginated_result<T>& cursor_, const char* key,
-                       const std::string_view& method, const std::string& path,
-                       const paginated_callback<T>& callback,
-                       const bool defer) {
+                       const char* method, const std::string& path,
+                       const paginated_callback<T>& callback) {
     if (cursor_.is_last()) {
-      fetch_paginated(key, method, path + "?cursor=" + cursor_.cursor(), callback,
-                      defer);
+      fetch_paginated(key, method, path + "?cursor=" + cursor_.cursor(),
+                      callback);
     } else {
       callback(paginated_result<T>::empty());
     }
   }
 
-  void fetch_empty(const std::string_view& method, const std::string& path,
-                   const empty_callback& callback, const bool defer,
+  void fetch_empty(const char* method, const std::string& path,
+                   const empty_callback& callback,
                    const std::string& body = "");
 
   template <class T>
-  void fetch_vector(const std::string_view& method, const std::string& path,
-                    const callback<std::vector<T>>& callback, const bool defer,
+  void fetch_vector(const char* method, const std::string& path,
+                    const callback<std::vector<T>>& callback,
                     const std::string& body = "") {
-    get_http()->fetch(
-        new http_request{
-            get_token(), method, path,
-            [callback](const http_response_pair& response_pair) {
-              if (std::holds_alternative<exception>(response_pair)) {
-                callback(std::get<exception>(response_pair));
+    fetch_json(new http_request{
+        method, path,
+        [callback](const http_response_variant& response_variant) {
+          _TOPGG_UNWRAP_VARIANT(callback, response_variant, {
+            try {
+              const auto& response{std::get<http_response>(response_variant)};
+
+              if (response.status >= 400) {
+                callback(request_exception::parse(response));
               } else {
-                try {
-                  const auto& response{std::get<http_response>(response_pair)};
+                const auto json{nlohmann::json::parse(response.body)};
+                std::vector<T> output{};
 
-                  if (response.status >= 400) {
-                    callback(http_exception{response});
-                  } else {
-                    const auto json{nlohmann::json::parse(response.body)};
-                    std::vector<T> output{};
-
-                    for (const auto& project : json) {
-                      output.push_back(T{project});
-                    }
-
-                    callback(output);
-                  }
-                } catch (const nlohmann::json::exception& error) {
-                  callback(error);
+                for (const auto& project : json) {
+                  output.push_back(T{project});
                 }
+
+                callback(output);
               }
-            },
-            body},
-        defer);
+            } catch (const nlohmann::json::exception& error) {
+              callback(error);
+            }
+          });
+        },
+        TOPGG_CT_APPLICATION_JSON, body});
   }
 
  public:
-  /**
-   * @brief Fetches the projects the current credential covers.
-   *
-   * @param callback The API call's callback function.
-   * @param defer Whether to defer the request later. Defaults to false.
-   * @since 2.0.0
-   */
-  void get_projects(const paginated_callback<partial_project>& callback,
-                    const bool defer = false);
+  base_client() = delete;
 
-  /**
-   * @brief Fetches the projects the current credential covers from a cursor.
-   *
-   * @param cursor The cursor frame of reference.
-   * @param callback The API call's callback function.
-   * @param defer Whether to defer the request later. Defaults to false.
-   * @since 2.0.0
-   */
-  void get_projects(const paginated_result<partial_project>& cursor,
-                    const paginated_callback<partial_project>& callback,
-                    const bool defer = false);
-
-  /**
-   * @brief Fetches a project associated with the current token.
-   *
-   * @param id The project's Top.gg ID.
-   * @param callback The API call's callback function.
-   * @param defer Whether to defer the request later. Defaults to false.
-   * @since 2.0.0
-   */
-  void get_project(const std::string& id, const callback<project>& callback,
-                   const bool defer = false);
-
-  /**
-   * @brief Updates the headline and/or page content for a project. Both fields
-   * are locale-keyed, so you can set content for multiple languages in a single
-   * request.
-   *
-   * @param id The project's Top.gg ID.
-   * @param headline A map of locales to headline strings. Each headline must be
-   * between 3 and 140 characters.
-   * @param page_content A map of locales to page content strings (Markdown
-   * supported.) Each entry must be between 300 and 50,000 characters.
-   * @param callback The API call's callback function.
-   * @param defer Whether to defer the request later. Defaults to false.
-   * @throw topgg::exception The headline or page_content length does not match
-   * the required thresholds.
-   * @since 2.0.0
-   */
-  void edit_project(const std::string& id, const locale_map& headline,
-                    const locale_map& page_content,
-                    const empty_callback& callback, const bool defer = false);
-
-  /**
-   * @brief Creates a new announcement for a project. Announcements appear on a
-   * project’s page and can be used to notify users about updates, new features,
-   * or other news.
-   *
-   * @param id The project's Top.gg ID.
-   * @param title The announcement's title.
-   * @param content The announcement's body.
-   * @param category The category to publish the announcement under.
-   * @param callback The API call's callback function.
-   * @param defer Whether to defer the request later. Defaults to false.
-   * @throw topgg::exception The title or content length does not match the
-   * required thresholds.
-   * @since 2.0.0
-   */
-  void post_announcement(const std::string& id, const std::string& title,
-                         const std::string& content,
-                         const announcement_category category,
-                         const empty_callback& callback,
-                         const bool defer = false);
-
-  /**
-   * @brief Submits a single metrics payload for a project. Use this to push
-   * fresh numbers after an event such as joining or leaving a guild or a player
-   * connecting.
-   *
-   * @param id The project's Top.gg ID.
-   * @param metrics The metrics payload.
-   * @param callback The API call's callback function.
-   * @param defer Whether to defer the request later. Defaults to false.
-   * @since 2.0.0
-   */
-  void post_metrics(const std::string& id, const metrics& metrics,
-                    const empty_callback& callback, const bool defer = false);
-
-  /**
-   * @brief Submits up to 100 metrics entries in a single request.
-   *
-   * @param id The project's Top.gg ID.
-   * @param metrics_ The metrics payloads.
-   * @param callback The API call's callback function.
-   * @param defer Whether to defer the request later. Defaults to false.
-   * @throws topgg::exception The metrics entries length does not match the
-   * required threshold.
-   * @since 2.0.0
-   */
-  template <class T>
-  void post_metrics(const std::string& id,
-                    const timestamped_metrics<T>& metrics_,
-                    const empty_callback& callback, const bool defer = false) {
-    if (metrics_.m_json.size() < 1 || metrics_.m_json.size() > 100) {
-      throw exception{"Batch length is outside of the accepted threshold"};
-    }
-
-    nlohmann::json body{};
-
-    body["data"] = metrics_.m_json;
-
-    fetch_empty("POST", "/projects/" + id + "/metrics/batch", callback, defer,
-                body.dump());
-  }
-
-  /**
-   * @brief Overwrites the list of slash command definitions for a bot project
-   * on Top.gg. This is only applicable to bot-type projects on the discord
-   * platform.
-   *
-   * @param id The project's Top.gg ID.
-   * @param commands The array of slash commands in a JSON-stringified Discord
-   * API's application command structure format.
-   * @param callback The API call's callback function.
-   * @param defer Whether to defer the request later. Defaults to false.
-   * @since 2.0.0
-   */
-  void post_commands(const std::string& id, const std::string& commands,
-                     const empty_callback& callback, const bool defer = false);
-
-  /**
-   * @brief Fetches a cursor-paginated list of votes for a project, ordered by
-   * creation date (oldest first within each page.)
-   *
-   * @param id The project's Top.gg ID.
-   * @param since The creation date frame of reference.
-   * @param callback The API call's callback function.
-   * @param defer Whether to defer the request later. Defaults to false.
-   * @throws topgg::exception The creation date frame of reference is invalid.
-   * @since 2.0.0
-   */
-  void get_votes(const std::string& id, const time_t since,
-                 const paginated_callback<vote>& callback,
-                 const bool defer = false);
-
-  /**
-   * @brief Fetches a cursor-paginated list of votes for a project from a
-   * cursor.
-   *
-   * @param id The project's Top.gg ID.
-   * @param cursor The cursor frame of reference.
-   * @param callback The API call's callback function.
-   * @param defer Whether to defer the request later. Defaults to false.
-   * @since 2.0.0
-   */
-  void get_votes(const std::string& id, const paginated_result<vote>& cursor,
-                 const paginated_callback<vote>& callback,
-                 const bool defer = false);
-
-  /**
-   * @brief Fetches the most recent vote for a specific user.
-   *
-   * @param id The project's Top.gg ID.
-   * @param user_id The ID of the user to look up. The expected format depends
-   * on the source parameter.
-   * @param source The ID type being provided.
-   * @param callback The API call's callback function.
-   * @param defer Whether to defer the request later. Defaults to false.
-   * @since 2.0.0
-   */
-  void get_vote(const std::string& id, const std::string& user_id,
-                const user_source& source,
-                const callback<partial_vote>& callback,
-                const bool defer = false);
-
-  /**
-   * @brief Fetches the integrations available for a project and whether each
-   * one is connected.
-   *
-   * @param id The project's Top.gg ID.
-   * @param callback The API call's callback function.
-   * @param defer Whether to defer the request later. Defaults to false.
-   * @since 2.0.0
-   */
-  void get_integrations(const std::string& id,
-                        const callback<std::vector<integration>>& callback,
-                        const bool defer = false);
-
-  /**
-   * @brief Connects an integration to the project. Top.gg runs the integration
-   * handshake and starts delivering events to it.
-   *
-   * @param project_id The project's Top.gg ID.
-   * @param integration_id The integration's Top.gg ID.
-   * @param callback The API call's callback function.
-   * @param defer Whether to defer the request later. Defaults to false.
-   * @since 2.0.0
-   */
-  void connect_integration(const std::string& project_id,
-                           const std::string& integration_id,
-                           const empty_callback& callback,
-                           const bool defer = false);
-
-  /**
-   * @brief Disconnects an integration the application connected. The
-   * integration receives an integration.delete event.
-   *
-   * @param project_id The project's Top.gg ID.
-   * @param integration_id The integration's Top.gg ID.
-   * @param callback The API call's callback function.
-   * @param defer Whether to defer the request later. Defaults to false.
-   * @since 2.0.0
-   */
-  void disconnect_integration(const std::string& project_id,
-                              const std::string& integration_id,
-                              const empty_callback& callback,
-                              const bool defer = false);
-
-  /**
-   * @brief Fetches the webhooks the application created on the project.
-   *
-   * @param id The project's Top.gg ID.
-   * @param callback The API call's callback function.
-   * @param defer Whether to defer the request later. Defaults to false.
-   * @since 2.0.0
-   */
-  void get_webhooks(const std::string& id,
-                    const callback<std::vector<webhook>>& callback,
-                    const bool defer = false);
-
-  /**
-   * @brief Creates a vote webhook on the project.
-   *
-   * @param id The project's Top.gg ID.
-   * @param webhook The vote webhook.
-   * @param callback The API call's callback function.
-   * @param defer Whether to defer the request later. Defaults to false.
-   * @since 2.0.0
-   */
-  void create_webhook(const std::string& id, const base_webhook& webhook,
-                      const topgg::callback<topgg::webhook>& callback, const bool defer = false);
-
-  /**
-   * @brief Deletes a webhook the application created.
-   *
-   * @param project_id The project's Top.gg ID.
-   * @param webhook_id The webhook's Top.gg ID.
-   * @param callback The API call's callback function.
-   * @param defer Whether to defer the request later. Defaults to false.
-   * @since 2.0.0
-   */
-  void delete_webhook(const std::string& project_id,
-                      const std::string& webhook_id,
-                      const empty_callback& callback, const bool defer = false);
-
-  /**
-   * @brief Replaces the signing secret of a webhook the application created.
-   * The previous secret stops working immediately.
-   *
-   * @param project_id The project's Top.gg ID.
-   * @param webhook_id The webhook's Top.gg ID.
-   * @param callback The API call's callback function.
-   * @param defer Whether to defer the request later. Defaults to false.
-   * @since 2.0.0
-   */
-  void rotate_webhook_secret(const std::string& project_id,
-                             const std::string& webhook_id,
-                             const callback<std::string>& callback,
-                             const bool defer = false);
-
-  /**
-   * @brief Sends a webhook.test event to a webhook the application created.
-   *
-   * @param project_id The project's Top.gg ID.
-   * @param webhook_id The webhook's Top.gg ID.
-   * @param callback The API call's callback function.
-   * @param defer Whether to defer the request later. Defaults to false.
-   * @since 2.0.0
-   */
-  void test_webhook(const std::string& project_id,
-                    const std::string& webhook_id,
-                    const empty_callback& callback, const bool defer = false);
+  friend class base_application_client;
+  friend class oauth2_client;
+  friend struct project_client;
 };
 
-#ifndef TOPGG_OAUTH2_ACCESS_TOKENS_ONLY
 /**
- * @brief A project or application API client.
+ * @brief An API client using a project token.
  *
  * @since 2.0.0
  */
-class client : public base_client {
-  http_frontend m_http{};
-  std::string m_token{};
-
-  inline http_frontend* get_http() override { return &m_http; }
-
-  inline std::string get_token() override { return m_token; }
-
- public:
-  client() = delete;
+struct project_client : private direct_http_provider, private base_client {
+  project_client() = delete;
 
   /**
-   * @brief Creates a client instance.
+   * @brief Creates the client.
    *
-   * @param token The project or application token.
+   * @param token The project token to use.
    * @since 2.0.0
    */
-  inline client(const std::string& token) : m_token(token) {}
+  inline project_client(const std::string& token)
+      : direct_http_provider(token),
+        base_client(static_cast<http_provider*>(this)) {}
 
   /**
    * @brief Fetches the project associated with the current token.
    *
    * @param callback The API call's callback function.
-   * @param defer Whether to defer the request later. Defaults to false.
    * @since 2.0.0
    */
-  inline void get_project(const callback<project>& callback,
-                          const bool defer = false) {
-    base_client::get_project("@me", callback, defer);
-  }
+  void get_project(const callback<project>& callback);
 
   /**
    * @brief Updates the headline and/or page content for the current project.
@@ -492,17 +342,10 @@ class client : public base_client {
    * @param page_content A map of locales to page content strings (Markdown
    * supported.) Each entry must be between 300 and 50,000 characters.
    * @param callback The API call's callback function.
-   * @param defer Whether to defer the request later. Defaults to false.
-   * @throw topgg::exception The headline or page_content length does not match
-   * the required thresholds.
    * @since 2.0.0
    */
-  inline void edit_project(const locale_map& headline,
-                           const locale_map& page_content,
-                           const empty_callback& callback,
-                           const bool defer = false) {
-    base_client::edit_project("@me", headline, page_content, callback, defer);
-  }
+  void edit_project(const locale_map& headline, const locale_map& page_content,
+                    const empty_callback& callback);
 
   /**
    * @brief Creates a new announcement for the current project. Announcements
@@ -513,19 +356,11 @@ class client : public base_client {
    * @param content The announcement's body.
    * @param category The category to publish the announcement under.
    * @param callback The API call's callback function.
-   * @param defer Whether to defer the request later. Defaults to false.
-   * @throw topgg::exception The title or content length does not match the
-   * required thresholds.
    * @since 2.0.0
    */
-  inline void post_announcement(const std::string& title,
-                                const std::string& content,
-                                const announcement_category category,
-                                const empty_callback& callback,
-                                const bool defer = false) {
-    base_client::post_announcement("@me", title, content, category, callback,
-                                   defer);
-  }
+  void post_announcement(const std::string& title, const std::string& content,
+                         const announcement_category category,
+                         const empty_callback& callback);
 
   /**
    * @brief Submits a single metrics payload for the current project. Use this
@@ -534,30 +369,32 @@ class client : public base_client {
    *
    * @param metrics The metrics payload.
    * @param callback The API call's callback function.
-   * @param defer Whether to defer the request later. Defaults to false.
    * @since 2.0.0
    */
-  inline void post_metrics(const metrics& metrics,
-                           const empty_callback& callback,
-                           const bool defer = false) {
-    base_client::post_metrics("@me", metrics, callback, defer);
-  }
+  void post_metrics(const metrics& metrics, const empty_callback& callback);
 
   /**
    * @brief Submits up to 100 metrics entries in a single request.
    *
    * @param metrics_ The metrics payloads.
    * @param callback The API call's callback function.
-   * @param defer Whether to defer the request later. Defaults to false.
-   * @throws topgg::exception The metrics entries length does not match the
-   * required threshold.
    * @since 2.0.0
    */
   template <class T>
-  inline void post_metrics(const timestamped_metrics<T>& metrics_,
-                           const empty_callback& callback,
-                           const bool defer = false) {
-    base_client::post_metrics("@me", metrics_, callback, defer);
+  void post_metrics(const timestamped_metrics<T>& metrics_,
+                    const empty_callback& callback) {
+    if (metrics_.m_json.size() < 1 || metrics_.m_json.size() > 100) {
+      m_http.dispatch<topgg::exception>(
+          callback, "Batch length is outside of the accepted threshold");
+
+      return;
+    }
+
+    nlohmann::json body{};
+
+    body["data"] = metrics_.m_json;
+
+    fetch_empty("POST", "/projects/@me/metrics/batch", callback, body.dump());
   }
 
   /**
@@ -568,14 +405,10 @@ class client : public base_client {
    * @param commands The array of slash commands in a JSON-stringified Discord
    * API's application command structure format.
    * @param callback The API call's callback function.
-   * @param defer Whether to defer the request later. Defaults to false.
    * @since 2.0.0
    */
-  inline void post_commands(const std::string& commands,
-                            const empty_callback& callback,
-                            const bool defer = false) {
-    base_client::post_commands("@me", commands, callback, defer);
-  }
+  void post_commands(const std::string& commands,
+                     const empty_callback& callback);
 
   /**
    * @brief Fetches a cursor-paginated list of votes for the current project,
@@ -583,15 +416,9 @@ class client : public base_client {
    *
    * @param since The creation date frame of reference.
    * @param callback The API call's callback function.
-   * @param defer Whether to defer the request later. Defaults to false.
-   * @throws topgg::exception The creation date frame of reference is invalid.
    * @since 2.0.0
    */
-  inline void get_votes(const time_t since,
-                        const paginated_callback<vote>& callback,
-                        const bool defer = false) {
-    base_client::get_votes("@me", since, callback, defer);
-  }
+  void get_votes(const time_t since, const paginated_callback<vote>& callback);
 
   /**
    * @brief Fetches a cursor-paginated list of votes for the current project
@@ -599,14 +426,10 @@ class client : public base_client {
    *
    * @param cursor The cursor frame of reference.
    * @param callback The API call's callback function.
-   * @param defer Whether to defer the request later. Defaults to false.
    * @since 2.0.0
    */
-  inline void get_votes(const paginated_result<vote>& cursor,
-                        const paginated_callback<vote>& callback,
-                        const bool defer = false) {
-    base_client::get_votes("@me", cursor, callback, defer);
-  }
+  void get_votes(const paginated_result<vote>& cursor,
+                 const paginated_callback<vote>& callback);
 
   /**
    * @brief Fetches the most recent vote status for a specific user. Use this to
@@ -617,18 +440,286 @@ class client : public base_client {
    * on the source parameter.
    * @param source The ID type being provided.
    * @param callback The API call's callback function.
-   * @param defer Whether to defer the request later. Defaults to false.
    * @since 2.0.0
    */
-  inline void get_vote(const std::string& user_id, const user_source& source,
-                        const callback<partial_vote>& callback,
-                        const bool defer = false) {
-    base_client::get_vote("@me", user_id, source, callback, defer);
-  }
+  void get_vote(const std::string& user_id, const user_source& source,
+                const callback<std::optional<partial_vote>>& callback);
 };
-#endif
 
-#ifndef TOPGG_PROJECT_TOKENS_ONLY
+/**
+ * @brief A base client for application and oauth2 access tokens.
+ *
+ * @since 2.0.0
+ */
+class base_application_client : private base_client {
+ protected:
+  inline base_application_client(http_provider* provider)
+      : base_client(provider) {}
+
+ public:
+  base_application_client() = delete;
+
+  /**
+   * @brief Fetches the projects the current credential covers.
+   *
+   * @param callback The API call's callback function.
+   * @since 2.0.0
+   */
+  void get_projects(const paginated_callback<partial_project>& callback);
+
+  /**
+   * @brief Fetches the project associated with the current token.
+   *
+   * @param id The project's Top.gg ID.
+   * @param callback The API call's callback function.
+   * @since 2.0.0
+   */
+  void get_project(const uint64_t id, const callback<project>& callback);
+
+  /**
+   * @brief Updates the headline and/or page content for the current project.
+   * Both fields are locale-keyed, so you can set content for multiple languages
+   * in a single request.
+   *
+   * @param id The project's Top.gg ID.
+   * @param headline A map of locales to headline strings. Each headline must be
+   * between 3 and 140 characters.
+   * @param page_content A map of locales to page content strings (Markdown
+   * supported.) Each entry must be between 300 and 50,000 characters.
+   * @param callback The API call's callback function.
+   * @since 2.0.0
+   */
+  void edit_project(const uint64_t id, const locale_map& headline,
+                    const locale_map& page_content,
+                    const empty_callback& callback);
+
+  /**
+   * @brief Creates a new announcement for the current project. Announcements
+   * appear on a project’s page and can be used to notify users about updates,
+   * new features, or other news.
+   *
+   * @param id The project's Top.gg ID.
+   * @param title The announcement's title.
+   * @param content The announcement's body.
+   * @param category The category to publish the announcement under.
+   * @param callback The API call's callback function.
+   * @since 2.0.0
+   */
+  void post_announcement(const uint64_t id, const std::string& title,
+                         const std::string& content,
+                         const announcement_category category,
+                         const empty_callback& callback);
+
+  /**
+   * @brief Submits a single metrics payload for the current project. Use this
+   * to push fresh numbers after an event such as joining or leaving a guild or
+   * a player connecting.
+   *
+   * @param id The project's Top.gg ID.
+   * @param metrics The metrics payload.
+   * @param callback The API call's callback function.
+   * @since 2.0.0
+   */
+  void post_metrics(const uint64_t id, const metrics& metrics,
+                    const empty_callback& callback);
+
+  /**
+   * @brief Submits up to 100 metrics entries in a single request.
+   *
+   * @param id The project's Top.gg ID.
+   * @param metrics_ The metrics payloads.
+   * @param callback The API call's callback function.
+   * @since 2.0.0
+   */
+  template <class T>
+  inline void post_metrics(const uint64_t id,
+                           const timestamped_metrics<T>& metrics_,
+                           const empty_callback& callback) {
+    if (metrics_.m_json.size() < 1 || metrics_.m_json.size() > 100) {
+      m_provider->get_http()->dispatch<topgg::exception>(
+          callback, "Batch length is outside of the accepted threshold");
+
+      return;
+    }
+
+    nlohmann::json body{};
+
+    body["data"] = metrics_.m_json;
+
+    fetch_empty("POST", "/projects/" + std::to_string(id) + "/metrics/batch",
+                callback, body.dump());
+  }
+
+  /**
+   * @brief Overwrites the list of slash command definitions for the current bot
+   * project on Top.gg. This is only applicable to bot-type projects on the
+   * discord platform.
+   *
+   * @param id The project's Top.gg ID.
+   * @param commands The array of slash commands in a JSON-stringified Discord
+   * API's application command structure format.
+   * @param callback The API call's callback function.
+   * @since 2.0.0
+   */
+  void post_commands(const uint64_t id, const std::string& commands,
+                     const empty_callback& callback);
+
+  /**
+   * @brief Fetches a cursor-paginated list of votes for the current project,
+   * ordered by creation date (oldest first within each page.)
+   *
+   * @param id The project's Top.gg ID.
+   * @param since The creation date frame of reference.
+   * @param callback The API call's callback function.
+   * @since 2.0.0
+   */
+  void get_votes(const uint64_t id, const time_t since,
+                 const paginated_callback<vote>& callback);
+
+  /**
+   * @brief Fetches a cursor-paginated list of votes for the current project
+   * from a cursor.
+   *
+   * @param id The project's Top.gg ID.
+   * @param cursor The cursor frame of reference.
+   * @param callback The API call's callback function.
+   * @since 2.0.0
+   */
+  void get_votes(const uint64_t id, const paginated_result<vote>& cursor,
+                 const paginated_callback<vote>& callback);
+
+  /**
+   * @brief Fetches the most recent vote status for a specific user. Use this to
+   * check whether a user has voted before granting in-app rewards or unlocking
+   * features.
+   *
+   * @param project_id The project's Top.gg ID.
+   * @param user_id The ID of the user to look up. The expected format depends
+   * on the source parameter.
+   * @param source The ID type being provided.
+   * @param callback The API call's callback function.
+   * @since 2.0.0
+   */
+  void get_vote(const uint64_t project_id, const std::string& user_id,
+                const user_source& source,
+                const callback<std::optional<partial_vote>>& callback);
+
+  /**
+   * @brief Fetches the integrations available for a project and whether each
+   * one is connected.
+   *
+   * @param id The project's Top.gg ID.
+   * @param callback The API call's callback function.
+   * @since 2.0.0
+   */
+  void get_integrations(const uint64_t id,
+                        const callback<std::vector<integration>>& callback);
+
+  /**
+   * @brief Connects an integration to the project. Top.gg runs the integration
+   * handshake and starts delivering events to it.
+   *
+   * @param project_id The project's Top.gg ID.
+   * @param integration_id The integration's Top.gg ID.
+   * @param callback The API call's callback function.
+   * @since 2.0.0
+   */
+  void connect_integration(const uint64_t project_id,
+                           const uint64_t integration_id,
+                           const empty_callback& callback);
+
+  /**
+   * @brief Disconnects an integration the application connected. The
+   * integration receives an integration.delete event.
+   *
+   * @param project_id The project's Top.gg ID.
+   * @param integration_id The integration's Top.gg ID.
+   * @param callback The API call's callback function.
+   * @since 2.0.0
+   */
+  void disconnect_integration(const uint64_t project_id,
+                              const uint64_t integration_id,
+                              const empty_callback& callback);
+
+  /**
+   * @brief Fetches the webhooks the application created on the project.
+   *
+   * @param id The project's Top.gg ID.
+   * @param callback The API call's callback function.
+   * @since 2.0.0
+   */
+  void get_webhooks(const uint64_t id,
+                    const callback<std::vector<webhook>>& callback);
+
+  /**
+   * @brief Creates a vote webhook on the project.
+   *
+   * @param id The project's Top.gg ID.
+   * @param webhook The vote webhook.
+   * @param callback The API call's callback function.
+   * @since 2.0.0
+   */
+  void create_webhook(const uint64_t id, const base_webhook& webhook,
+                      const callback<topgg::webhook>& callback);
+
+  /**
+   * @brief Deletes a webhook the application created.
+   *
+   * @param project_id The project's Top.gg ID.
+   * @param webhook_id The webhook's Top.gg ID.
+   * @param callback The API call's callback function.
+   * @since 2.0.0
+   */
+  void delete_webhook(const uint64_t project_id, const uint64_t webhook_id,
+                      const empty_callback& callback);
+
+  /**
+   * @brief Replaces the signing secret of a webhook the application created.
+   * The previous secret stops working immediately.
+   *
+   * @param project_id The project's Top.gg ID.
+   * @param webhook_id The webhook's Top.gg ID.
+   * @param callback The API call's callback function.
+   * @since 2.0.0
+   */
+  void rotate_webhook_secret(const uint64_t project_id,
+                             const uint64_t webhook_id,
+                             const callback<std::string>& callback);
+
+  /**
+   * @brief Sends a webhook.test event to a webhook the application created.
+   *
+   * @param project_id The project's Top.gg ID.
+   * @param webhook_id The webhook's Top.gg ID.
+   * @param callback The API call's callback function.
+   * @since 2.0.0
+   */
+  void test_webhook(const uint64_t project_id, const uint64_t webhook_id,
+                    const empty_callback& callback);
+
+  friend class oauth2_client;
+};
+
+/**
+ * @brief An API client using an application token.
+ *
+ * @since 2.0.0
+ */
+struct application_client : private direct_http_provider,
+                            public base_application_client {
+  application_client() = delete;
+
+  /**
+   * @brief Creates the client.
+   *
+   * @param token The application token to use.
+   * @since 2.0.0
+   */
+  inline application_client(const std::string& token)
+      : direct_http_provider(token),
+        base_application_client(static_cast<http_provider*>(this)) {}
+};
+
 /**
  * @brief An oauth2 session.
  *
@@ -654,7 +745,7 @@ struct oauth2_session {
    *
    * @since 2.0.0
    */
-  time_t token_expires_at{};
+  time_t expires_at{};
 
   /**
    * @brief Whether the session's access token has expired.
@@ -663,11 +754,9 @@ struct oauth2_session {
    * @since 2.0.0
    */
   inline bool has_expired() const noexcept {
-    return time(nullptr) >= token_expires_at;
+    return time(nullptr) >= expires_at;
   }
 };
-
-class oauth2;
 
 /**
  * @brief An oauth2 URL.
@@ -678,9 +767,11 @@ class oauth2_url {
   oauth2* m_oauth2{nullptr};
 
   inline oauth2_url(oauth2* oauth2_, const std::string& state_,
-                    const std::string& code_verifier_,
-                    const std::string& url_)
-      : m_oauth2(oauth2_), state(state_), code_verifier(code_verifier_), url(url_) {}
+                    const std::string& code_verifier_, const std::string& url_)
+      : m_oauth2(oauth2_),
+        state(state_),
+        code_verifier(code_verifier_),
+        url(url_) {}
 
  public:
   oauth2_url() = delete;
@@ -710,11 +801,11 @@ class oauth2_url {
    * @brief Exchanges an authorization code for an oauth2 session.
    *
    * @param code The request's code query parameter.
-   * @param callback The API call's callback function.
+   * @param callback_ The API call's callback function.
    * @since 2.0.0
    */
   void exchange(const std::string& code,
-                const callback<oauth2_session>& callback);
+                const callback<oauth2_session>& callback_);
 
   friend class oauth2;
 };
@@ -727,8 +818,8 @@ class oauth2_client;
  * @since 2.0.0
  */
 class oauth2 {
-  http_frontend m_http{};
-  std::string m_client_id{};
+  http_client m_http{};
+  uint64_t m_client_id{};
   std::string m_client_secret{};
   std::string m_scopes{};
   std::string m_redirect_uri{};
@@ -751,7 +842,7 @@ class oauth2 {
    * @throws topgg::exception Unable to create OpenSSL objects.
    * @since 2.0.0
    */
-  oauth2(const std::string& client_id, const std::string& client_secret,
+  oauth2(const uint64_t client_id, const std::string& client_secret,
          const std::string& redirect_uri,
          const std::initializer_list<std::string_view>& scopes);
 
@@ -773,7 +864,8 @@ class oauth2 {
    * @throws topgg::exception Code verifier computation failure.
    * @since 2.0.0
    */
-  std::shared_ptr<oauth2_url> new_url(const std::string& state, const std::string& code_verifier);
+  std::shared_ptr<oauth2_url> new_url(const std::string& state,
+                                      const std::string& code_verifier);
 
   /**
    * @brief Creates an oauth2 URL.
@@ -786,8 +878,28 @@ class oauth2 {
 
   ~oauth2();
 
-  friend class oauth2_url;
   friend class oauth2_client;
+  friend class oauth2_http_provider;  // OK
+  friend class oauth2_url;
+};
+
+class oauth2_http_provider : protected http_provider {
+ protected:
+  oauth2* m_oauth2{nullptr};
+  oauth2_session m_session{};
+  mutable std::shared_mutex m_token_mutex{};
+
+  void ensure_session(const empty_callback& callback_) override;
+
+  std::string get_token() override;
+
+  inline http_client* get_http() override { return &m_oauth2->m_http; }
+
+  inline oauth2_http_provider(oauth2* oauth2_, const oauth2_session& session)
+      : m_oauth2(oauth2_), m_session(session) {}
+
+ public:
+  oauth2_http_provider() = delete;
 };
 
 /**
@@ -795,25 +907,12 @@ class oauth2 {
  *
  * @since 2.0.0
  */
-class oauth2_client : public base_client,
+class oauth2_client : private oauth2_http_provider,
+                      public base_application_client,
                       private std::enable_shared_from_this<oauth2_client> {
-  oauth2* m_oauth2{nullptr};
-  oauth2_session m_session{};
-  std::mutex m_token_mutex{};
-  uv_timer_t m_oauth2_refresh_timer{};
-
   inline oauth2_client(oauth2* oauth2, const oauth2_session& session)
-      : m_oauth2(oauth2), m_session(session) {
-    m_oauth2_refresh_timer.data = nullptr;
-  }
-
-  inline http_frontend* get_http() override { return &m_oauth2->m_http; }
-
-  std::string get_token() override;
-
-  void refresh_token();
-
-  void stop_refresh_token();
+      : oauth2_http_provider(oauth2, session),
+        base_application_client(static_cast<http_provider*>(this)) {}
 
  public:
   oauth2_client() = delete;
@@ -827,34 +926,22 @@ class oauth2_client : public base_client,
   oauth2_session get_session();
 
   /**
-   * @brief Whether the client's session access token has expired.
-   *
-   * @return bool Whether the client's session access token has expired.
-   * @since 2.0.0
-   */
-  bool has_expired();
-
-  /**
    * @brief Fetches the user who authorized the application.
    *
    * @param callback The API call's callback function.
-   * @param defer Whether to defer the request later. Defaults to false.
    * @since 2.0.0
    */
-  void get_authorized_user(const callback<user>& callback,
-                           const bool defer = false);
+  void get_authorized_user(const callback<user>& callback);
 
   /**
    * @brief Fetches the projects owned by the user who authorized the
    * application.
    *
    * @param callback The API call's callback function.
-   * @param defer Whether to defer the request later. Defaults to false.
    * @since 2.0.0
    */
   void get_authorized_user_projects(
-      const callback<std::vector<user_project>>& callback,
-      const bool defer = false);
+      const callback<std::vector<user_project>>& callback);
 
   /**
    * @brief Creates a draft project for the user who authorized the application.
@@ -864,27 +951,19 @@ class oauth2_client : public base_client,
    *
    * @param submission The project submission.
    * @param callback The API call's callback function.
-   * @param defer Whether to defer the request later. Defaults to false.
    * @since 2.0.0
    */
   void submit_project(const project_submission& submission,
-                      const empty_callback& callback, const bool defer = false);
+                      const empty_callback& callback);
 
   /**
    * @brief Revokes the client's access token.
    *
    * @param callback The API call's callback function.
-   * @param defer Whether to defer the request later. Defaults to false.
    * @since 2.0.0
    */
-  void revoke_token(const empty_callback& callback, const bool defer = false);
+  void revoke_token(const empty_callback& callback);
 
-#if defined(DEBUG) || defined(_DEBUG) || !defined(NDEBUG)
-  ~oauth2_client();
-#endif
-
-  friend class http_backend;
   friend class oauth2;
 };
-#endif
 };  // namespace topgg

@@ -1,11 +1,9 @@
 #pragma once
 
 #include <openssl/evp.h>
-#include <openssl/params.h>
 #include <topgg/topgg.h>
 
 #include <mutex>
-#include <string>
 
 namespace topgg::webhooks {
 /**
@@ -17,7 +15,7 @@ namespace topgg::webhooks {
  * @throws nlohmann::json::exception Unable to parse the JSON body.
  * @since 2.0.0
  */
-payload parse(const std::string& body);
+webhooks::payload parse(const std::string& body);
 
 /**
  * @brief A thread-safe helper that helps verify incoming webhook requests.

@@ -1,102 +1,101 @@
-#ifndef NGHTTP2_NO_SSIZE_T
-#define NGHTTP2_NO_SSIZE_T
-#endif
-
-#include <nghttp2/nghttp2.h>
 #include <openssl/err.h>
 #include <topgg/topgg.h>
-#include <uv.h>
 
-#ifdef _WIN32
-#include <windows.h>
-#include <winsock2.h>
-#endif
+using topgg::exception;
+using topgg::request_exception;
 
-topgg::exception topgg::exception::ssl(const char* message) {
-  topgg::exception exc{message};
+void exception::assert_curle(const CURLcode code, char* details) {
+  if (code != CURLE_OK) {
+    const auto brief_message{curl_easy_strerror(code)};
+    auto full_message{std::string{"curl easy error: "} +
+                      std::string{brief_message}};
 
+    if (details[0] != 0) {
+      full_message.append(" (");
+      full_message.append(details);
+      full_message.append(")");
+    }
+
+    throw exception{full_message};
+  }
+}
+
+void exception::assert_curlm(const CURLMcode code) {
+  if (code != CURLM_OK) {
+    throw exception{std::string{"curl multi error: "} + std::to_string(code)};
+  }
+}
+
+exception exception::ssl(const std::string& message) {
+  auto full_message{message + " ("};
   unsigned long error{};
 
   while ((error = ERR_get_error()) != 0) {
-    exc.cause += ERR_error_string(error, nullptr);
-    exc.cause += "\n";
+    full_message += ERR_error_string(error, nullptr);
+    full_message += ", ";
   }
 
-  TOPGG_ELOGF("SSL ERROR: %s - %s", exc.what(), exc.cause.c_str());
-
-  return exc;
-}
-
-topgg::exception topgg::exception::uv(const char* message, const int status) {
-  topgg::exception exc{message};
-
-  exc.cause = const_cast<char*>(uv_err_name(status));
-
-  TOPGG_ELOGF("UV ERROR: %s - %s", exc.what(), exc.cause.c_str());
-
-  return exc;
-}
-
-#ifdef _WIN32
-topgg::exception topgg::exception::system(const char* message) {
-  topgg::exception exc{message};
-
-  auto error{GetLastError()};
-
-  if (error == 0) {
-    error = WSAGetLastError();
-
-    WSASetLastError(0);
-  } else {
-    SetLastError(0);
+  if (full_message.size() >= 2 &&
+      full_message.compare(full_message.size() - 2, 2, ", ") == 0) {
+    full_message.erase(full_message.size() - 2);
   }
 
-  if (error != 0) {
-    LPSTR cause_buf{nullptr};
+  return full_message;
+}
 
-    const auto size{FormatMessageA(
-        FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM |
-            FORMAT_MESSAGE_IGNORE_INSERTS,
-        nullptr, error, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-        reinterpret_cast<LPSTR>(&cause_buf), 0, nullptr)};
+request_exception request_exception::parse(
+    const topgg::http_response& response) {
+  auto message{std::string{"Got "} + std::to_string(response.status)};
 
-    if (size > 0) {
-      exc.cause = std::string{cause_buf, size};
+  std::optional<std::string> title{std::nullopt};
+  std::optional<std::string> detail{std::nullopt};
+  std::optional<std::string> code{std::nullopt};
 
-      LocalFree(cause_buf);
+  nlohmann::json j{};
+
+  if (!response.body.empty()) {
+    try {
+      j = nlohmann::json::parse(response.body);
+    } catch (const nlohmann::json::exception&) {
     }
   }
 
-  TOPGG_ELOGF("SYSTEM ERROR: %s - %s", exc.what(), exc.cause.c_str());
+  const char* key{nullptr};
 
-  return exc;
-}
-#endif
-
-topgg::exception topgg::exception::nghttp2(const char* message,
-                                           const int status) {
-  topgg::exception exc{message};
-
-  exc.cause = const_cast<char*>(nghttp2_strerror(status));
-
-  TOPGG_ELOGF("NGHTTP2 ERROR: %s - %s", exc.what(), exc.cause.c_str());
-
-  return exc;
-}
-
-topgg::http_exception::http_exception(const topgg::http_response& response)
-    : topgg::exception("Got an invalid HTTP status code from Top.gg"),
-      status(response.status),
-      retry_after(response.retry_after) {
-  try {
-    const auto j{nlohmann::json::parse(response.body)};
-
-    cause = j.value(j.contains("error") ? "error" : "title", "");
-    detail = j.value(
-        j.contains("error_description") ? "error_description" : "detail",
-        cause);
-  } catch (const nlohmann::json::exception&) {
+  if (j.contains("code")) {
+    key = "code";
+  } else if (j.contains("error")) {
+    key = "error";
   }
 
-  TOPGG_ELOGF("HTTP ERROR: %d", response.status);
+  if (key != nullptr) {
+    const auto code_{j[key].template get<std::string>()};
+
+    message.append(" (");
+    message.append(code_);
+    message.append(")");
+
+    code = std::optional{code_};
+  }
+
+  if (j.contains("title") && j.contains("detail")) {
+    const auto title_{j["title"].template get<std::string>()};
+    const auto detail_{j["detail"].template get<std::string>()};
+
+    message = title_ + " (" + detail_ + ")";
+
+    title = std::optional{title_};
+    detail = std::optional{detail_};
+  }
+
+  request_exception error{response.status, message};
+
+  error.type = j.contains("type")
+                   ? j["type"].template get<std::optional<std::string>>()
+                   : std::nullopt;
+  error.title = title;
+  error.detail = detail;
+  error.code = code;
+
+  return error;
 }

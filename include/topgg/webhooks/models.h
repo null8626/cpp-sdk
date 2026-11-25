@@ -2,9 +2,6 @@
 
 #include <topgg/topgg.h>
 
-#include <nlohmann/json.hpp>
-#include <string>
-#include <unordered_map>
 #include <variant>
 
 /**
@@ -13,10 +10,10 @@
  * @since 2.0.0
  */
 namespace topgg::webhooks {
-class vote_create;
-class test;
 class integration_create;
 class integration_delete;
+class test;
+class vote_create;
 
 /**
  * @brief A parsed webhook payload.
@@ -42,33 +39,32 @@ class project {
    *
    * @since 2.0.0
    */
-  std::string id{};
+  uint64_t id{};
 
   /**
-   * @brief The project's	Discord client ID or guild ID.
+   * @brief The project's	platform ID.
    *
    * @since 2.0.0
    */
   std::string platform_id{};
 
   /**
-   * @brief The project's platform (always topgg::platform::p_discord).
+   * @brief The project's platform.
    *
    * @since 2.0.0
    */
   topgg::platform platform{};
 
   /**
-   * @brief The project's type (either topgg::project_type::pt_bot or
-   * topgg::project_type::pt_server).
+   * @brief The project's type.
    *
    * @since 2.0.0
    */
   project_type type{};
 
-  friend class vote_create;
-  friend class test;
   friend class integration_create;
+  friend class test;
+  friend class vote_create;
 };
 
 /**
@@ -87,17 +83,17 @@ class user {
    *
    * @since 2.0.0
    */
-  std::string id{};
+  uint64_t id{};
 
   /**
-   * @brief The user's Discord ID.
+   * @brief The user's platform ID.
    *
    * @since 2.0.0
    */
   std::string platform_id{};
 
   /**
-   * @brief The user's Discord username.
+   * @brief The user's platform username.
    *
    * @since 2.0.0
    */
@@ -110,9 +106,9 @@ class user {
    */
   std::string avatar{};
 
-  friend class vote_create;
-  friend class test;
   friend class integration_create;
+  friend class test;
+  friend class vote_create;
 };
 
 /**
@@ -133,7 +129,7 @@ class vote_create {
    *
    * @since 2.0.0
    */
-  std::string id{};
+  uint64_t id{};
 
   /**
    * @brief The vote's weight (1 normally, 2 during weekend multiplier.)
@@ -238,7 +234,7 @@ class integration_create {
    *
    * @since 2.0.0
    */
-  std::string connection_id{};
+  uint64_t connection_id{};
 
   /**
    * @brief The webhook secret (prefixed whs_) used to verify all future webhook
@@ -282,7 +278,7 @@ class integration_delete {
    *
    * @since 2.0.0
    */
-  std::string connection_id{};
+  uint64_t connection_id{};
 
   friend webhooks::payload parse(const std::string& body);
 };

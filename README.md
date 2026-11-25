@@ -24,61 +24,55 @@ The SDK's CMake options is as follows:
 
 | Option name                       | Description                                           | Default  |
 | --------------------------------- | ----------------------------------------------------- | -------- |
+| `CMAKE_BUILD_TYPE`                | The output build type.                                | *empty*  |
 | `BUILD_SHARED_LIBS`               | Build shared libraries.                               | `ON`     |
-| `TOPGG_WEBHOOKS`                  | Enable webhooks (`topgg::webhooks`) support.          | `OFF`    |
-| `TOPGG_PROJECT_TOKENS_ONLY`       | Only include project token support.                   | `OFF`    |
-| `TOPGG_OAUTH2_ACCESS_TOKENS_ONLY` | Only include oauth2 access token support.             | `OFF`    |
-| `TOPGG_TOKEN_EXPIRY_INTERVAL`     | Access token expiry interval for development testing. | `604800` |
-| `TOPGG_SSLKEYLOG`                 | SSL keylog file for network debugging with Wireshark. | *Empty*  |
 ### Linux (Ubuntu or Debian)
 
 ```sh
-$ sudo apt install libssl-dev libnghttp2-dev libuv1-dev
-$ cmake -B build .
+$ sudo apt install libssl-dev libcurl4-openssl-dev
+$ cmake -DCMAKE_BUILD_TYPE=Release -B build .
 $ cmake --build build --config Release
 ```
 ### Linux (Fedora)
 
 ```sh
-$ sudo dnf install openssl-devel libnghttp2-devel libuv-devel
-$ cmake -B build .
+$ sudo dnf install openssl-devel libcurl-devel
+$ cmake -DCMAKE_BUILD_TYPE=Release -B build .
 $ cmake --build build --config Release
 ```
 ### Linux (Arch)
 
 ```sh
-$ sudo pacman -S openssl nghttp2 libuv
-$ cmake -B build .
+$ sudo pacman -S openssl curl
+$ cmake -DCMAKE_BUILD_TYPE=Release -B build .
 $ cmake --build build --config Release
 ```
 ### macOS
 
 ```sh
-$ brew install openssl nghttp2 libuv
-$ cmake -B build .
+$ brew install openssl curl
+$ cmake -DCMAKE_BUILD_TYPE=Release -B build .
 $ cmake --build build --config Release
 ```
 ### Windows
 ```bat
-> vcpkg install openssl nghttp2 libuv
-> cmake -B build .
+> vcpkg install openssl:x64-windows curl:x64-windows
+> cmake -DCMAKE_BUILD_TYPE=Release -B build .
 > cmake --build build --config Release
 ```
 ## Usage
 ### General API calls
 ```cpp
 #include <topgg/topgg.h>
-#include <stdexcept>
+
 #include <iostream>
-#include <utility>
-#include <ctime>
 
 
 int main() {
   try {
     const auto token{std::getenv("TOPGG_TOKEN")};
 
-    topgg::client dbl{token};
+    topgg::project_client dbl{token};
 
     dbl.get_project([](const topgg::result<topgg::project>& result) {
       try {
@@ -190,11 +184,10 @@ int main() {
 ### cpp-httplib Webhooks
 ```cpp
 #include <topgg/topgg.h>
-#include <stdexcept>
+
 #include <httplib.h>
+
 #include <iostream>
-#include <utility>
-#include <memory>
 
 
 int main() {
@@ -260,13 +253,11 @@ int main() {
 ### cpp-httplib Oauth2
 ```cpp
 #include <topgg/topgg.h>
-#include <stdexcept>
+
 #include <httplib.h>
+
 #include <iostream>
-#include <utility>
 #include <chrono>
-#include <memory>
-#include <thread>
 
 
 int main() {

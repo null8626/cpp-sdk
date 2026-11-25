@@ -1,8 +1,5 @@
+#if defined(DEBUG) || defined(_DEBUG) || !defined(NDEBUG)
 #include <topgg/topgg.h>
-
-#include <cstdarg>
-#include <cstdio>
-#include <mutex>
 
 #ifdef _WIN32
 #define PATH_SEPARATOR '\\'
@@ -13,7 +10,7 @@
 static std::mutex g_log_mutex{};
 
 void topgg::_log(const char* file, const size_t line, const char* text) {
-  std::lock_guard guard_{g_log_mutex};
+  std::lock_guard guard{g_log_mutex};
 
   const auto filename{strrchr(file, PATH_SEPARATOR)};
 
@@ -23,7 +20,7 @@ void topgg::_log(const char* file, const size_t line, const char* text) {
 
 void topgg::_logf(const char* file, const size_t line, const char* format,
                   ...) {
-  std::lock_guard guard_{g_log_mutex};
+  std::lock_guard guard{g_log_mutex};
 
   const auto filename{strrchr(file, PATH_SEPARATOR)};
 
@@ -38,7 +35,7 @@ void topgg::_logf(const char* file, const size_t line, const char* format,
 }
 
 void topgg::_elog(const char* file, const size_t line, const char* text) {
-  std::lock_guard guard_{g_log_mutex};
+  std::lock_guard guard{g_log_mutex};
 
   const auto filename{strrchr(file, PATH_SEPARATOR)};
 
@@ -48,7 +45,7 @@ void topgg::_elog(const char* file, const size_t line, const char* text) {
 
 void topgg::_elogf(const char* file, const size_t line, const char* format,
                    ...) {
-  std::lock_guard guard_{g_log_mutex};
+  std::lock_guard guard{g_log_mutex};
 
   const auto filename{strrchr(file, PATH_SEPARATOR)};
 
@@ -61,3 +58,4 @@ void topgg::_elogf(const char* file, const size_t line, const char* format,
 
   va_end(args);
 }
+#endif

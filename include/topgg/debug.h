@@ -1,8 +1,6 @@
 #pragma once
 
 #if defined(DEBUG) || defined(_DEBUG) || !defined(NDEBUG)
-#include <cstddef>
-
 #define TOPGG_LOG(text) topgg::_log(__FILE__, __LINE__, text)
 #define TOPGG_LOGF(format, ...) \
   topgg::_logf(__FILE__, __LINE__, format, __VA_ARGS__)
