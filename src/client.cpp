@@ -253,18 +253,22 @@ void http_client::safe_submit(const std::shared_ptr<http_request>& request) {
 }
 
 http_client::~http_client() {
-  m_running.store(false, std::memory_order_relaxed);
+  if (m_client != nullptr) {
+    m_running.store(false, std::memory_order_relaxed);
 
-  curl_multi_wakeup(m_client);
+    curl_multi_wakeup(m_client);
 
-  if (m_event_loop_thread.joinable()) {
-    m_event_loop_thread.join();
-  }
+    if (m_event_loop_thread.joinable()) {
+      m_event_loop_thread.join();
+    }
 
-  curl_multi_cleanup(m_client);
+    curl_multi_cleanup(m_client);
 
-  for (auto& request : m_pending_requests) {
-    request->unref();
+    for (auto& request : m_pending_requests) {
+      request->unref();
+    }
+
+    m_client = nullptr;
   }
 }
 
