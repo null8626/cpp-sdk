@@ -36,38 +36,63 @@ http_request::http_request(const char* method, const std::string& path,
   curl_easy_setopt(m_curl, CURLOPT_ERRORBUFFER,
                    reinterpret_cast<void*>(m_curl_error_details));
 
-  TOPGG_HTTP_REQUEST_ASSERT(
-      curl_easy_setopt(m_curl, CURLOPT_URL, m_url.c_str()));
-  TOPGG_HTTP_REQUEST_ASSERT(
-      curl_easy_setopt(m_curl, CURLOPT_CUSTOMREQUEST, method));
-  TOPGG_HTTP_REQUEST_ASSERT(
-      curl_easy_setopt(m_curl, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_2TLS));
-  TOPGG_HTTP_REQUEST_ASSERT(curl_easy_setopt(m_curl, CURLOPT_PIPEWAIT, 1L));
-  TOPGG_HTTP_REQUEST_ASSERT(curl_easy_setopt(m_curl, CURLOPT_NOSIGNAL, 1L));
-  TOPGG_HTTP_REQUEST_ASSERT(curl_easy_setopt(
-      m_curl, CURLOPT_HEADERFUNCTION, http_request::write_response_headers));
-  TOPGG_HTTP_REQUEST_ASSERT(curl_easy_setopt(m_curl, CURLOPT_HEADERDATA,
-                                             reinterpret_cast<void*>(this)));
-  TOPGG_HTTP_REQUEST_ASSERT(curl_easy_setopt(
-      m_curl, CURLOPT_WRITEFUNCTION, http_request::write_response_body));
-  TOPGG_HTTP_REQUEST_ASSERT(curl_easy_setopt(m_curl, CURLOPT_WRITEDATA,
-                                             reinterpret_cast<void*>(this)));
-  TOPGG_HTTP_REQUEST_ASSERT(
-      curl_easy_setopt(m_curl, CURLOPT_PRIVATE, reinterpret_cast<void*>(this)));
+  auto shared_this{
+      new std::shared_ptr<http_request>{std::move(shared_from_this())}};
 
-  m_headers = curl_slist_append(m_headers, content_type);
-  m_headers = curl_slist_append(
-      m_headers,
-      "User-Agent: topgg-cpp-sdk (https://github.com/top-gg-community/cpp-sdk) "
-      "C++/");  // TODO: add version here
+  try {
+    TOPGG_HTTP_REQUEST_ASSERT(
+        curl_easy_setopt(m_curl, CURLOPT_URL, m_url.c_str()));
+    TOPGG_HTTP_REQUEST_ASSERT(
+        curl_easy_setopt(m_curl, CURLOPT_CUSTOMREQUEST, method));
+    TOPGG_HTTP_REQUEST_ASSERT(
+        curl_easy_setopt(m_curl, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_2TLS));
+    TOPGG_HTTP_REQUEST_ASSERT(curl_easy_setopt(m_curl, CURLOPT_PIPEWAIT, 1L));
+    TOPGG_HTTP_REQUEST_ASSERT(curl_easy_setopt(m_curl, CURLOPT_NOSIGNAL, 1L));
+    TOPGG_HTTP_REQUEST_ASSERT(curl_easy_setopt(
+        m_curl, CURLOPT_HEADERFUNCTION, http_request::write_response_headers));
+    TOPGG_HTTP_REQUEST_ASSERT(curl_easy_setopt(
+        m_curl, CURLOPT_HEADERDATA, reinterpret_cast<void*>(shared_this)));
+    TOPGG_HTTP_REQUEST_ASSERT(curl_easy_setopt(
+        m_curl, CURLOPT_WRITEFUNCTION, http_request::write_response_body));
+    TOPGG_HTTP_REQUEST_ASSERT(curl_easy_setopt(
+        m_curl, CURLOPT_WRITEDATA, reinterpret_cast<void*>(shared_this)));
+    TOPGG_HTTP_REQUEST_ASSERT(curl_easy_setopt(
+        m_curl, CURLOPT_PRIVATE, reinterpret_cast<void*>(shared_this)));
 
-  TOPGG_HTTP_REQUEST_ASSERT(
-      curl_easy_setopt(m_curl, CURLOPT_HTTPHEADER, m_headers));
+    m_headers = curl_slist_append(m_headers, content_type);
+    m_headers =
+        curl_slist_append(m_headers,
+                          "User-Agent: topgg-cpp-sdk "
+                          "(https://github.com/top-gg-community/cpp-sdk) "
+                          "C++/");  // TODO: add version here
 
-  TOPGG_HTTP_REQUEST_ASSERT(
-      curl_easy_setopt(m_curl, CURLOPT_POSTFIELDS, m_request_body.c_str()));
-  TOPGG_HTTP_REQUEST_ASSERT(curl_easy_setopt(
-      m_curl, CURLOPT_POSTFIELDSIZE, static_cast<long>(m_request_body.size())));
+    TOPGG_HTTP_REQUEST_ASSERT(
+        curl_easy_setopt(m_curl, CURLOPT_HTTPHEADER, m_headers));
+
+    TOPGG_HTTP_REQUEST_ASSERT(
+        curl_easy_setopt(m_curl, CURLOPT_POSTFIELDS, m_request_body.c_str()));
+    TOPGG_HTTP_REQUEST_ASSERT(
+        curl_easy_setopt(m_curl, CURLOPT_POSTFIELDSIZE,
+                         static_cast<long>(m_request_body.size())));
+  } catch (const topgg::exception& error) {
+    delete shared_this;
+
+    unref();
+
+    throw error;
+  }
+}
+
+void http_request::unref() {
+  std::shared_ptr<http_request>* stored_shared_this{nullptr};
+
+  if (curl_easy_getinfo(m_curl, CURLINFO_PRIVATE, &stored_shared_this) ==
+          CURLE_OK &&
+      stored_shared_this != nullptr) {
+    delete stored_shared_this;
+
+    curl_easy_setopt(m_curl, CURLOPT_PRIVATE, nullptr);
+  }
 }
 
 void http_request::set_token(const std::string& token) {
@@ -79,7 +104,7 @@ void http_request::set_token(const std::string& token) {
 size_t http_request::write_response_headers(char* ptr, size_t size,
                                             size_t nmemb, void* userdata) {
   const auto total_size{size * nmemb};
-  auto self{reinterpret_cast<http_request*>(userdata)};
+  auto self{reinterpret_cast<std::shared_ptr<http_request>*>(userdata)};
 
   std::string_view line{ptr, total_size};
 
@@ -97,7 +122,7 @@ size_t http_request::write_response_headers(char* ptr, size_t size,
     auto [_, error]{std::from_chars(line.data() + 7,
                                     line.data() + trimmed_total_size, status)};
 
-    self->m_response_status = error == std::errc() ? status : 500;
+    (*self)->m_response_status = error == std::errc() ? status : 500;
   } else if (trimmed_total_size > 13 &&
              line.compare(0, 13, "retry-after: ") == 0) {
     uint32_t retry_after{};
@@ -106,7 +131,7 @@ size_t http_request::write_response_headers(char* ptr, size_t size,
         line.data() + 13, line.data() + trimmed_total_size, retry_after)};
 
     if (error == std::errc()) {
-      self->m_retry_after = retry_after;
+      (*self)->m_retry_after = retry_after;
     }
   }
 
@@ -117,8 +142,8 @@ size_t http_request::write_response_body(char* ptr, size_t size, size_t nmemb,
                                          void* userdata) {
   const auto total_size{size * nmemb};
 
-  reinterpret_cast<http_request*>(userdata)->m_response_body.append(ptr,
-                                                                    total_size);
+  (*reinterpret_cast<std::shared_ptr<http_request>*>(userdata))
+      ->m_response_body.append(ptr, total_size);
 
   return total_size;
 }
@@ -133,6 +158,12 @@ http_request::~http_request() {
     curl_slist_free_all(m_headers);
 
     m_headers = nullptr;
+  }
+
+  if (m_curl != nullptr) {
+    curl_easy_cleanup(m_curl);
+
+    m_curl = nullptr;
   }
 }
 
@@ -156,9 +187,12 @@ HTTP_CLIENT_EVENT_LOOP:
   m_pending_requests_mutex.lock();
 
   while (!m_pending_requests.empty()) {
-    curl_multi_add_handle(m_client, m_pending_requests.front()->m_curl);
+    auto pending_request{m_pending_requests.front()};
 
-    m_pending_requests.pop();
+    curl_multi_add_handle(m_client, pending_request->m_curl);
+
+    m_completed_requests.push_back(pending_request);
+    m_pending_requests.pop_back();
   }
 
   m_pending_requests_mutex.unlock();
@@ -168,20 +202,30 @@ HTTP_CLIENT_EVENT_LOOP:
   while ((message = curl_multi_info_read(m_client, &remaining_messages)) !=
          nullptr) {
     if (message->msg == CURLMSG_DONE) {
-      http_request* request{nullptr};
+      std::shared_ptr<http_request>* request{nullptr};
+      auto request_curl{(*request)->m_curl};
 
       if (curl_easy_getinfo(message->easy_handle, CURLINFO_PRIVATE, &request) ==
               CURLE_OK &&
           request != nullptr) {
-        m_callback_thread_pool.detach_task([request]() {
-          request->dispatch();
-
-          delete request;
-        });
+        m_callback_thread_pool.detach_task(
+            [request = std::shared_ptr{*request}]() { request->dispatch(); });
       }
 
       curl_multi_remove_handle(m_client, message->easy_handle);
-      curl_easy_cleanup(message->easy_handle);
+
+      (*request).get()->unref();
+
+      auto request_pos{std::find_if(
+          m_completed_requests.begin(), m_completed_requests.end(),
+          [request_curl](
+              const std::shared_ptr<http_request>& existing_request) {
+            return existing_request->m_curl == request_curl;
+          })};
+
+      if (request_pos != m_completed_requests.end()) {
+        m_completed_requests.erase(request_pos);
+      }
     }
   }
 
@@ -192,23 +236,20 @@ HTTP_CLIENT_EVENT_LOOP:
   }
 }
 
-void http_client::submit(http_request* request) {
+void http_client::submit(const std::shared_ptr<http_request>& request) {
   m_pending_requests_mutex.lock();
-  m_pending_requests.push(request);
+  m_pending_requests.push_back(request);
   m_pending_requests_mutex.unlock();
 
   TOPGG_HTTP_CLIENT_ASSERT(curl_multi_wakeup(m_client));
 }
 
-void http_client::safe_submit(http_request* request) {
+void http_client::safe_submit(const std::shared_ptr<http_request>& request) {
   try {
     submit(request);
   } catch (const topgg::exception& error) {
-    m_callback_thread_pool.detach_task([request, error]() {
-      request->dispatch_variant(error);
-
-      delete request;
-    });
+    m_callback_thread_pool.detach_task(
+        [request, error]() { request->dispatch_variant(error); });
   }
 }
 
@@ -222,6 +263,10 @@ http_client::~http_client() {
   }
 
   curl_multi_cleanup(m_client);
+
+  for (auto& request : m_completed_requests) {
+    request->unref();
+  }
 }
 
 void direct_http_provider::ensure_session(
@@ -229,7 +274,7 @@ void direct_http_provider::ensure_session(
   m_http.dispatch<std::monostate>(callback_, std::monostate{});
 }
 
-void base_client::fetch_json(http_request* request) {
+void base_client::fetch_json(const std::shared_ptr<http_request>& request) {
   m_provider->ensure_session(
       [this, request](const topgg::empty_result& result) {
         try {
@@ -237,8 +282,6 @@ void base_client::fetch_json(http_request* request) {
           request->set_token(m_provider->get_token());
 
           m_provider->get_http()->submit(request);
-
-          return;
         } catch (const topgg::request_exception& error) {
           request->dispatch_variant(error);
         } catch (const topgg::exception& error) {
@@ -246,15 +289,13 @@ void base_client::fetch_json(http_request* request) {
         } catch (const nlohmann::json::exception& error) {
           request->dispatch_variant(error);
         }
-
-        delete request;
       });
 }
 
 void base_client::fetch_empty(const char* method, const std::string& path,
                               const topgg::empty_callback& callback,
                               const std::string& body) {
-  fetch_json(new http_request{
+  fetch_json(std::shared_ptr<http_request>{new http_request{
       method, path,
       [callback](const topgg::http_response_variant& response_variant) {
         _TOPGG_UNWRAP_VARIANT(callback, response_variant, {
@@ -271,7 +312,7 @@ void base_client::fetch_empty(const char* method, const std::string& path,
           }
         });
       },
-      TOPGG_CT_APPLICATION_JSON, body});
+      TOPGG_CT_APPLICATION_JSON, body}});
 }
 
 void project_client::get_project(
@@ -388,7 +429,7 @@ void project_client::get_vote(
       break;
   }
 
-  fetch_json(new http_request{
+  fetch_json(std::shared_ptr<http_request>{new http_request{
       "GET", "/projects/@me/votes/" + user_id + "?source=" + source_string,
       [callback](const topgg::http_response_variant& response_variant) {
         _TOPGG_UNWRAP_VARIANT(callback, response_variant, {
@@ -417,7 +458,7 @@ void project_client::get_vote(
             callback(error);
           }
         });
-      }});
+      }}});
 }
 
 void base_application_client::get_projects(
@@ -547,7 +588,7 @@ void base_application_client::get_vote(
       break;
   }
 
-  fetch_json(new http_request{
+  fetch_json(std::shared_ptr<http_request>{new http_request{
       "GET",
       "/projects/" + std::to_string(id) + "/votes/" + user_id +
           "?source=" + source_string,
@@ -578,7 +619,7 @@ void base_application_client::get_vote(
             callback(error);
           }
         });
-      }});
+      }}});
 }
 
 void base_application_client::get_integrations(
@@ -637,7 +678,7 @@ void base_application_client::delete_webhook(
 void base_application_client::rotate_webhook_secret(
     const uint64_t project_id, const uint64_t webhook_id,
     const topgg::callback<std::string>& callback) {
-  fetch_json(new http_request{
+  fetch_json(std::shared_ptr<http_request>{new http_request{
       "POST",
       "/projects/" + std::to_string(project_id) + "/webhooks/" +
           std::to_string(webhook_id) + "/rotate",
@@ -657,7 +698,7 @@ void base_application_client::rotate_webhook_secret(
             callback(error);
           }
         });
-      }});
+      }}});
 }
 
 void base_application_client::test_webhook(
@@ -679,30 +720,33 @@ void oauth2_url::exchange(const std::string& code,
           "&redirect_uri=" + topgg::_url_encode(m_oauth2->m_redirect_uri) +
           "&code_verifier=" + topgg::_url_encode(code_verifier);
 
-  m_oauth2->m_http.safe_submit(new topgg::http_request{
-      "POST", "/oauth2/token",
-      [this, callback_](const topgg::http_response_variant& response_variant) {
-        _TOPGG_UNWRAP_VARIANT(callback_, response_variant, {
-          try {
-            const auto& response{
-                std::get<topgg::http_response>(response_variant)};
+  m_oauth2->m_http.safe_submit(
+      std::shared_ptr<http_request>{new topgg::http_request{
+          "POST", "/oauth2/token",
+          [this,
+           callback_](const topgg::http_response_variant& response_variant) {
+            _TOPGG_UNWRAP_VARIANT(callback_, response_variant, {
+              try {
+                const auto& response{
+                    std::get<topgg::http_response>(response_variant)};
 
-            if (response.status >= 400) {
-              callback_(topgg::request_exception::parse(response));
-            } else {
-              const auto json{nlohmann::json::parse(response.body)};
+                if (response.status >= 400) {
+                  callback_(topgg::request_exception::parse(response));
+                } else {
+                  const auto json{nlohmann::json::parse(response.body)};
 
-              callback_(topgg::oauth2_session{
-                  json["access_token"].template get<std::string>(),
-                  json["refresh_token"].template get<std::string>(),
-                  time(nullptr) + json["expires_in"].template get<time_t>()});
-            }
-          } catch (const nlohmann::json::exception& error) {
-            callback_(error);
-          }
-        });
-      },
-      TOPGG_CT_APPLICATION_X_WWW_FORM_URLENCODED, body});
+                  callback_(topgg::oauth2_session{
+                      json["access_token"].template get<std::string>(),
+                      json["refresh_token"].template get<std::string>(),
+                      time(nullptr) +
+                          json["expires_in"].template get<time_t>()});
+                }
+              } catch (const nlohmann::json::exception& error) {
+                callback_(error);
+              }
+            });
+          },
+          TOPGG_CT_APPLICATION_X_WWW_FORM_URLENCODED, body}});
 }
 
 oauth2::oauth2(const uint64_t client_id, const std::string& client_secret,
@@ -835,26 +879,28 @@ void oauth2_http_provider::ensure_session(
             "&refresh_token=" + m_session.refresh_token;
   };
 
-  m_oauth2->m_http.safe_submit(new topgg::http_request{
-      "POST", "/oauth2/token",
-      [this, callback_](const topgg::http_response_variant& response_variant) {
-        _TOPGG_UNWRAP_VARIANT(callback_, response_variant, {
-          try {
-            const auto& response{std::get<http_response>(response_variant)};
-            const auto json{nlohmann::json::parse(response.body)};
+  m_oauth2->m_http.safe_submit(
+      std::shared_ptr<http_request>{new topgg::http_request{
+          "POST", "/oauth2/token",
+          [this,
+           callback_](const topgg::http_response_variant& response_variant) {
+            _TOPGG_UNWRAP_VARIANT(callback_, response_variant, {
+              try {
+                const auto& response{std::get<http_response>(response_variant)};
+                const auto json{nlohmann::json::parse(response.body)};
 
-            std::unique_lock guard{m_token_mutex};
+                std::unique_lock guard{m_token_mutex};
 
-            m_session = topgg::oauth2_session{
-                json["access_token"].template get<std::string>(),
-                json["refresh_token"].template get<std::string>(),
-                time(nullptr) + json["expires_in"].template get<time_t>()};
-          } catch (const nlohmann::json::exception& error) {
-            callback_(error);
-          }
-        });
-      },
-      TOPGG_CT_APPLICATION_X_WWW_FORM_URLENCODED, body});
+                m_session = topgg::oauth2_session{
+                    json["access_token"].template get<std::string>(),
+                    json["refresh_token"].template get<std::string>(),
+                    time(nullptr) + json["expires_in"].template get<time_t>()};
+              } catch (const nlohmann::json::exception& error) {
+                callback_(error);
+              }
+            });
+          },
+          TOPGG_CT_APPLICATION_X_WWW_FORM_URLENCODED, body}});
 }
 
 std::string oauth2_http_provider::get_token() {
@@ -918,25 +964,26 @@ void oauth2_client::revoke_token(const topgg::empty_callback& callback) {
             "&token=" + m_session.refresh_token;
   };
 
-  m_oauth2->m_http.safe_submit(new topgg::http_request{
-      "POST", "/oauth2/revoke",
-      [callback](const topgg::http_response_variant& response_variant) {
-        _TOPGG_UNWRAP_VARIANT(callback, response_variant, {
-          try {
-            const auto& response{
-                std::get<topgg::http_response>(response_variant)};
+  m_oauth2->m_http.safe_submit(
+      std::shared_ptr<http_request>{new topgg::http_request{
+          "POST", "/oauth2/revoke",
+          [callback](const topgg::http_response_variant& response_variant) {
+            _TOPGG_UNWRAP_VARIANT(callback, response_variant, {
+              try {
+                const auto& response{
+                    std::get<topgg::http_response>(response_variant)};
 
-            if (response.status >= 400) {
-              callback(topgg::request_exception::parse(response));
-            } else {
-              callback(std::monostate{});
-            }
-          } catch (const nlohmann::json::exception& error) {
-            callback(error);
-          }
-        });
-      },
-      TOPGG_CT_APPLICATION_X_WWW_FORM_URLENCODED, body});
+                if (response.status >= 400) {
+                  callback(topgg::request_exception::parse(response));
+                } else {
+                  callback(std::monostate{});
+                }
+              } catch (const nlohmann::json::exception& error) {
+                callback(error);
+              }
+            });
+          },
+          TOPGG_CT_APPLICATION_X_WWW_FORM_URLENCODED, body}});
 }
 
 topgg::webhooks::payload topgg::webhooks::parse(const std::string& body) {

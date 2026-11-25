@@ -195,7 +195,7 @@ int main() {
 
   auto verifier{std::make_shared<topgg::webhooks::verifier>()};
 
-  server.Post("/webhooks", [verifier = std::shared_ptr{verifier}](const httplib::Request& request, httplib::Response& response) {
+  server.Post("/webhooks", [verifier](const httplib::Request& request, httplib::Response& response) {
     const auto webhooks_secret{std::getenv("TOPGG_WEBHOOKS_SECRET")};  
 
     if (!request.has_header("x-topgg-signature") || !verifier->verify(webhooks_secret, request.get_header_value("x-topgg-signature"), request.body)) {
@@ -283,7 +283,7 @@ int main() {
 
   auto oauth2_url{oauth2.new_url()};
 
-  server.Get("/topgg/oauth2", [&server, &oauth2, oauth2_url = std::shared_ptr{oauth2_url}](const httplib::Request& request, httplib::Response& response) {
+  server.Get("/topgg/oauth2", [&server, &oauth2, oauth2_url](const httplib::Request& request, httplib::Response& response) {
     if (request.has_param("code") && request.has_param("state")) {
       try {
         oauth2_url->exchange(request.get_param_value("code"), [&server, &oauth2](const topgg::result<topgg::oauth2_session>& result) {

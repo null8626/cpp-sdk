@@ -60,7 +60,7 @@ using http_response_variant =
     std::variant<exception, request_exception, nlohmann::json::exception,
                  http_response>;
 
-class http_request {
+class http_request : private std::enable_shared_from_this<http_request> {
   using callback = std::function<void(const http_response_variant&)>;
 
   CURL* m_curl{nullptr};
@@ -79,6 +79,8 @@ class http_request {
                const http_request::callback& callback,
                const char* content_type = TOPGG_CT_APPLICATION_JSON,
                const std::string& body = "");
+
+  void unref();
 
   void set_token(const std::string& token);
 
@@ -113,16 +115,17 @@ class http_client {
   CURLM* m_client{nullptr};
   std::thread m_event_loop_thread{};
   std::mutex m_pending_requests_mutex{};
-  std::queue<http_request*> m_pending_requests{};
+  std::vector<std::shared_ptr<http_request>> m_pending_requests{};
+  std::vector<std::shared_ptr<http_request>> m_completed_requests{};
   BS::thread_pool<> m_callback_thread_pool{};
 
   http_client();
 
   void event_loop();
 
-  void submit(http_request* request);
+  void submit(const std::shared_ptr<http_request>& request);
 
-  void safe_submit(http_request* request);
+  void safe_submit(const std::shared_ptr<http_request>& request);
 
   template <class T, class C, class A>
   inline void dispatch(const C& callback, const A& args) {
@@ -177,7 +180,7 @@ class direct_http_provider : protected http_provider {
 class base_client {
   http_provider* m_provider{nullptr};
 
-  void fetch_json(http_request* request);
+  void fetch_json(const std::shared_ptr<http_request>& request);
 
  protected:
   inline base_client(http_provider* provider) : m_provider(provider) {}
@@ -207,7 +210,7 @@ class base_client {
   void fetch_simple(const char* method, const std::string& path,
                     const callback<T>& callback_,
                     const std::string& body = "") {
-    fetch_json(new http_request{
+    fetch_json(std::shared_ptr<http_request>{new http_request{
         method, path,
         [callback_](const http_response_variant& response_variant) {
           _TOPGG_UNWRAP_VARIANT(callback_, response_variant, {
@@ -224,14 +227,14 @@ class base_client {
             }
           });
         },
-        TOPGG_CT_APPLICATION_JSON, body});
+        TOPGG_CT_APPLICATION_JSON, body}});
   }
 
   template <class T>
   void fetch_paginated(const char* key, const char* method,
                        const std::string& path,
                        const paginated_callback<T>& callback) {
-    fetch_json(new http_request{
+    fetch_json(std::shared_ptr<http_request>{new http_request{
         method, path,
         [key, callback](const http_response_variant& response_variant) {
           _TOPGG_UNWRAP_VARIANT(callback, response_variant, {
@@ -248,7 +251,7 @@ class base_client {
               callback(error);
             }
           });
-        }});
+        }}});
   }
 
   template <class T>
@@ -271,7 +274,7 @@ class base_client {
   void fetch_vector(const char* method, const std::string& path,
                     const callback<std::vector<T>>& callback,
                     const std::string& body = "") {
-    fetch_json(new http_request{
+    fetch_json(std::shared_ptr<http_request>{new http_request{
         method, path,
         [callback](const http_response_variant& response_variant) {
           _TOPGG_UNWRAP_VARIANT(callback, response_variant, {
@@ -295,7 +298,7 @@ class base_client {
             }
           });
         },
-        TOPGG_CT_APPLICATION_JSON, body});
+        TOPGG_CT_APPLICATION_JSON, body}});
   }
 
  public:
@@ -908,8 +911,7 @@ class oauth2_http_provider : protected http_provider {
  * @since 2.0.0
  */
 class oauth2_client : private oauth2_http_provider,
-                      public base_application_client,
-                      private std::enable_shared_from_this<oauth2_client> {
+                      public base_application_client {
   inline oauth2_client(oauth2* oauth2, const oauth2_session& session)
       : oauth2_http_provider(oauth2, session),
         base_application_client(static_cast<http_provider*>(this)) {}
