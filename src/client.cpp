@@ -203,13 +203,13 @@ void http_client::submit(http_request* request) {
 void http_client::safe_submit(http_request* request) {
   try {
     submit(request);
-
-    return;
   } catch (const topgg::exception& error) {
-    request->dispatch_variant(error);
-  }
+    m_callback_thread_pool.detach_task([request, error]() {
+      request->dispatch_variant(error);
 
-  delete request;
+      delete request;
+    });
+  }
 }
 
 http_client::~http_client() {
