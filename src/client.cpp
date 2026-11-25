@@ -167,8 +167,10 @@ http_request::~http_request() {
   }
 }
 
-http_client::http_client() : m_running(true), m_client(curl_multi_init()) {
-  if (m_client == nullptr) {
+http_client::http_client() : m_running(true) {
+  curl_global_init(CURL_GLOBAL_ALL);
+
+  if ((m_client = curl_multi_init()) == nullptr) {
     throw std::bad_alloc{};
   }
 
@@ -267,6 +269,8 @@ http_client::~http_client() {
     for (auto& request : m_pending_requests) {
       request->unref();
     }
+
+    curl_global_cleanup();
 
     m_client = nullptr;
   }
