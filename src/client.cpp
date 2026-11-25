@@ -184,18 +184,18 @@ void http_client::event_loop() {
   CURLMsg* message{};
 
 HTTP_CLIENT_EVENT_LOOP:
-  m_pending_requests_mutex.lock();
+  m_queued_requests_mutex.lock();
 
-  while (!m_pending_requests.empty()) {
-    auto pending_request{m_pending_requests.front()};
+  while (!m_queued_requests.empty()) {
+    auto request{m_queued_requests.front()};
 
-    curl_multi_add_handle(m_client, pending_request->m_curl);
+    curl_multi_add_handle(m_client, request->m_curl);
 
-    m_completed_requests.push_back(pending_request);
-    m_pending_requests.pop_back();
+    m_pending_requests.push_back(request);
+    m_queued_requests.pop_back();
   }
 
-  m_pending_requests_mutex.unlock();
+  m_queued_requests_mutex.unlock();
 
   curl_multi_perform(m_client, &still_running);
 
@@ -217,14 +217,13 @@ HTTP_CLIENT_EVENT_LOOP:
       (*request).get()->unref();
 
       auto request_pos{std::find_if(
-          m_completed_requests.begin(), m_completed_requests.end(),
-          [request_curl](
-              const std::shared_ptr<http_request>& existing_request) {
-            return existing_request->m_curl == request_curl;
+          m_pending_requests.begin(), m_pending_requests.end(),
+          [request_curl](const std::shared_ptr<http_request>& pending_request) {
+            return pending_request->m_curl == request_curl;
           })};
 
-      if (request_pos != m_completed_requests.end()) {
-        m_completed_requests.erase(request_pos);
+      if (request_pos != m_pending_requests.end()) {
+        m_pending_requests.erase(request_pos);
       }
     }
   }
@@ -237,9 +236,9 @@ HTTP_CLIENT_EVENT_LOOP:
 }
 
 void http_client::submit(const std::shared_ptr<http_request>& request) {
-  m_pending_requests_mutex.lock();
-  m_pending_requests.push_back(request);
-  m_pending_requests_mutex.unlock();
+  m_queued_requests_mutex.lock();
+  m_queued_requests.push_back(request);
+  m_queued_requests_mutex.unlock();
 
   TOPGG_HTTP_CLIENT_ASSERT(curl_multi_wakeup(m_client));
 }
@@ -264,7 +263,7 @@ http_client::~http_client() {
 
   curl_multi_cleanup(m_client);
 
-  for (auto& request : m_completed_requests) {
+  for (auto& request : m_pending_requests) {
     request->unref();
   }
 }

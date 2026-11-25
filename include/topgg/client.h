@@ -114,9 +114,9 @@ class http_client {
   std::atomic<bool> m_running{};
   CURLM* m_client{nullptr};
   std::thread m_event_loop_thread{};
-  std::mutex m_pending_requests_mutex{};
+  std::mutex m_queued_requests_mutex{};
+  std::vector<std::shared_ptr<http_request>> m_queued_requests{};
   std::vector<std::shared_ptr<http_request>> m_pending_requests{};
-  std::vector<std::shared_ptr<http_request>> m_completed_requests{};
   BS::thread_pool<> m_callback_thread_pool{};
 
   http_client();
